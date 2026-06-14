@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 0001: Stateful vs. Stateless Authentication</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&family=Outfit:wght@300..900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #faf9f6;
+      --bg-card: #ffffff;
+      --text-primary: #1c1917;
+      --text-secondary: #44403c;
+      --border: #e7e5e4;
+      --accent: #d97706; /* Warm amber */
+      --accent-hover: #b45309;
+      --success: #15803d;
+      --error: #b91c1c;
+      --code-bg: #f5f5f4;
+      --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-serif: 'Lora', Georgia, Cambria, "Times New Roman", Times, serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #0c0a09;
+      --bg-card: #1c1917;
+      --text-primary: #f5f5f4;
+      --text-secondary: #a8a29e;
+      --border: #2e2a24;
+      --accent: #f59e0b;
+      --accent-hover: #fbbf24;
+      --success: #22c55e;
+      --error: #ef4444;
+      --code-bg: #292524;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-serif);
+      font-size: 1.125rem;
+      line-height: 1.7;
+      transition: background-color 0.3s, color 0.3s;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 3rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .theme-toggle {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 0.5rem 1rem;
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--accent);
+      color: var(--text-primary);
+    }
+
+    .lesson-meta {
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-sans);
+      font-size: 2.5rem;
+      font-weight: 800;
+      line-height: 1.2;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+    }
+
+    h2 {
+      font-family: var(--font-sans);
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-top: 3rem;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    h3 {
+      font-family: var(--font-sans);
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+      color: var(--text-primary);
+    }
+
+    p {
+      margin-bottom: 1.5rem;
+    }
+
+    strong {
+      color: var(--text-primary);
+      font-weight: 700;
+    }
+
+    ul, ol {
+      margin-bottom: 1.5rem;
+      padding-left: 1.5rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      background-color: var(--code-bg);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+    }
+
+    pre {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      background-color: var(--code-bg);
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+    }
+
+    .diagram-container {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+
+    .diagram-title {
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .diagram-svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2rem 0;
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+    }
+
+    .comparison-table th, .comparison-table td {
+      border: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      text-align: left;
+    }
+
+    .comparison-table th {
+      background-color: var(--code-bg);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .quiz-section {
+      background-color: var(--bg-card);
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      margin: 3rem 0;
+    }
+
+    .quiz-title {
+      font-family: var(--font-sans);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .quiz-question {
+      margin-bottom: 1.5rem;
+    }
+
+    .quiz-question-text {
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .quiz-option {
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+    }
+
+    .quiz-option:hover {
+      border-color: var(--accent);
+      background-color: var(--code-bg);
+    }
+
+    .quiz-option.selected {
+      border-color: var(--accent);
+      background-color: rgba(217, 119, 6, 0.1);
+    }
+
+    .quiz-option.correct {
+      border-color: var(--success);
+      background-color: rgba(34, 197, 94, 0.1);
+    }
+
+    .quiz-option.incorrect {
+      border-color: var(--error);
+      background-color: rgba(239, 68, 68, 0.1);
+    }
+
+    .quiz-feedback {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      display: none;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .quiz-feedback.success {
+      display: block;
+      border: 1px solid var(--success);
+      background-color: rgba(34, 197, 94, 0.05);
+      color: var(--success);
+    }
+
+    .quiz-feedback.error {
+      display: block;
+      border: 1px solid var(--error);
+      background-color: rgba(239, 68, 68, 0.05);
+      color: var(--error);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .note-block {
+      border-left: 4px solid var(--accent);
+      padding-left: 1.5rem;
+      margin: 1.5rem 0;
+      font-style: italic;
+      color: var(--text-secondary);
+    }
+
+    footer {
+      margin-top: 4rem;
+      border-top: 1px solid var(--border);
+      padding-top: 2rem;
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <button class="theme-toggle" id="theme-toggle">Dark Mode</button>
+      <div class="lesson-meta">Lesson 0001 • Core Concepts</div>
+      <h1>Stateful vs. Stateless Authentication</h1>
+      <p>Before implementing any modern auth service (like Clerk) or building your own session handler, you must understand the two fundamentally different ways web servers remember who a client is: <strong>Stateful Sessions</strong> and <strong>Stateless Tokens</strong>.</p>
+    </header>
+
+    <main>
+      <h2>The Core Problem: HTTP is Stateless</h2>
+      <p>By default, HTTP is a stateless protocol. Every request a browser sends is treated by the server as completely independent. Without some mechanism, you would have to enter your username and password on every single click.</p>
+      <p>To solve this, servers issue a credential after successful login. The client attaches this credential to all subsequent requests. The choice between Stateful and Stateless determines how the server verifies that credential.</p>
+
+      <h2>1. Stateful Authentication (Session-based)</h2>
+      <p>In a session-based architecture, the server retains the "source of truth" regarding active logins inside a database or an in-memory cache (like Redis).</p>
+      
+      <h3>How it works:</h3>
+      <ol>
+        <li>The user submits credentials (username/password).</li>
+        <li>The server verifies them, generates a unique <strong>Session ID</strong>, and writes it to a data store (database, Redis, memory).</li>
+        <li>The server responds with a header setting a cookie containing the Session ID: <code>Set-Cookie: session_id=abc123xyz</code>.</li>
+        <li>The browser automatically saves the cookie and attaches it to every subsequent request to that domain.</li>
+        <li>For each incoming request, the server reads the Session ID, queries its database/cache to see if that ID is valid, and retrieves the associated user's details.</li>
+      </ol>
+
+      <div class="diagram-container">
+        <span class="diagram-title">Stateful Session Flow</span>
+        <svg class="diagram-svg" viewBox="0 0 700 240" width="100%" height="240" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background Grid / Styling -->
+          <rect width="700" height="240" rx="8" fill="var(--bg-card)" />
+          
+          <!-- Nodes -->
+          <rect x="30" y="70" width="120" height="80" rx="6" fill="var(--code-bg)" stroke="var(--border)" stroke-width="2"/>
+          <text x="90" y="115" font-family="var(--font-sans)" font-size="14" fill="var(--text-primary)" text-anchor="middle" font-weight="600">Browser</text>
+          
+          <rect x="290" y="70" width="120" height="80" rx="6" fill="var(--code-bg)" stroke="var(--border)" stroke-width="2"/>
+          <text x="350" y="115" font-family="var(--font-sans)" font-size="14" fill="var(--text-primary)" text-anchor="middle" font-weight="600">App Server</text>
+          
+          <rect x="540" y="70" width="130" height="80" rx="6" fill="var(--code-bg)" stroke="var(--border)" stroke-width="2"/>
+          <text x="605" y="110" font-family="var(--font-sans)" font-size="14" fill="var(--text-primary)" text-anchor="middle" font-weight="600">Session DB</text>
+          <text x="605" y="130" font-family="var(--font-sans)" font-size="11" fill="var(--text-secondary)" text-anchor="middle">(Redis/SQL)</text>
+
+          <!-- Arrows & Labels -->
+          <!-- Req 1 -->
+          <path d="M 160 85 L 280 85" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow)" />
+          <text x="220" y="75" font-family="var(--font-sans)" font-size="11" fill="var(--text-secondary)" text-anchor="middle">1. Request + Session ID</text>
+
+          <!-- DB Query -->
+          <path d="M 420 90 L 530 90" stroke="var(--text-secondary)" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arrow)" />
+          <text x="475" y="80" font-family="var(--font-sans)" font-size="11" fill="var(--text-secondary)" text-anchor="middle">2. Query ID</text>
+
+          <path d="M 530 130 L 420 130" stroke="var(--text-secondary)" stroke-width="1.5" stroke-dasharray="4 4" marker-end="url(#arrow)" />
+          <text x="475" y="145" font-family="var(--font-sans)" font-size="11" fill="var(--text-secondary)" text-anchor="middle">3. Valid + User Info</text>
+
+          <!-- Resp 1 -->
+          <path d="M 280 135 L 160 135" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow)" />
+          <text x="220" y="155" font-family="var(--font-sans)" font-size="11" fill="var(--text-secondary)" text-anchor="middle">4. Response (HTML/JSON)</text>
+          
+          <!-- Defs for arrowheads -->
+          <defs>
+            <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--accent)"/>
+            </marker>
+          </defs>
+        </svg>
+      </div>
+
+      <div class="card">
+        <strong>The Key Benefit: Instant Revocation.</strong> Since the server checks the database on every request, revoking a user session is instant. You simply delete the row matching that Session ID from your database, and the user's next request will fail.
+      </div>
+
+      <h2>2. Stateless Authentication (Token-based)</h2>
+      <p>In a token-based architecture, the credential contains the user's data itself (like user ID and email) and is cryptographically signed. The server does not need to store session states.</p>
+
+      <h3>How it works:</h3>
+      <ol>
+        <li>The user submits credentials.</li>
+        <li>The server verifies them, generates a JSON Web Token (<strong>JWT</strong>) containing payload details (claims), and signs it using a private key known only to the server.</li>
+        <li>The server responds with the JWT.</li>
+        <li>The client stores the JWT (in a cookie or local storage) and attaches it to request headers: <code>Authorization: Bearer <token></code>.</li>
+        <li>For each incoming request, the server takes the token, verifies the cryptographic signature using its private key (or public key), and reads the payload directly. <strong>No database lookup is required.</strong></li>
+      </ol>
+
+      <div class="diagram-container">
+        <span class="diagram-title">Stateless Token Flow</span>
+        <svg class="diagram-svg" viewBox="0 0 700 240" width="100%" height="240" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background Grid / Styling -->
+          <rect width="700" height="240" rx="8" fill="var(--bg-card)" />
+          
+          <!-- Nodes -->
+          <rect x="30" y="70" width="120" height="80" rx="6" fill="var(--code-bg)" stroke="var(--border)" stroke-width="2"/>
+          <text x="90" y="115" font-family="var(--font-sans)" font-size="14" fill="var(--text-primary)" text-anchor="middle" font-weight="600">Browser</text>
+          
+          <rect x="290" y="70" width="120" height="80" rx="6" fill="var(--code-bg)" stroke="var(--border)" stroke-width="2"/>
+          <text x="350" y="115" font-family="var(--font-sans)" font-size="14" fill="var(--text-primary)" text-anchor="middle" font-weight="600">App Server</text>
+          
+          <rect x="540" y="70" width="130" height="80" rx="6" fill="var(--code-bg)" stroke="var(--border)" stroke-width="2" stroke-dasharray="2 2" opacity="0.4"/>
+          <text x="605" y="110" font-family="var(--font-sans)" font-size="14" fill="var(--text-primary)" text-anchor="middle" font-weight="600" opacity="0.4">Database</text>
+          <text x="605" y="130" font-family="var(--font-sans)" font-size="11" fill="var(--text-secondary)" text-anchor="middle" opacity="0.4">(Unused for Auth)</text>
+
+          <!-- Arrows & Labels -->
+          <!-- Req 1 -->
+          <path d="M 160 85 L 280 85" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow)" />
+          <text x="220" y="75" font-family="var(--font-sans)" font-size="11" fill="var(--text-secondary)" text-anchor="middle">1. Request + JWT Header</text>
+
+          <!-- Server verification animation note -->
+          <path d="M 350 160 Q 320 200 350 200 Q 380 200 350 160" stroke="var(--accent)" stroke-width="1.5" marker-end="url(#arrow)" />
+          <text x="350" y="215" font-family="var(--font-sans)" font-size="10" fill="var(--text-secondary)" text-anchor="middle">2. Cryptographic signature check (Local)</text>
+
+          <!-- Resp 1 -->
+          <path d="M 280 135 L 160 135" stroke="var(--accent)" stroke-width="2" marker-end="url(#arrow)" />
+          <text x="220" y="155" font-family="var(--font-sans)" font-size="11" fill="var(--text-secondary)" text-anchor="middle">3. Response (HTML/JSON)</text>
+        </svg>
+      </div>
+
+      <div class="card">
+        <strong>The Key Benefit: Scalability.</strong> Because the server does not check a database to verify the user, stateless tokens are ideal for high-traffic environments, distributed microservices, and serverless architectures.
+      </div>
+
+      <h2>Comparison Summary</h2>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Criterion</th>
+            <th>Stateful Sessions</th>
+            <th>Stateless Tokens (JWT)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Server Storage</strong></td>
+            <td>Required (Session database/Redis cache).</td>
+            <td>None (Self-contained and verified locally).</td>
+          </tr>
+          <tr>
+            <td><strong>Revocation</strong></td>
+            <td>Instant (Simple database row deletion).</td>
+            <td>Difficult (Requires blacklisting or short TTLs).</td>
+          </tr>
+          <tr>
+            <td><strong>Scalability</strong></td>
+            <td>Limited by session store read throughput.</td>
+            <td>Highly scalable (No centralized database checks).</td>
+          </tr>
+          <tr>
+            <td><strong>Data Overhead</strong></td>
+            <td>Low (Only transmits a small random ID).</td>
+            <td>Higher (Carries claims, signatures, metadata).</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="quiz-section">
+        <div class="quiz-title">Quiz: Test Your Storage Strength</div>
+        
+        <div class="quiz-question" id="q1">
+          <div class="quiz-question-text">1. In a stateless token-based auth architecture, how does the server verify if a client's token is valid?</div>
+          <div class="quiz-options">
+            <button class="quiz-option" data-correct="false" data-index="0">It checks a central database session log.</button>
+            <button class="quiz-option" data-correct="true" data-index="1">It validates the token's cryptographic signature.</button>
+            <button class="quiz-option" data-correct="false" data-index="2">It queries the server memory cache list.</button>
+            <button class="quiz-option" data-correct="false" data-index="3">It verifies the client ip address match.</button>
+          </div>
+          <div class="quiz-feedback success" id="f1-success">Correct! In a stateless setup, the token contains the data and a cryptographic signature. The server validates this signature using its key, verifying authenticity without database checks.</div>
+          <div class="quiz-feedback error" id="f1-error">Incorrect. Try again! Remember that "stateless" means the server doesn't check any stored database or cache entries to verify the token's validity.</div>
+        </div>
+
+        <div class="quiz-question" id="q2">
+          <div class="quiz-question-text">2. What is a key disadvantage of stateless token-based authentication compared to stateful session-based authentication?</div>
+          <div class="quiz-options">
+            <button class="quiz-option" data-correct="true" data-index="0">Revoking active sessions immediately becomes very difficult.</button>
+            <button class="quiz-option" data-correct="false" data-index="1">Storing session records in database becomes very costly.</button>
+            <button class="quiz-option" data-correct="false" data-index="2">Sending authentication cookies to client becomes very unsafe.</button>
+            <button class="quiz-option" data-correct="false" data-index="3">Running cryptographic signature verification becomes very slow.</button>
+          </div>
+          <div class="quiz-feedback success" id="f2-success">Correct! Since token verification is stateless, the server doesn't query a database. Thus, blacklisting or revoking an unexpired token immediately is hard and requires stateful features.</div>
+          <div class="quiz-feedback error" id="f2-error">Incorrect. Think about what happens if you need to log a user out on all devices immediately. Since the server doesn't check a central database, how does it stop a token that is still mathematically valid?</div>
+        </div>
+      </div>
+
+      <div class="note-block">
+        <strong>Next Steps:</strong> We will soon dive into the structures of these tokens (JSON Web Tokens) and learn how to store them securely using cookies. If anything in this lesson is unclear, ask follow-up questions to your AI teacher.
+      </div>
+    </main>
+
+    <footer>
+      <span>Reference: <a href="../RESOURCES.md">RESOURCES.md</a></span>
+      <span>Learning Path: <a href="../MISSION.md">MISSION.md</a></span>
+    </footer>
+  </div>
+
+  <script>
+    // Theme toggle script
+    const themeToggle = document.getElementById('theme-toggle');
+    themeToggle.addEventListener('click', () => {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        document.documentElement.removeAttribute('data-theme');
+        themeToggle.textContent = 'Dark Mode';
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        themeToggle.textContent = 'Light Mode';
+      }
+    });
+
+    // Quiz logic
+    document.querySelectorAll('.quiz-question').forEach(qBlock => {
+      const options = qBlock.querySelectorAll('.quiz-option');
+      const successFeedback = qBlock.querySelector('.quiz-feedback.success');
+      const errorFeedback = qBlock.querySelector('.quiz-feedback.error');
+
+      options.forEach(opt => {
+        opt.addEventListener('click', () => {
+          // Clear current choices in this question block
+          options.forEach(o => o.classList.remove('selected', 'correct', 'incorrect'));
+          successFeedback.style.display = 'none';
+          errorFeedback.style.display = 'none';
+
+          const isCorrect = opt.getAttribute('data-correct') === 'true';
+          if (isCorrect) {
+            opt.classList.add('correct');
+            successFeedback.style.display = 'block';
+          } else {
+            opt.classList.add('incorrect');
+            errorFeedback.style.display = 'block';
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

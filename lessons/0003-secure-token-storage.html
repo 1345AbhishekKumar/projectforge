@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 0003: Secure Token Storage (Cookies vs. LocalStorage)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&family=Outfit:wght@300..900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #faf9f6;
+      --bg-card: #ffffff;
+      --text-primary: #1c1917;
+      --text-secondary: #44403c;
+      --border: #e7e5e4;
+      --accent: #d97706; /* Warm amber */
+      --accent-hover: #b45309;
+      --success: #15803d;
+      --error: #b91c1c;
+      --code-bg: #f5f5f4;
+      
+      --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-serif: 'Lora', Georgia, Cambria, "Times New Roman", Times, serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #0c0a09;
+      --bg-card: #1c1917;
+      --text-primary: #f5f5f4;
+      --text-secondary: #a8a29e;
+      --border: #2e2a24;
+      --accent: #f59e0b;
+      --accent-hover: #fbbf24;
+      --success: #22c55e;
+      --error: #ef4444;
+      --code-bg: #292524;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-serif);
+      font-size: 1.125rem;
+      line-height: 1.7;
+      transition: background-color 0.3s, color 0.3s;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 3rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .theme-toggle {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 0.5rem 1rem;
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--accent);
+      color: var(--text-primary);
+    }
+
+    .lesson-meta {
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-sans);
+      font-size: 2.5rem;
+      font-weight: 800;
+      line-height: 1.2;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+    }
+
+    h2 {
+      font-family: var(--font-sans);
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-top: 3rem;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    h3 {
+      font-family: var(--font-sans);
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+      color: var(--text-primary);
+    }
+
+    p {
+      margin-bottom: 1.5rem;
+    }
+
+    strong {
+      color: var(--text-primary);
+      font-weight: 700;
+    }
+
+    ul, ol {
+      margin-bottom: 1.5rem;
+      padding-left: 1.5rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      background-color: var(--code-bg);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+    }
+
+    pre {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      background-color: var(--code-bg);
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+
+    .comparison-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2rem 0;
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+    }
+
+    .comparison-table th, .comparison-table td {
+      border: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      text-align: left;
+    }
+
+    .comparison-table th {
+      background-color: var(--code-bg);
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .quiz-section {
+      background-color: var(--bg-card);
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      margin: 3rem 0;
+    }
+
+    .quiz-title {
+      font-family: var(--font-sans);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .quiz-question {
+      margin-bottom: 1.5rem;
+    }
+
+    .quiz-question-text {
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .quiz-option {
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+    }
+
+    .quiz-option:hover {
+      border-color: var(--accent);
+      background-color: var(--code-bg);
+    }
+
+    .quiz-option.selected {
+      border-color: var(--accent);
+      background-color: rgba(217, 119, 6, 0.1);
+    }
+
+    .quiz-option.correct {
+      border-color: var(--success);
+      background-color: rgba(34, 197, 94, 0.1);
+    }
+
+    .quiz-option.incorrect {
+      border-color: var(--error);
+      background-color: rgba(239, 68, 68, 0.1);
+    }
+
+    .quiz-feedback {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      display: none;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .quiz-feedback.success {
+      display: block;
+      border: 1px solid var(--success);
+      background-color: rgba(34, 197, 94, 0.05);
+      color: var(--success);
+    }
+
+    .quiz-feedback.error {
+      display: block;
+      border: 1px solid var(--error);
+      background-color: rgba(239, 68, 68, 0.05);
+      color: var(--error);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .note-block {
+      border-left: 4px solid var(--accent);
+      padding-left: 1.5rem;
+      margin: 1.5rem 0;
+      font-style: italic;
+      color: var(--text-secondary);
+    }
+
+    footer {
+      margin-top: 4rem;
+      border-top: 1px solid var(--border);
+      padding-top: 2rem;
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <button class="theme-toggle" id="theme-toggle">Dark Mode</button>
+      <div class="lesson-meta">Lesson 0003 • Client Security</div>
+      <h1>Secure Token Storage (Cookies vs. LocalStorage)</h1>
+      <p>Once your server authenticates a user and returns a JSON Web Token (JWT) or Session ID, the browser must store it. Choosing where to store this token is one of the most critical decisions affecting your application's security posture.</p>
+    </header>
+
+    <main>
+      <h2>The Storage Options</h2>
+      <p>There are two primary locations in the browser where developers store authentication credentials:</p>
+      <ol>
+        <li><strong>Web Storage (LocalStorage or SessionStorage)</strong></li>
+        <li><strong>HTTP Cookies</strong></li>
+      </ol>
+
+      <h2>1. LocalStorage</h2>
+      <p>LocalStorage is a simple key-value store in the browser. It persists even when the browser is closed and reopened.</p>
+      
+      <h3>How it works:</h3>
+      <p>The client-side JavaScript receives the token from the login response and saves it:</p>
+      <pre><code>localStorage.setItem('auth_token', token);</code></pre>
+      <p>For every API request, JavaScript retrieves the token and appends it to the header:</p>
+      <pre><code>const token = localStorage.getItem('auth_token');
+fetch('/api/tasks', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});</code></pre>
+
+      <div class="card" style="border-left: 4px solid var(--error);">
+        <strong>The XSS Vulnerability:</strong> LocalStorage is accessible by <em>any</em> JavaScript running on your origin. If your application has a Cross-Site Scripting (XSS) vulnerability—due to a compromised npm dependency, an unescaped input, or an injected script—the attacker can execute <code>localStorage.getItem()</code> and send your token straight to their server.
+      </div>
+
+      <h2>2. HTTP Cookies</h2>
+      <p>Cookies are small text files stored by the browser. Unlike LocalStorage, cookies can be configured to be handled strictly by the browser, invisible to JavaScript.</p>
+
+      <h3>Cookie Security Flags:</h3>
+      <p>To secure a token stored in a cookie, you MUST configure the following headers when writing the cookie from the server:</p>
+      
+      <ul>
+        <li><strong><code>HttpOnly</code></strong>: Instructs the browser that client-side JavaScript <strong>cannot</strong> read the cookie (i.e. <code>document.cookie</code> will not return it). This completely neutralizes token theft via XSS.</li>
+        <li><strong><code>Secure</code></strong>: Directs the browser to only transmit the cookie over encrypted (HTTPS) connections.</li>
+        <li><strong><code>SameSite</code></strong>: Controls whether cookies are sent on cross-site requests. This is your primary shield against CSRF.
+          <ul>
+            <li><code>SameSite=Strict</code>: Cookie is never sent on cross-site requests (e.g. following a link from another site).</li>
+            <li><code>SameSite=Lax</code>: Cookie is sent when navigating to the origin site (e.g., clicking a link), but not on subresources like cross-site image loads or POST requests. (Standard default).</li>
+          </ul>
+        </li>
+      </ul>
+
+      <div class="card" style="border-left: 4px solid var(--accent);">
+        <strong>The CSRF Vulnerability:</strong> Because browsers automatically attach cookies to requests targeting that domain, a malicious website could trick a user's browser into sending a request to your server (e.g., submitting a form to transfer money). Setting <code>SameSite=Lax</code> or <code>SameSite=Strict</code> and using CSRF protection tokens mitigates this.
+      </div>
+
+      <h2>Comparison Summary</h2>
+      <table class="comparison-table">
+        <thead>
+          <tr>
+            <th>Security Threat</th>
+            <th>LocalStorage</th>
+            <th>HttpOnly, Secure Cookies</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>XSS (Token Theft)</strong></td>
+            <td><strong style="color: var(--error);">Vulnerable</strong> (Any script can read it)</td>
+            <td><strong style="color: var(--success);">Protected</strong> (Hidden from JavaScript)</td>
+          </tr>
+          <tr>
+            <td><strong>CSRF (Request Forgery)</strong></td>
+            <td><strong style="color: var(--success);">Protected</strong> (Not sent automatically)</td>
+            <td><strong style="color: var(--error);">Vulnerable</strong> (If SameSite is misconfigured)</td>
+          </tr>
+          <tr>
+            <td><strong>Subdomain Sharing</strong></td>
+            <td>Difficult (Origin-restricted)</td>
+            <td>Easy (Configure cookie domain parameter)</td>
+          </tr>
+          <tr>
+            <td><strong>Ease of Use</strong></td>
+            <td>Very Simple (Pure client-side)</td>
+            <td>Moderate (Requires server-side header configs)</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2>The Best Practice Recommendation</h2>
+      <p>For production web applications (including Next.js apps like ProjectForge), the standard recommendation is to use <strong>HttpOnly, Secure, SameSite=Lax Cookies</strong> for storing session tokens. This ensures that your tokens are protected from XSS theft, while modern browser defaults and frameworks shield you against CSRF.</p>
+
+      <div class="quiz-section">
+        <div class="quiz-title">Quiz: Test Your Storage Strength</div>
+        
+        <div class="quiz-question" id="q1">
+          <div class="quiz-question-text">1. Why is storing JWTs in LocalStorage considered vulnerable to theft?</div>
+          <div class="quiz-options">
+            <button class="quiz-option" data-correct="true" data-index="0">Malicious JavaScript scripts can read it.</button>
+            <button class="quiz-option" data-correct="false" data-index="1">Database server crashes can delete it.</button>
+            <button class="quiz-option" data-correct="false" data-index="2">Network sniffing routers can copy it.</button>
+            <button class="quiz-option" data-correct="false" data-index="3">Browser window reloads can destroy it.</button>
+          </div>
+          <div class="quiz-feedback success" id="f1-success">Correct! LocalStorage is accessible by any script executing on the page, meaning a Cross-Site Scripting (XSS) vulnerability allows immediate token theft.</div>
+          <div class="quiz-feedback error" id="f1-error">Incorrect. Remember that LocalStorage is client-side storage managed within the browser. Who or what runs inside the browser and has access to its API?</div>
+        </div>
+
+        <div class="quiz-question" id="q2">
+          <div class="quiz-question-text">2. What cookie flag prevents client-side scripts from accessing cookie values?</div>
+          <div class="quiz-options">
+            <button class="quiz-option" data-correct="true" data-index="0">The HttpOnly flag does this.</button>
+            <button class="quiz-option" data-correct="false" data-index="1">The Secure flag does this.</button>
+            <button class="quiz-option" data-correct="false" data-index="2">The SameSite flag does this.</button>
+            <button class="quiz-option" data-correct="false" data-index="3">The Domain flag does this.</button>
+          </div>
+          <div class="quiz-feedback success" id="f2-success">Correct! Setting the HttpOnly flag tells the browser to block any client-side JavaScript access (like document.cookie) to that cookie.</div>
+          <div class="quiz-feedback error" id="f2-error">Incorrect. Recall the flags listed above. One specifically addresses access from HTTP requests versus client-side scripting environments.</div>
+        </div>
+      </div>
+
+      <div class="note-block">
+        <strong>Next Steps:</strong> We will next cover **Lesson 0004: OAuth 2.0 and OpenID Connect (OIDC) Flows**. If anything is unclear, ask follow-up questions to your AI teacher.
+      </div>
+    </main>
+
+    <footer>
+      <span>Reference: <a href="../RESOURCES.md">RESOURCES.md</a></span>
+      <span>Learning Path: <a href="../MISSION.md">MISSION.md</a></span>
+    </footer>
+  </div>
+
+  <script>
+    // Theme toggle script
+    const themeToggle = document.getElementById('theme-toggle');
+    themeToggle.addEventListener('click', () => {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        document.documentElement.removeAttribute('data-theme');
+        themeToggle.textContent = 'Dark Mode';
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        themeToggle.textContent = 'Light Mode';
+      }
+    });
+
+    // Quiz logic
+    document.querySelectorAll('.quiz-question').forEach(qBlock => {
+      const options = qBlock.querySelectorAll('.quiz-option');
+      const successFeedback = qBlock.querySelector('.quiz-feedback.success');
+      const errorFeedback = qBlock.querySelector('.quiz-feedback.error');
+
+      options.forEach(opt => {
+        opt.addEventListener('click', () => {
+          // Clear current choices in this question block
+          options.forEach(o => o.classList.remove('selected', 'correct', 'incorrect'));
+          successFeedback.style.display = 'none';
+          errorFeedback.style.display = 'none';
+
+          const isCorrect = opt.getAttribute('data-correct') === 'true';
+          if (isCorrect) {
+            opt.classList.add('correct');
+            successFeedback.style.display = 'block';
+          } else {
+            opt.classList.add('incorrect');
+            errorFeedback.style.display = 'block';
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

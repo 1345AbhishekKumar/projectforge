@@ -1,0 +1,88 @@
+# ProjectForge: Version 1 (MVP) Verification Guidelines & Todos
+
+This document lists the technical verification checklists and manual E2E test steps for **Version 1 (MVP)**, organized by scaffolding, database setups, and individual feature components.
+
+---
+
+## Phase 1 Scaffolding & Database Setup Checklist
+
+### Database Tables & Schema Verification
+- [ ] **`profiles` Table:** Verify schema matches user meta-data. Test sync trigger on successful authentication signup.
+- [ ] **`organizations` Table:** Verify name and unique URL slug fields. Enforce indexes on slug for fast lookups.
+- [ ] **`memberships` Table:** Verify composite unique key `(organization_id, user_id)` and role enum constraint (`OWNER`, `ADMIN`, `MEMBER`).
+- [ ] **`projects` Table:** Verify foreign key constraint linking to `organizations.id` and name/status fields.
+- [ ] **`tasks` Table:** Verify foreign key constraints linking to `projects.id` and `profiles.id` (assignee). Check priority/status constraints.
+- [ ] **`comments` Table:** Verify foreign key constraints linking to `tasks.id` and `profiles.id` (author).
+- [ ] **`attachments` Table:** Verify storage URL paths and size mappings are stored correctly.
+- [ ] **`notifications` Table:** Verify read/unread states, recipient links, and event type categories.
+
+### Page Routing & Directory Scaffolding
+- [ ] **Landing Page (`/`):** Verify public page routing and metadata settings.
+- [ ] **Auth Pages (`/login`, `/signup`):** Verify public page routing.
+- [ ] **Middleware Interceptor (`middleware.ts`):** Check authentication redirects correctly protect private routing boundaries.
+- [ ] **Dashboard (`/dashboard`):** Verify core layout shell and workspace switcher location.
+- [ ] **Organization Creator (`/organizations/create`):** Verify page routing and workspace slug uniqueness API.
+- [ ] **Members Settings (`/organizations/settings`):** Verify page routing and member invitation interface placement.
+- [ ] **Projects Directory (`/projects`):** Verify page layout and project creation modal triggers.
+- [ ] **Project Details (`/projects/[id]`):** Verify dynamic project page layout and tabs routing.
+- [ ] **Task Details View (`/tasks/[id]` or drawer):** Verify overlay task details component.
+- [ ] **Clerk Webhook Endpoint (`/api/webhooks/clerk`):** Verify that the Clerk webhook handler successfully receives and validates Clerk user.created event payloads.
+
+---
+
+## Component-by-Component Checklists
+
+### Feature 1.1: Landing Page Verification
+- [ ] **Navbar Layout & Menu:** Verify logo, desktop navigation links ("Dashboard", "Projects", "Settings"), and "Start for free" button are aligned and responsive.
+- [ ] **Responsive Breakpoints:** Verify mobile hamburger menu replaces desktop nav link structure on viewports < 768px.
+- [ ] **Auth Navigation Rules:** 
+  - [ ] Click CTA buttons while logged out. Verify redirect to `/login`.
+  - [ ] Click CTA buttons while logged in. Verify redirect to `/dashboard`.
+
+### Feature 1.2: Authentication & Onboarding Verification
+- [ ] **Clerk Middleware Check:** Verify Clerk's middleware protects private routes and redirects unauthenticated users to `/login` (or Clerk's Sign In component).
+- [ ] **Clerk Profile Sync (Webhook):** Verify that registering a new user triggers the Clerk webhook handler at `/api/webhooks/clerk` (handling `user.created`) and inserts a matching profile record in `public.profiles`.
+- [ ] **Form Validations:**
+  - [ ] Verify form validation (e.g. invalid email format, short password) works correctly under Clerk's Sign Up UI/flow.
+- [ ] **Clerk OAuth Integration:** Verify Google and GitHub buttons trigger Clerk's OAuth flow and redirect back to the workspace dashboard upon completion.
+
+### Feature 1.3: Multi-Tenant Workspace (Organizations) Verification
+- [ ] **Organization Creation:** Create a workspace named `"DevOps Pioneers"`. Verify matching record is inserted in `organizations`.
+- [ ] **Membership Association:** Verify organization creator is automatically mapped with `OWNER` role in `memberships`.
+- [ ] **Slug Uniqueness:** Attempt to register a duplicate URL slug `"devops-pioneers"`. Verify the UI blocks submit and debounced warning displays.
+- [ ] **Active Context Switcher:** Switch active organizations in the sidebar selector. Verify the `active_org_id` cookie updates and triggers route revalidation.
+
+### Feature 1.4: Membership & Role Management Verification
+- [ ] **Invitation Security checks:** Login as a `MEMBER` user. Verify that invitation drawers are hidden and endpoint rejects requests.
+- [ ] **Duplicate Invite Guard:** Attempt to invite a member who is already invited or joined. Verify unique constraint checks block duplicates.
+- [ ] **Role Updates:** Change a member's role from dropdown. Verify membership record is updated in the database.
+
+### Feature 1.5: Project Management Verification
+- [ ] **Multi-Tenant Data Isolation:** Verify that a user cannot query projects outside of their active `organization_id`.
+- [ ] **Project CRUD Lifecycle:** Test project creation, reading, status updates, and archiving. Verify database updates match input fields.
+- [ ] **Empty State Renders:** Navigate to a newly created project. Verify empty state illustration and "No projects found" caption render when count is 0.
+
+### Feature 1.6: Tasks Engine Verification
+- [ ] **Task CRUD Lifecycle:** Verify task creation modal properly inputs title, description, priority status, and due date.
+- [ ] **Overdue Warnings:** Create a task with due date set in the past. Verify due date badge appears in red on list and details views.
+- [ ] **Assignee Validation:** Verify assignee list dropdown is scoped to members of the active organization only.
+
+### Feature 1.7: Comments & Attachments Verification
+- [ ] **Upload Size Limits:** Try to upload file larger than 20MB. Verify upload fails validation checks.
+- [ ] **Upload Progress:** Verify linear progress bar displays matching upload percentage during transmission.
+- [ ] **Security Sanitization:** Attempt to upload script `malicious.sh`. Verify file type constraints block execution and upload.
+- [ ] **Comment Notification Trigger:** Post comment on task. Verify a notification triggers for the task assignee.
+
+### Feature 1.8: Notification Center Verification
+- [ ] **Header Alert Indicator:** Trigger notification. Verify red badge displays next to header bell icon.
+- [ ] **Notifications Read Mutator:** Click "Mark all as read". Verify notification records in DB update `read` to `true` and the header count clears.
+
+---
+
+## E-2-E Smoke Test Verification Flow
+- [ ] **Step 1: Org Setup:** Register User A (`alice@devops.com`) -> Create organization `"DevOps Pioneers"` (slug `"devops-pioneers"`) -> Verify OWNER role in database.
+- [ ] **Step 2: Team Invites:** Register User B (`bob@devops.com`) -> Alice invites Bob as `MEMBER` -> Bob switches to workspace -> Verify role in DB.
+- [ ] **Step 3: Project & Tasks:** Alice creates project `"Frontend Redesign"` -> Creates high-priority task `"Implement Navbar Component"` assigned to Bob.
+- [ ] **Step 4: Real-time Collaboration:** Bob receives notification -> Changes task status to `IN_PROGRESS` -> Comments: *"Beginning implementation"* -> Alice receives notifications.
+- [ ] **Step 5: File Upload:** Bob uploads `navbar_draft.png` (250KB) -> Alice reviews and downloads from task details successfully.
+- [ ] **Step 6: Completion:** Bob sets task to `DONE` -> Verify dashboard completion counter increments.

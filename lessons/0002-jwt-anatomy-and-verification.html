@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 0002: Anatomy and Verification of a JWT</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&family=Outfit:wght@300..900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #faf9f6;
+      --bg-card: #ffffff;
+      --text-primary: #1c1917;
+      --text-secondary: #44403c;
+      --border: #e7e5e4;
+      --accent: #d97706; /* Warm amber */
+      --accent-hover: #b45309;
+      --success: #15803d;
+      --error: #b91c1c;
+      --code-bg: #f5f5f4;
+      
+      /* JWT colors */
+      --jwt-header: #ef4444;
+      --jwt-payload: #3b82f6;
+      --jwt-signature: #10b981;
+      
+      --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-serif: 'Lora', Georgia, Cambria, "Times New Roman", Times, serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #0c0a09;
+      --bg-card: #1c1917;
+      --text-primary: #f5f5f4;
+      --text-secondary: #a8a29e;
+      --border: #2e2a24;
+      --accent: #f59e0b;
+      --accent-hover: #fbbf24;
+      --success: #22c55e;
+      --error: #ef4444;
+      --code-bg: #292524;
+      
+      --jwt-header: #f87171;
+      --jwt-payload: #60a5fa;
+      --jwt-signature: #34d399;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-serif);
+      font-size: 1.125rem;
+      line-height: 1.7;
+      transition: background-color 0.3s, color 0.3s;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 3rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .theme-toggle {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 0.5rem 1rem;
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--accent);
+      color: var(--text-primary);
+    }
+
+    .lesson-meta {
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-sans);
+      font-size: 2.5rem;
+      font-weight: 800;
+      line-height: 1.2;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+    }
+
+    h2 {
+      font-family: var(--font-sans);
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-top: 3rem;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    h3 {
+      font-family: var(--font-sans);
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+      color: var(--text-primary);
+    }
+
+    p {
+      margin-bottom: 1.5rem;
+    }
+
+    strong {
+      color: var(--text-primary);
+      font-weight: 700;
+    }
+
+    ul, ol {
+      margin-bottom: 1.5rem;
+      padding-left: 1.5rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      background-color: var(--code-bg);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+    }
+
+    pre {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      background-color: var(--code-bg);
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+    }
+
+    .jwt-display {
+      font-family: var(--font-mono);
+      font-size: 1.1rem;
+      word-break: break-all;
+      background-color: var(--code-bg);
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin: 1.5rem 0;
+      line-height: 1.5;
+    }
+
+    .jwt-header-part { color: var(--jwt-header); font-weight: bold; }
+    .jwt-payload-part { color: var(--jwt-payload); font-weight: bold; }
+    .jwt-signature-part { color: var(--jwt-signature); font-weight: bold; }
+
+    .diagram-container {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 2rem 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+
+    .diagram-title {
+      font-family: var(--font-sans);
+      font-size: 0.9rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .diagram-svg {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+
+    .quiz-section {
+      background-color: var(--bg-card);
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      margin: 3rem 0;
+    }
+
+    .quiz-title {
+      font-family: var(--font-sans);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .quiz-question {
+      margin-bottom: 1.5rem;
+    }
+
+    .quiz-question-text {
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .quiz-option {
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+    }
+
+    .quiz-option:hover {
+      border-color: var(--accent);
+      background-color: var(--code-bg);
+    }
+
+    .quiz-option.selected {
+      border-color: var(--accent);
+      background-color: rgba(217, 119, 6, 0.1);
+    }
+
+    .quiz-option.correct {
+      border-color: var(--success);
+      background-color: rgba(34, 197, 94, 0.1);
+    }
+
+    .quiz-option.incorrect {
+      border-color: var(--error);
+      background-color: rgba(239, 68, 68, 0.1);
+    }
+
+    .quiz-feedback {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      display: none;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .quiz-feedback.success {
+      display: block;
+      border: 1px solid var(--success);
+      background-color: rgba(34, 197, 94, 0.05);
+      color: var(--success);
+    }
+
+    .quiz-feedback.error {
+      display: block;
+      border: 1px solid var(--error);
+      background-color: rgba(239, 68, 68, 0.05);
+      color: var(--error);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .note-block {
+      border-left: 4px solid var(--accent);
+      padding-left: 1.5rem;
+      margin: 1.5rem 0;
+      font-style: italic;
+      color: var(--text-secondary);
+    }
+
+    footer {
+      margin-top: 4rem;
+      border-top: 1px solid var(--border);
+      padding-top: 2rem;
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <button class="theme-toggle" id="theme-toggle">Dark Mode</button>
+      <div class="lesson-meta">Lesson 0002 • Token Anatomy</div>
+      <h1>Anatomy and Verification of a JWT</h1>
+      <p>JSON Web Tokens (JWTs) are the most popular mechanism for stateless authentication. To understand how third-party services like Clerk or Firebase secure your APIs, you must understand exactly how a JWT is structured and verified.</p>
+    </header>
+
+    <main>
+      <h2>What is a JSON Web Token?</h2>
+      <p>A JWT is a compact, URL-safe means of representing claims (pieces of information) to be transferred between two parties. It is defined in <a href="https://datatracker.ietf.org/doc/html/rfc7519" target="_blank">RFC 7519</a>.</p>
+      <p>A JWT is composed of three parts, separated by periods (<code>.</code>):</p>
+      
+      <div class="jwt-display">
+        <span class="jwt-header-part">eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9</span>.<span class="jwt-payload-part">eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ</span>.<span class="jwt-signature-part">SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c</span>
+      </div>
+
+      <h2>The Three Parts Explained</h2>
+
+      <h3 style="color: var(--jwt-header);">1. The Header</h3>
+      <p>The header typically consists of two parts: the type of the token (JWT) and the signing algorithm being used, such as HMAC SHA256 (HS256) or RSA (RS256).</p>
+      <pre><code>{
+  "alg": "HS256",
+  "typ": "JWT"
+}</code></pre>
+      <p>This JSON is Base64Url encoded to form the first part of the JWT.</p>
+
+      <h3 style="color: var(--jwt-payload);">2. The Payload</h3>
+      <p>The payload contains the **claims**. Claims are statements about an entity (typically, the user) and additional metadata. There are three types of claims: registered, public, and private claims.</p>
+      <ul>
+        <li><strong>Registered claims:</strong> Predefined standard claims like <code>sub</code> (subject/user ID), <code>exp</code> (expiration time), <code>iat</code> (issued at time), and <code>iss</code> (issuer).</li>
+        <li><strong>Private claims:</strong> Custom claims created to share information between parties (e.g. <code>role</code> or <code>tenant_id</code>).</li>
+      </ul>
+      <pre><code>{
+  "sub": "1234567890",
+  "name": "John Doe",
+  "role": "ADMIN",
+  "exp": 1782384000
+}</code></pre>
+      <p>This JSON is Base64Url encoded to form the second part of the JWT. <strong>Crucial reminder:</strong> Base64Url is encoding, NOT encryption. Anyone can decode and read this payload. Never store secrets inside a JWT payload.</p>
+
+      <h3 style="color: var(--jwt-signature);">3. The Signature</h3>
+      <p>To create the signature, you take the encoded header, the encoded payload, a secret key, and hash them using the algorithm specified in the header.</p>
+      <pre><code>HMACSHA256(
+  base64UrlEncode(header) + "." +
+  base64UrlEncode(payload),
+  secret_key
+)</code></pre>
+      <p>The signature is used to verify that the sender of the JWT is who it says it is and to ensure that the message wasn't changed along the way.</p>
+
+      <h2>Cryptographic Signing: Symmetric vs. Asymmetric</h2>
+      <p>How the signature is verified depends on the cryptographic scheme used:</p>
+      
+      <div class="card">
+        <h3>Symmetric: HS256 (HMAC with SHA-256)</h3>
+        <p>Both the issuer (auth server) and the consumer (your API server) share a <strong>single secret key</strong>. The auth server signs the token with the secret, and your API server verifies it with the exact same secret. Simple, but require secure key distribution.</p>
+      </div>
+
+      <div class="card">
+        <h3>Asymmetric: RS256 (RSA Signature with SHA-256)</h3>
+        <p>The auth provider (like Clerk, Auth0, or InsForge) has a <strong>private key</strong> (secret) to sign the token. They publish their <strong>public key</strong> (available via a public JSON Web Key Set - JWKS endpoint). Your application server downloads this public key and uses it to verify the signature. Your server doesn't know the private key, making this extremely secure.</p>
+      </div>
+
+      <h2>How Verification Works Step-by-Step</h2>
+      <p>When your Next.js/Node.js backend receives a request with an <code>Authorization: Bearer &lt;token&gt;</code> header, it performs these verification steps:</p>
+      <ol>
+        <li><strong>Parse:</strong> Splits the token by <code>.</code> into Header, Payload, and Signature.</li>
+        <li><strong>Algorithm Check:</strong> Reads the header to identify the algorithm. <em>Vulnerability Alert:</em> Always reject the <code>"alg": "none"</code> header variant to prevent validation bypasses.</li>
+        <li><strong>Signature Verification:</strong> Re-calculates the signature using the received Header, Payload, and the known verification key. It compares this calculation to the signature received in the token. If they differ, validation fails.</li>
+        <li><strong>Expiration Check:</strong> Decodes the payload, parses the <code>exp</code> claim, and rejects the token if the current system time is past the expiration time.</li>
+      </ol>
+
+      <div class="quiz-section">
+        <div class="quiz-title">Quiz: Test Your Storage Strength</div>
+        
+        <div class="quiz-question" id="q1">
+          <div class="quiz-question-text">1. What are the three parts of a JSON Web Token (JWT) separated by?</div>
+          <div class="quiz-options">
+            <button class="quiz-option" data-correct="true" data-index="0">They are separated by dot characters.</button>
+            <button class="quiz-option" data-correct="false" data-index="1">They are separated by colon characters.</button>
+            <button class="quiz-option" data-correct="false" data-index="2">They are separated by slash characters.</button>
+            <button class="quiz-option" data-correct="false" data-index="3">They are separated by dash characters.</button>
+          </div>
+          <div class="quiz-feedback success" id="f1-success">Correct! A JWT is formed by an encoded Header, Payload, and Signature string, separated exactly by dot (.) characters.</div>
+          <div class="quiz-feedback error" id="f1-error">Incorrect. Try again! Think about the visual representation of the token shown above. What character separates the red, blue, and green sections?</div>
+        </div>
+
+        <div class="quiz-question" id="q2">
+          <div class="quiz-question-text">2. In RS256 signing, what key does the application server use to verify the incoming JWT?</div>
+          <div class="quiz-options">
+            <button class="quiz-option" data-correct="true" data-index="0">It uses the public key for verification.</button>
+            <button class="quiz-option" data-correct="false" data-index="1">It uses the private key for verification.</button>
+            <button class="quiz-option" data-correct="false" data-index="2">It uses the shared secret for verification.</button>
+            <button class="quiz-option" data-correct="false" data-index="3">It uses the database key for verification.</button>
+          </div>
+          <div class="quiz-feedback success" id="f2-success">Correct! In asymmetric RS256 schemes, only the auth server has the private key to sign the token, while downstream services use the public key to verify it.</div>
+          <div class="quiz-feedback error" id="f2-error">Incorrect. Recall the difference between symmetric and asymmetric schemes. Symmetric uses a shared secret, whereas asymmetric (RS256) splits keys into signing and verification roles. Which key is safe to distribute publicly?</div>
+        </div>
+      </div>
+
+      <div class="note-block">
+        <strong>Next Steps:</strong> We will next cover how to securely store these tokens in a client-side environment (Cookies vs. LocalStorage) and mitigate XSS and CSRF. If anything is unclear, ask follow-up questions to your AI teacher.
+      </div>
+    </main>
+
+    <footer>
+      <span>Reference: <a href="../RESOURCES.md">RESOURCES.md</a></span>
+      <span>Learning Path: <a href="../MISSION.md">MISSION.md</a></span>
+    </footer>
+  </div>
+
+  <script>
+    // Theme toggle script
+    const themeToggle = document.getElementById('theme-toggle');
+    themeToggle.addEventListener('click', () => {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        document.documentElement.removeAttribute('data-theme');
+        themeToggle.textContent = 'Dark Mode';
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        themeToggle.textContent = 'Light Mode';
+      }
+    });
+
+    // Quiz logic
+    document.querySelectorAll('.quiz-question').forEach(qBlock => {
+      const options = qBlock.querySelectorAll('.quiz-option');
+      const successFeedback = qBlock.querySelector('.quiz-feedback.success');
+      const errorFeedback = qBlock.querySelector('.quiz-feedback.error');
+
+      options.forEach(opt => {
+        opt.addEventListener('click', () => {
+          // Clear current choices in this question block
+          options.forEach(o => o.classList.remove('selected', 'correct', 'incorrect'));
+          successFeedback.style.display = 'none';
+          errorFeedback.style.display = 'none';
+
+          const isCorrect = opt.getAttribute('data-correct') === 'true';
+          if (isCorrect) {
+            opt.classList.add('correct');
+            successFeedback.style.display = 'block';
+          } else {
+            opt.classList.add('incorrect');
+            errorFeedback.style.display = 'block';
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>

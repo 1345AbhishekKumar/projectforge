@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 0007: Domain Modeling & Bounded Contexts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400..700;1,400..700&family=Outfit:wght@300..900&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #faf9f6;
+      --bg-card: #ffffff;
+      --text-primary: #1c1917;
+      --text-secondary: #44403c;
+      --border: #e7e5e4;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --success: #15803d;
+      --error: #b91c1c;
+      --code-bg: #f5f5f4;
+      
+      --font-sans: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --font-serif: 'Lora', Georgia, Cambria, "Times New Roman", Times, serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #0c0a09;
+      --bg-card: #1c1917;
+      --text-primary: #f5f5f4;
+      --text-secondary: #a8a29e;
+      --border: #2e2a24;
+      --accent: #3b82f6;
+      --accent-hover: #60a5fa;
+      --success: #22c55e;
+      --error: #ef4444;
+      --code-bg: #292524;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      font-family: var(--font-serif);
+      font-size: 1.125rem;
+      line-height: 1.7;
+      transition: background-color 0.3s, color 0.3s;
+      padding: 2rem 1rem;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    header {
+      margin-bottom: 3rem;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 1.5rem;
+      position: relative;
+    }
+
+    .theme-toggle {
+      position: absolute;
+      top: 0;
+      right: 0;
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 0.5rem 1rem;
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .theme-toggle:hover {
+      border-color: var(--accent);
+      color: var(--text-primary);
+    }
+
+    .lesson-meta {
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+
+    h1 {
+      font-family: var(--font-sans);
+      font-size: 2.5rem;
+      font-weight: 800;
+      line-height: 1.2;
+      color: var(--text-primary);
+      margin-bottom: 1rem;
+    }
+
+    h2 {
+      font-family: var(--font-sans);
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin-top: 3rem;
+      margin-bottom: 1rem;
+      color: var(--text-primary);
+    }
+
+    h3 {
+      font-family: var(--font-sans);
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-top: 2rem;
+      margin-bottom: 0.75rem;
+      color: var(--text-primary);
+    }
+
+    p {
+      margin-bottom: 1.5rem;
+    }
+
+    strong {
+      color: var(--text-primary);
+      font-weight: 700;
+    }
+
+    ul, ol {
+      margin-bottom: 1.5rem;
+      padding-left: 1.5rem;
+    }
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      background-color: var(--code-bg);
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+    }
+
+    pre {
+      font-family: var(--font-mono);
+      font-size: 0.9rem;
+      background-color: var(--code-bg);
+      padding: 1rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      margin-bottom: 1.5rem;
+      border: 1px solid var(--border);
+    }
+
+    .card {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      margin: 1.5rem 0;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+
+    .interactive-section {
+      background-color: var(--bg-card);
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      margin: 3rem 0;
+    }
+
+    .interactive-title {
+      font-family: var(--font-sans);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: var(--accent);
+    }
+
+    .matching-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin-top: 1.5rem;
+    }
+
+    .matching-item {
+      border: 1px solid var(--border);
+      background-color: var(--bg-primary);
+      border-radius: 6px;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .matching-statement {
+      font-family: var(--font-serif);
+      font-size: 1.05rem;
+      font-weight: 500;
+    }
+
+    .matching-buttons {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .match-btn {
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      padding: 0.4rem 0.8rem;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-secondary);
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .match-btn:hover {
+      border-color: var(--accent);
+      color: var(--text-primary);
+    }
+
+    .match-btn.active-match {
+      background-color: var(--accent);
+      color: #ffffff;
+      border-color: var(--accent);
+    }
+
+    .match-btn.correct-match {
+      background-color: var(--success);
+      color: #ffffff;
+      border-color: var(--success);
+    }
+
+    .match-btn.incorrect-match {
+      background-color: var(--error);
+      color: #ffffff;
+      border-color: var(--error);
+    }
+
+    .quiz-section {
+      background-color: var(--bg-card);
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 2rem;
+      margin: 3rem 0;
+    }
+
+    .quiz-title {
+      font-family: var(--font-sans);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+
+    .quiz-question {
+      margin-bottom: 1.5rem;
+    }
+
+    .quiz-question-text {
+      font-weight: 600;
+      margin-bottom: 1rem;
+    }
+
+    .quiz-options {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .quiz-option {
+      font-family: var(--font-sans);
+      font-size: 1rem;
+      padding: 0.75rem 1rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s;
+    }
+
+    .quiz-option:hover {
+      border-color: var(--accent);
+      background-color: var(--code-bg);
+    }
+
+    .quiz-option.correct {
+      border-color: var(--success);
+      background-color: rgba(34, 197, 94, 0.1);
+    }
+
+    .quiz-option.incorrect {
+      border-color: var(--error);
+      background-color: rgba(239, 68, 68, 0.1);
+    }
+
+    .quiz-feedback {
+      margin-top: 1rem;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      font-size: 0.95rem;
+      display: none;
+      animation: fadeIn 0.3s ease-out;
+    }
+
+    .quiz-feedback.success {
+      display: block;
+      border: 1px solid var(--success);
+      background-color: rgba(34, 197, 94, 0.05);
+      color: var(--success);
+    }
+
+    .quiz-feedback.error {
+      display: block;
+      border: 1px solid var(--error);
+      background-color: rgba(239, 68, 68, 0.05);
+      color: var(--error);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(5px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .note-block {
+      border-left: 4px solid var(--accent);
+      padding-left: 1.5rem;
+      margin: 1.5rem 0;
+      font-style: italic;
+      color: var(--text-secondary);
+    }
+
+    footer {
+      margin-top: 4rem;
+      border-top: 1px solid var(--border);
+      padding-top: 2rem;
+      font-family: var(--font-sans);
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+
+    footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <button class="theme-toggle" id="theme-toggle">Dark Mode</button>
+      <div class="lesson-meta">Lesson 0007 • Domain Design</div>
+      <h1>Domain Modeling & Bounded Contexts</h1>
+      <p>In complex enterprise platforms like ProjectForge, your database schemas and code interfaces can quickly devolve into a tangled "big ball of mud" if not organized correctly. Domain-Driven Design (DDD) provides the architectural framework to build clean, modular domain layers.</p>
+    </header>
+
+    <main>
+      <h2>Ubiquitous Language & Bounded Contexts</h2>
+      <p>The core philosophy of DDD is that software code must reflect a shared mental model of the business. Two concepts establish this model:</p>
+      
+      <ul>
+        <li><strong>Ubiquitous Language:</strong> A common, rigorous language co-created by developers and business stakeholders. If a PM calls an item a "Task" and a developer calls it a "Ticket" in the database, the language is broken. In the codebase, it must be consistently named <code>Task</code>.</li>
+        <li><strong>Bounded Contexts:</strong> A clear boundary within which a specific domain model applies. The definition of a term can change completely depending on the context. For instance, in ProjectForge:
+          <ul>
+            <li>In the **Collaboration Context**, a <code>Member</code> represents a user collaborating on tasks.</li>
+            <li>In the **Billing Context**, a <code>Member</code> represents a seat license on an invoice.</li>
+          </ul>
+          Trying to create a single global <code>User</code> model that handles both collaboration and billing details is an anti-pattern. They must be split into separate models within their respective Bounded Contexts.
+        </li>
+      </ul>
+
+      <h2>Domain Model Building Blocks</h2>
+      <p>Inside a Bounded Context, we organize domain objects into three primary structural blocks:</p>
+
+      <div class="card">
+        <h3>1. Entities</h3>
+        <p>Objects that have a unique thread of identity that persists over time, despite changes to their internal attributes. They are not defined by their values, but by their ID.</p>
+        <p><strong>ProjectForge Example:</strong> A <code>Task</code> is an Entity. It has a unique <code>id</code>. Its status can change from <code>TODO</code> to <code>DONE</code>, its assignee can change, and its title can be edited, but it remains the exact same task.</p>
+      </div>
+
+      <div class="card">
+        <h3>2. Value Objects (VO)</h3>
+        <p>Objects that have no identity of their own. They are defined entirely by their attributes and values. Value Objects are immutable. If you want to change a Value Object, you replace the entire instance.</p>
+        <p><strong>ProjectForge Example:</strong> <code>TaskPriority</code> (representing a priority like `URGENT` or `LOW`) or a <code>TaskLabel</code> (with attributes <code>name: "Bug"</code> and <code>color: "#ff0000"</code>). If you change the color, you don't mutate the object; you construct a new <code>TaskLabel</code> value.</p>
+      </div>
+
+      <div class="card">
+        <h3>3. Aggregates & Aggregate Roots</h3>
+        <p>An **Aggregate** is a cluster of associated Entities and Value Objects that are treated as a single transactional unit for data changes. The **Aggregate Root** is the gatekeeper Entity that controls all access to the internal objects of the Aggregate. External objects can only reference the Aggregate Root.</p>
+        <p><strong>ProjectForge Example:</strong> A <code>Project</code> acts as an Aggregate Root. It manages child entities like <code>Task</code> and value objects like <code>TaskLabel</code>. You cannot modify a <code>Task</code> directly without going through the <code>Project</code> aggregate root, which enforces consistency rules (e.g., "A task cannot be marked completed if the project is archived").</p>
+      </div>
+
+      <div class="interactive-section">
+        <div class="interactive-title">Interactive Simulator: Structure the Domain</div>
+        <p>For the upcoming **ProjectForge V1.0**, classify the following components into their correct Domain-Driven Design blocks: **Entity (E)**, **Value Object (VO)**, or **Bounded Context (BC)**.</p>
+        
+        <div class="matching-container">
+          <div class="matching-item" data-id="1" data-correct="BC">
+            <div class="matching-statement">"Billing Context: Governing invoices, subscription seats, and stripe webhooks."</div>
+            <div class="matching-buttons">
+              <button class="match-btn" data-type="E">Entity (E)</button>
+              <button class="match-btn" data-type="VO">Value Object (VO)</button>
+              <button class="match-btn" data-type="BC">Bounded Context (BC)</button>
+            </div>
+          </div>
+
+          <div class="matching-item" data-id="2" data-correct="E">
+            <div class="matching-statement">"Task: Has a unique UUID and moves between TODO, IN_PROGRESS, and DONE."</div>
+            <div class="matching-buttons">
+              <button class="match-btn" data-type="E">Entity (E)</button>
+              <button class="match-btn" data-type="VO">Value Object (VO)</button>
+              <button class="match-btn" data-type="BC">Bounded Context (BC)</button>
+            </div>
+          </div>
+
+          <div class="matching-item" data-id="3" data-correct="VO">
+            <div class="matching-statement">"PriorityLabel: Defined solely by its text string ('HIGH') and hex color code."</div>
+            <div class="matching-buttons">
+              <button class="match-btn" data-type="E">Entity (E)</button>
+              <button class="match-btn" data-type="VO">Value Object (VO)</button>
+              <button class="match-btn" data-type="BC">Bounded Context (BC)</button>
+            </div>
+          </div>
+
+          <div class="matching-item" data-id="4" data-correct="E">
+            <div class="matching-statement">"Organization: Represents a multi-tenant client entity containing members and workspaces."</div>
+            <div class="matching-buttons">
+              <button class="match-btn" data-type="E">Entity (E)</button>
+              <button class="match-btn" data-type="VO">Value Object (VO)</button>
+              <button class="match-btn" data-type="BC">Bounded Context (BC)</button>
+            </div>
+          </div>
+        </div>
+        <div class="quiz-feedback success" id="match-success" style="margin-top: 1.5rem;">Superb work! You successfully mapped the DDD blocks. Notice how Bounded Contexts separate operational spaces (Billing vs Collaboration), Entities track objects with persistent identity over time (Task, Organization), and Value Objects encapsulate immutable attribute combinations (PriorityLabel).</div>
+      </div>
+
+      <div class="quiz-section">
+        <div class="quiz-title">Quiz: Test Your Storage Strength</div>
+        
+        <div class="quiz-question" id="q1">
+          <div class="quiz-question-text">1. In ProjectForge, what makes a Project an Entity rather than a Value Object?</div>
+          <div class="quiz-options">
+            <button class="quiz-option" data-correct="true" data-index="0">It possesses a unique identity key.</button>
+            <button class="quiz-option" data-correct="false" data-index="1">It is defined solely by attributes.</button>
+            <button class="quiz-option" data-correct="false" data-index="2">It manages nested child task lists.</button>
+            <button class="quiz-option" data-correct="false" data-index="3">It belongs to one parent workspace.</button>
+          </div>
+          <div class="quiz-feedback success" id="f1-success">Correct! An Entity is defined by a unique identity key that remains unchanged over time, whereas Value Objects are defined solely by the values of their attributes.</div>
+          <div class="quiz-feedback error" id="f1-error">Incorrect. Recall the definition of an Entity. While Projects manage tasks and belong to workspaces, the primary trait that distinguishes an Entity from a Value Object is how it is identified and tracked over time.</div>
+        </div>
+
+        <div class="quiz-question" id="q2">
+          <div class="quiz-question-text">2. What is the primary role of an Aggregate Root in a Bounded Context?</div>
+          <div class="quiz-options">
+            <button class="quiz-option" data-correct="true" data-index="0">To govern all transactional consistency bounds.</button>
+            <button class="quiz-option" data-correct="false" data-index="1">To coordinate external network api relations.</button>
+            <button class="quiz-option" data-correct="false" data-index="2">To isolate database tables from client query.</button>
+            <button class="quiz-option" data-correct="false" data-index="3">To manage client interface state alterations.</button>
+          </div>
+          <div class="quiz-feedback success" id="f2-success">Correct! The Aggregate Root governs transactional consistency boundaries, ensuring that all invariant business rules are satisfied whenever data within the Aggregate is updated.</div>
+          <div class="quiz-feedback error" id="f2-error">Incorrect. Think about data isolation and invariants. While it encapsulates database fields, its primary design role in DDD is acting as the single transactional gatekeeper to maintain consistency rules.</div>
+        </div>
+      </div>
+
+      <div class="note-block">
+        <strong>Desirable Difficulty Tip:</strong> When designing models in TypeScript, you can enforce Value Object immutability by using the <code>readonly</code> keyword. For example:
+        <pre><code>interface TaskLabel {
+  readonly name: string;
+  readonly color: string;
+}</code></pre>
+        Attempting to mutate a label's color will result in a compiler error, forcing you to create a fresh Value Object instance.
+      </div>
+    </main>
+
+    <footer>
+      <span>Reference: <a href="../RESOURCES.md">RESOURCES.md</a></span>
+      <span>Learning Path: <a href="../MISSION.md">MISSION.md</a></span>
+    </footer>
+  </div>
+
+  <script>
+    // Theme toggle script
+    const themeToggle = document.getElementById('theme-toggle');
+    themeToggle.addEventListener('click', () => {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      if (isDark) {
+        document.documentElement.removeAttribute('data-theme');
+        themeToggle.textContent = 'Dark Mode';
+      } else {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        themeToggle.textContent = 'Light Mode';
+      }
+    });
+
+    // Interactive classification logic
+    const matchingItems = document.querySelectorAll('.matching-item');
+    const matchSuccess = document.getElementById('match-success');
+    
+    function checkAllMatches() {
+      let allCorrect = true;
+      let anySelected = false;
+      
+      matchingItems.forEach(item => {
+        const correctType = item.getAttribute('data-correct');
+        const activeBtn = item.querySelector('.match-btn.active-match');
+        
+        if (activeBtn) {
+          anySelected = true;
+          const selectedType = activeBtn.getAttribute('data-type');
+          if (selectedType !== correctType) {
+            allCorrect = false;
+          }
+        } else {
+          allCorrect = false;
+        }
+      });
+      
+      if (anySelected && allCorrect) {
+        matchSuccess.style.display = 'block';
+        matchingItems.forEach(item => {
+          const activeBtn = item.querySelector('.match-btn.active-match');
+          activeBtn.classList.remove('active-match');
+          activeBtn.classList.add('correct-match');
+        });
+      } else {
+        matchSuccess.style.display = 'none';
+      }
+    }
+
+    matchingItems.forEach(item => {
+      const buttons = item.querySelectorAll('.match-btn');
+      buttons.forEach(btn => {
+        btn.addEventListener('click', () => {
+          buttons.forEach(b => {
+            b.classList.remove('active-match', 'correct-match', 'incorrect-match');
+          });
+          
+          btn.classList.add('active-match');
+          
+          const correctType = item.getAttribute('data-correct');
+          const selectedType = btn.getAttribute('data-type');
+          
+          if (selectedType === correctType) {
+            btn.classList.remove('active-match');
+            btn.classList.add('correct-match');
+          } else {
+            btn.classList.remove('active-match');
+            btn.classList.add('incorrect-match');
+          }
+          
+          checkAllMatches();
+        });
+      });
+    });
+
+    // Quiz logic
+    document.querySelectorAll('.quiz-question').forEach(qBlock => {
+      const options = qBlock.querySelectorAll('.quiz-option');
+      const successFeedback = qBlock.querySelector('.quiz-feedback.success');
+      const errorFeedback = qBlock.querySelector('.quiz-feedback.error');
+
+      options.forEach(opt => {
+        opt.addEventListener('click', () => {
+          options.forEach(o => o.classList.remove('selected', 'correct', 'incorrect'));
+          successFeedback.style.display = 'none';
+          errorFeedback.style.display = 'none';
+
+          const isCorrect = opt.getAttribute('data-correct') === 'true';
+          if (isCorrect) {
+            opt.classList.add('correct');
+            successFeedback.style.display = 'block';
+          } else {
+            opt.classList.add('incorrect');
+            errorFeedback.style.display = 'block';
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html>
