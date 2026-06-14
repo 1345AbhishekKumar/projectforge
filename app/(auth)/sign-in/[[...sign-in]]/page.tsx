@@ -56,6 +56,21 @@ export default function SignInPage() {
       return res;
     });
 
+  const onSSOSignIn = async (strategy: "oauth_google" | "oauth_github") => {
+    if (!signIn) return;
+    setErrorMsg("");
+    try {
+      const res = await signIn.sso({
+        strategy,
+        redirectUrl: "/dashboard",
+        redirectCallbackUrl: "/sso-callback",
+      });
+      if (res?.error) setErrorMsg(res.error.message);
+    } catch (err: any) {
+      setErrorMsg(err.message || "OAuth redirect failed.");
+    }
+  };
+
   return (
     <main className="min-h-screen w-full flex items-center justify-center bg-neutral-bg bg-dot-grid text-primary relative py-12 px-4">
       <div className="w-full max-w-[440px] bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8 flex flex-col relative z-10">
@@ -134,6 +149,35 @@ export default function SignInPage() {
               <button type="button" onClick={onSendOTP} disabled={isLoading} className="text-xs font-semibold text-tertiary hover:underline transition-colors cursor-pointer focus:outline-none disabled:opacity-50">Resend Code</button>
             </div>
           </form>
+        )}
+
+        {mode !== "verify-otp" && (
+          <>
+            <div className="flex items-center my-4">
+              <div className="flex-1 border-t-2 border-dashed border-primary/10"></div>
+              <span className="px-3 text-xs text-secondary font-sans font-semibold">or continue with</span>
+              <div className="flex-1 border-t-2 border-dashed border-primary/10"></div>
+            </div>
+
+            <div className="flex gap-4">
+              <button
+                type="button"
+                onClick={() => onSSOSignIn("oauth_google")}
+                className="flex items-center justify-center gap-2 font-sans font-semibold text-xs py-2.5 px-4 bg-white hover:bg-neutral-bg border-2 border-black rounded-sketchy-sm shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-50 w-full"
+                disabled={isLoading}
+              >
+                Google
+              </button>
+              <button
+                type="button"
+                onClick={() => onSSOSignIn("oauth_github")}
+                className="flex items-center justify-center gap-2 font-sans font-semibold text-xs py-2.5 px-4 bg-white hover:bg-neutral-bg border-2 border-black rounded-sketchy-sm shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-50 w-full"
+                disabled={isLoading}
+              >
+                GitHub
+              </button>
+            </div>
+          </>
         )}
 
         <div className="mt-8 pt-6 border-t-2 border-dashed border-primary/10 text-center">

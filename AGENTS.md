@@ -10,13 +10,12 @@ Read in this exact order before any implementation:
 
 1. context/overview.md
 2. context/archi.md
-3. context/ui-tokens.md
-4. context/ui-rules.md
-5. context/ui-registry.md
-6. context/code-standards.md
-7. context/library-docs.md
-8. context/build.md
-9. context/progress-tracker.md
+3. context/design.md
+4. context/ui-registry.md
+5. context/code-standards.md
+6. context/libs.md
+7. context/build.md
+8. context/progress-tracker.md
 
 ## Rules That Never Change
 

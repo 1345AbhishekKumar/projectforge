@@ -1,5 +1,5 @@
 ---
-version: alpha
+version: forge
 name: ProjectForge Design System
 description: A sketchy, hand-drawn design system built for collaborative and creative modern teams, blending a playful comic/marker aesthetic with clean functional layout structure.
 colors:

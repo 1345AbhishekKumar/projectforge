@@ -28,6 +28,10 @@ After building any component — update this file with the component name, file 
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/(auth)/sign-up/[[...sign-up]]/page.tsx)
 - **Container Classes:** `min-h-screen w-full flex items-center justify-center bg-neutral-bg bg-dot-grid text-primary relative py-12 px-4`
 
+#### SSO Callback Screen
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/(auth)/sso-callback/page.tsx)
+- **Description:** Renders Clerk's `<AuthenticateWithRedirectCallback />` to handle OAuth logins.
+
 ### Main Dashboard Screen
 
 #### Workspace Dashboard
