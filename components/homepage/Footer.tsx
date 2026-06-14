@@ -11,11 +11,8 @@ import Link from "next/link";
 </design_plan>
 */
 
-interface FooterProps {
-  isDarkMode: boolean;
-}
-
-export default function Footer({ isDarkMode }: FooterProps) {
+export default function Footer() {
+  const isDarkMode = false;
   return (
     <footer 
       className={`py-16 md:py-20 px-6 relative z-10 w-full border-t-2 transition-colors duration-300 ${

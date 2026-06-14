@@ -16,12 +16,9 @@ const INITIAL_STICKIES: StickyNote[] = [
   { id: 4, text: "Install GSAP & verify motion ✨", color: "bg-[#D4EDDA]", x: 72, y: 32, rotate: 2, status: "done", author: "Priya" },
 ];
 
-interface HeroProps {
-  isDarkMode: boolean;
-  setIsDarkMode: (val: boolean) => void;
-}
-
-export default function Hero({ isDarkMode, setIsDarkMode }: HeroProps) {
+export default function Hero() {
+  const isDarkMode = false;
+  const setIsDarkMode = () => {};
   const containerRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const cursorPriyaRef = useRef<HTMLDivElement>(null);
@@ -460,6 +457,7 @@ export default function Hero({ isDarkMode, setIsDarkMode }: HeroProps) {
               ref={primaryBtnRef}
               onMouseMove={(e) => handleButtonMouseMove(e, primaryBtnRef)}
               onMouseLeave={() => handleButtonMouseLeave(primaryBtnRef)}
+              onClick={() => window.location.href = "/signup"}
               className={`group relative w-full sm:w-auto bg-tertiary text-white border-2 font-sans text-base font-bold px-7 py-3 rounded-full flex items-center justify-center gap-3 hover:bg-tertiary-hover active:scale-[0.97] transition-all focus-visible:ring-2 focus-visible:ring-tertiary focus-visible:outline-none cursor-pointer will-change-transform ${
                 isDarkMode ? "border-white shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]" : "border-primary shadow-flat-offset"
               }`}

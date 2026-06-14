@@ -45,11 +45,8 @@ const SHOWCASE_ITEMS: AccordionItem[] = [
   },
 ];
 
-interface HorizontalShowcaseProps {
-  isDarkMode: boolean;
-}
-
-export default function HorizontalShowcase({ isDarkMode }: HorizontalShowcaseProps) {
+export default function HorizontalShowcase() {
+  const isDarkMode = false;
   const containerRef = useRef<HTMLDivElement>(null);
   const itemsContainerRef = useRef<HTMLDivElement>(null);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);

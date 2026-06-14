@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 
 interface HeroNavProps {
   isDarkMode: boolean;
@@ -51,39 +52,20 @@ export default function HeroNav({ isDarkMode, setIsDarkMode }: HeroNavProps) {
             ))}
           </div>
 
-          {/* Action CTAs & Theme Switcher */}
+          {/* Action CTAs */}
           <div className="flex items-center gap-4">
-            {/* Sketchy Theme Switcher Toggle */}
-            <button
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              className={`w-14 h-8 rounded-full border-2 transition-all duration-300 flex items-center px-1 cursor-pointer active:scale-95 shadow-flat-offset-sm focus-visible:ring-2 focus-visible:ring-tertiary focus-visible:outline-none ${
-                isDarkMode
-                  ? "bg-zinc-950 border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]"
-                  : "bg-white border-primary"
-              }`}
-              aria-label="Toggle theme"
-            >
-              <div
-                className={`w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 ${
-                  isDarkMode
-                    ? "translate-x-6 bg-white text-zinc-950"
-                    : "translate-x-0 bg-primary text-white"
-                }`}
-              >
-                {isDarkMode ? "🌙" : "☀️"}
-              </div>
-            </button>
-
-            <button
+            <Link
+              href="/login"
               className={`hidden sm:inline-block font-sans text-sm font-semibold transition-colors duration-200 focus-visible:ring-2 focus-visible:ring-tertiary focus-visible:outline-none rounded px-1.5 py-0.5 ${
                 isDarkMode ? "text-white/80 hover:text-white" : "text-secondary hover:text-primary"
               }`}
             >
               Sign In
-            </button>
+            </Link>
 
             {/* Primary Action */}
-            <button
+            <Link
+              href="/signup"
               className={`relative group bg-tertiary text-white border-2 font-sans text-sm font-bold px-4 py-1.5 rounded-full hover:bg-tertiary-hover active:scale-[0.97] transition-all focus-visible:ring-2 focus-visible:ring-tertiary focus-visible:outline-none cursor-pointer ${
                 isDarkMode
                   ? "border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]"
@@ -91,7 +73,7 @@ export default function HeroNav({ isDarkMode, setIsDarkMode }: HeroNavProps) {
               }`}
             >
               Try It Free
-            </button>
+            </Link>
 
             {/* Mobile Menu Toggle (Morphing Hamburger) */}
             <button
@@ -151,10 +133,20 @@ export default function HeroNav({ isDarkMode, setIsDarkMode }: HeroNavProps) {
             }`}
             style={{ transitionDelay: "300ms" }}
           >
-            <button className="text-white/60 text-lg font-semibold hover:text-white">Sign In</button>
-            <button className="bg-tertiary text-white border-2 border-white font-sans text-lg font-bold px-8 py-3 rounded-full shadow-[4px_4px_0px_0px_#ffffff]">
+            <Link 
+              href="/login"
+              onClick={() => setIsMenuOpen(false)}
+              className="text-white/60 text-lg font-semibold hover:text-white text-center"
+            >
+              Sign In
+            </Link>
+            <Link 
+              href="/signup"
+              onClick={() => setIsMenuOpen(false)}
+              className="bg-tertiary text-white border-2 border-white font-sans text-lg font-bold px-8 py-3 rounded-full shadow-[4px_4px_0px_0px_#ffffff] text-center"
+            >
               Get Started Free
-            </button>
+            </Link>
           </div>
         </div>
       </div>

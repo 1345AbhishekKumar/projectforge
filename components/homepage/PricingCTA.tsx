@@ -6,11 +6,8 @@ import { useGSAP } from "@gsap/react";
 import WaitlistForm from "./pricing/WaitlistForm";
 import PricingCard from "./pricing/PricingCard";
 
-interface PricingCTAProps {
-  isDarkMode: boolean;
-}
-
-export default function PricingCTA({ isDarkMode }: PricingCTAProps) {
+export default function PricingCTA() {
+  const isDarkMode = false;
   const containerRef = useRef<HTMLDivElement>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "success">("idle");
 

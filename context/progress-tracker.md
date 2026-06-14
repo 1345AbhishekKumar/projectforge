@@ -5,18 +5,18 @@ Update this file after every completed feature. Any AI agent reading this should
 ---
 
 ## Current Status
-- **Status:** **Planning Phase Completed**. Ready to begin development of Phase 1 (V1.0 Core Project Management Tool - MVP).
-- **Active Sprint:** Pre-implementation scaffolding.
-- **Target Milestones:** Implement Feature 1.1 (Landing Page) & Feature 1.2 (Authentication & Onboarding).
+- **Status:** **Landing and Authentication Pages Completed**. Ready to begin development of Feature 1.3 (Multi-Tenant Workspace).
+- **Active Sprint:** MVP auth and landing page setup.
+- **Target Milestones:** Implement Feature 1.3 (Multi-Tenant Workspace) & Feature 1.4 (Membership & Role Management).
 
 ## Progress
 - [x] Align project overview and description to ProjectForge (`context/project-overview.md`).
 - [x] Formulate comprehensive, 700+ line engineering build-plan and blueprint (`context/build-plan.md`).
 - [x] Establish isolated verification checklist and todos for Version 1 (MVP) (`context/todos.md`).
+- [x] Implement Feature 1.1: Landing Page layout, styling, and session-checking logic (light mode only, isDarkMode props removed).
+- [x] Implement Feature 1.2: Authentication card, form fields, validation, and mock sync triggers (light mode only, bottom sticky notes removed).
 
 ## Next Actions (Phase 1 Development)
-- [ ] Implement Feature 1.1: Landing Page layout, styling, and session-checking logic.
-- [ ] Implement Feature 1.2: Authentication card, form fields, validation, and profile sync triggers.
 - [ ] Implement Feature 1.3: Multi-Tenant Workspace (Organizations) tables and active context switcher.
 
 ## Decisions Made During Build

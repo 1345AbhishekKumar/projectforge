@@ -18,11 +18,8 @@ import BentoHighlight from "./bento/BentoHighlight";
 </design_plan>
 */
 
-interface BentoFeaturesProps {
-  isDarkMode: boolean;
-}
-
-export default function BentoFeatures({ isDarkMode }: BentoFeaturesProps) {
+export default function BentoFeatures() {
+  const isDarkMode = false;
   const containerRef = useRef<HTMLDivElement>(null);
 
   // GSAP animations for entrance and scroll triggers
