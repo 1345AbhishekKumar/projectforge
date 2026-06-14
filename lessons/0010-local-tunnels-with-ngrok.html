@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 10: Local Tunnels & Reverse Proxies with ngrok</title>
+  <style>
+    :root {
+      --bg: #fdfdfc;
+      --text: #111;
+      --accent: #d33682;
+      --code-bg: #f4f4f4;
+      --border: #ddd;
+    }
+    body {
+      font-family: et-book, Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+    h1, h2, h3 { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 400; }
+    h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.8rem; margin-top: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+    p { font-size: 1.2rem; }
+    code { font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace; background: var(--code-bg); padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.9em; }
+    pre code { background: none; padding: 0; }
+    pre { background: var(--code-bg); padding: 1rem; border-radius: 5px; overflow-x: auto; }
+    .epigraph { margin: 2rem 0; font-style: italic; color: #555; }
+    blockquote { border-left: 3px solid var(--accent); margin: 1.5rem 0; padding-left: 1rem; font-style: italic; }
+    .quiz-container { margin-top: 3rem; background: #fff; padding: 2rem; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .quiz-question { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 1.2rem; font-weight: bold; margin-bottom: 1rem; }
+    .quiz-options { list-style: none; padding: 0; }
+    .quiz-option { margin-bottom: 0.5rem; }
+    .quiz-button { width: 100%; text-align: left; padding: 1rem; font-size: 1.1rem; background: #fafafa; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; transition: all 0.2s ease; }
+    .quiz-button:hover { background: #f0f0f0; border-color: #ccc; }
+    .quiz-button.correct { background: #e6ffed; border-color: #a3e6b5; color: #0a5c26; }
+    .quiz-button.incorrect { background: #ffeef0; border-color: #fca5a5; color: #8a171c; }
+    .feedback { margin-top: 1rem; font-weight: bold; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; display: none; padding: 1rem; border-radius: 4px; }
+    .feedback.show { display: block; }
+  </style>
+</head>
+<body>
+  <h1>Local Tunnels & Reverse Proxies with ngrok</h1>
+  <div class="epigraph">Connecting the isolated developer environment to the global internet.</div>
+
+  <p>In our previous lessons on <strong>SaaS Auth Architecture</strong>, we established that authentication providers (like Clerk or Auth0) operate externally. When an event happens—like a user signing up or deleting their account—the provider needs to notify your application immediately. They do this via <strong>Webhooks</strong>.</p>
+  
+  <p>There is an engineering hurdle in local development: your Next.js server runs on <code>localhost:3000</code>. It sits behind your router's NAT (Network Address Translation) and firewall, making it completely invisible and inaccessible to the outside internet. Clerk's servers cannot send an HTTP POST request to your <code>localhost</code>.</p>
+
+  <h2>The Solution: ngrok</h2>
+  <p><strong>ngrok</strong> is a globally distributed reverse proxy that creates a secure tunnel from a public endpoint to a locally running web service.</p>
+  
+  <p>Instead of opening ports on your router (which is slow and highly insecure), you run a small ngrok client agent on your machine. Here is the architectural flow:</p>
+
+  <ol>
+    <li>You start your local Next.js server on port 3000.</li>
+    <li>You run the ngrok client: <code>ngrok http 3000</code>.</li>
+    <li>The client makes an <strong>outbound</strong> connection to the ngrok cloud service (firewalls typically allow outbound connections).</li>
+    <li>The ngrok cloud assigns you a random public URL, such as <code>https://1a2b-3c4d.ngrok.app</code>.</li>
+    <li>You configure Clerk's webhook settings to point to <code>https://1a2b-3c4d.ngrok.app/api/webhooks/clerk</code>.</li>
+    <li>When a user signs up, Clerk sends a request to the ngrok public URL. The ngrok cloud routes it through the established tunnel back to your local client, which finally forwards it to <code>localhost:3000</code>.</li>
+  </ol>
+
+  <h2>Engineering Trade-offs</h2>
+  <p>While ngrok is ubiquitous in modern developer workflows, as an engineer designing systems, you must consider the trade-offs:</p>
+  
+  <ul>
+    <li><strong>Pros:</strong> Zero-configuration network exposure. Instant testing of webhooks and OAuth callbacks. Easy way to demo local work to clients or PMs.</li>
+    <li><strong>Cons:</strong> <strong>Security:</strong> You are exposing your local machine to the public internet. If your local server has vulnerable debug endpoints, anyone with the ngrok URL can access them. <strong>Workflow friction:</strong> On the free tier, the URL changes every time you restart ngrok, requiring you to constantly update your webhook endpoints in the Clerk dashboard.</li>
+  </ul>
+
+  <h2>Alternatives</h2>
+  <p>While ngrok is the most popular, understanding the pattern means you can evaluate alternatives:</p>
+  <ul>
+    <li><strong>Cloudflare Tunnels:</strong> Often faster, free tier includes fixed subdomains.</li>
+    <li><strong>LocalStack:</strong> If you are already deeply embedded in the AWS ecosystem.</li>
+    <li><strong>Polling / CLI Webhook Forwarding:</strong> Some services (like Stripe CLI) provide their own dedicated tunneling clients just for their webhooks, reducing the need for generic proxies.</li>
+  </ul>
+
+  <div class="quiz-container">
+    <div class="quiz-question" id="question-text">Quiz: How does ngrok bypass your local inbound firewall?</div>
+    <ul class="quiz-options" id="options-list">
+      <li class="quiz-option"><button class="quiz-button" data-correct="false">By temporarily reconfiguring your router's port forwarding rules via UPnP.</button></li>
+      <li class="quiz-option"><button class="quiz-button" data-correct="true">By initiating an outbound connection from your machine to the ngrok cloud, which holds the tunnel open.</button></li>
+      <li class="quiz-option"><button class="quiz-button" data-correct="false">By wrapping your localhost requests in secure SSL certificates that bypass firewalls.</button></li>
+    </ul>
+    <div id="feedback-area" class="feedback"></div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.quiz-button').forEach(button => {
+      button.addEventListener('click', function() {
+        // Disable all buttons
+        document.querySelectorAll('.quiz-button').forEach(btn => {
+          btn.disabled = true;
+          btn.style.cursor = 'default';
+          btn.style.opacity = '0.7';
+        });
+
+        const isCorrect = this.getAttribute('data-correct') === 'true';
+        const feedback = document.getElementById('feedback-area');
+        
+        if (isCorrect) {
+          this.classList.add('correct');
+          feedback.textContent = "Correct! Firewalls typically block incoming connections but allow outbound ones. By making an outbound call to the ngrok server, the client opens a bi-directional tunnel without needing router configuration.";
+          feedback.style.backgroundColor = "#e6ffed";
+          feedback.style.color = "#0a5c26";
+        } else {
+          this.classList.add('incorrect');
+          feedback.textContent = "Incorrect. Firewalls block inbound requests. ngrok works by having the local client initiate an OUTBOUND connection to the ngrok cloud, establishing a tunnel that can pass traffic back and forth.";
+          feedback.style.backgroundColor = "#ffeef0";
+          feedback.style.color = "#8a171c";
+          
+          // Highlight the correct one
+          document.querySelector('.quiz-button[data-correct="true"]').classList.add('correct');
+        }
+        feedback.classList.add('show');
+      });
+    });
+  </script>
+</body>
+</html>

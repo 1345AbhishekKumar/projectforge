@@ -40,3 +40,18 @@ After building any component — update this file with the component name, file 
 - **Navbar Classes:** `w-full bg-white border-b-2 border-black px-6 py-3 flex items-center justify-between sticky top-0 z-50`
 - **Card Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8`
 - **Widget Classes:** `border-2 border-black rounded-sketchy-sm p-6 shadow-flat-offset-sm`
+
+### Organization Screens
+
+#### Create Organization Page
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/orgs/create/page.tsx)
+- **Container Classes:** `min-h-screen w-full flex items-center justify-center bg-neutral-bg bg-dot-grid text-primary relative py-12 px-4`
+- **Card Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8`
+- **Input Classes:** `w-full px-4 py-3 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:ring-2 focus:ring-tertiary`
+- **Submit Button Classes:** `w-full py-3 bg-tertiary hover:bg-tertiary-hover text-white font-sans text-sm font-bold border-2 border-black rounded-full shadow-flat-offset-sm`
+
+#### OrgSwitcher Component
+- **File Path:** [OrgSwitcher.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/orgs/OrgSwitcher.tsx)
+- **Trigger Classes:** `flex items-center gap-2 bg-white border-2 border-black rounded-full px-3 py-1.5 font-sans text-xs font-bold shadow-flat-offset-sm`
+- **Dropdown Classes:** `bg-white border-2 border-black rounded-sketchy-sm shadow-flat-offset z-50`
+- **Role Badge Colors:** `OWNER: bg-accent-purple text-white`, `ADMIN: bg-accent-blue text-primary`, `MEMBER: bg-accent-green text-primary`

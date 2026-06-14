@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 11: Hooking up ngrok with Clerk Webhooks</title>
+  <style>
+    :root {
+      --bg: #fdfdfc;
+      --text: #111;
+      --accent: #d33682;
+      --code-bg: #f4f4f4;
+      --border: #ddd;
+    }
+    body {
+      font-family: et-book, Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+    h1, h2, h3 { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 400; }
+    h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.8rem; margin-top: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+    p { font-size: 1.2rem; }
+    code { font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace; background: var(--code-bg); padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.9em; }
+    pre code { background: none; padding: 0; }
+    pre { background: var(--code-bg); padding: 1rem; border-radius: 5px; overflow-x: auto; }
+    .epigraph { margin: 2rem 0; font-style: italic; color: #555; }
+    blockquote { border-left: 3px solid var(--accent); margin: 1.5rem 0; padding-left: 1rem; font-style: italic; }
+    .quiz-container { margin-top: 3rem; background: #fff; padding: 2rem; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .quiz-question { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 1.2rem; font-weight: bold; margin-bottom: 1rem; }
+    .quiz-options { list-style: none; padding: 0; }
+    .quiz-option { margin-bottom: 0.5rem; }
+    .quiz-button { width: 100%; text-align: left; padding: 1rem; font-size: 1.1rem; background: #fafafa; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; transition: all 0.2s ease; }
+    .quiz-button:hover { background: #f0f0f0; border-color: #ccc; }
+    .quiz-button.correct { background: #e6ffed; border-color: #a3e6b5; color: #0a5c26; }
+    .quiz-button.incorrect { background: #ffeef0; border-color: #fca5a5; color: #8a171c; }
+    .feedback { margin-top: 1rem; font-weight: bold; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; display: none; padding: 1rem; border-radius: 4px; }
+    .feedback.show { display: block; }
+  </style>
+</head>
+<body>
+  <h1>Hooking up ngrok with Clerk Webhooks</h1>
+  <div class="epigraph">Bridging the gap between external identity systems and your local database.</div>
+
+  <p>In our last lesson, we learned that ngrok exposes your <code>localhost</code> to the internet. Today, we look at the engineering reality of using this tunnel to sync data between a SaaS Auth provider (Clerk) and your application (ProjectForge).</p>
+
+  <h2>The Synchronization Problem</h2>
+  <p>If you use Clerk for authentication, Clerk owns the <em>User Identity</em> (email, passwords, OAuth tokens). But ProjectForge owns the <em>Domain Data</em> (e.g., projects, tasks, user profiles). When a user signs up on Clerk's hosted page, your database doesn't magically know about it.</p>
+  
+  <p>To sync them, we use Webhooks: Clerk sends an HTTP POST request to your API every time a user is created, updated, or deleted.</p>
+
+  <h2>The Development Workflow</h2>
+  <ol>
+    <li><strong>Start your dev server:</strong> <code>npm run dev</code> (runs on port 3000).</li>
+    <li><strong>Start ngrok:</strong> <code>ngrok http 3000</code>. ngrok gives you a forwarding URL like <code>https://ab12-cd34.ngrok-free.app</code>.</li>
+    <li><strong>Configure Clerk:</strong> Go to the Clerk Dashboard -> Webhooks. Add an endpoint pointing to <code>https://ab12-cd34.ngrok-free.app/api/webhooks/clerk</code>. Choose the events you care about (e.g., <code>user.created</code>).</li>
+    <li><strong>Code the Endpoint:</strong> In Next.js, you create a route handler at <code>app/api/webhooks/clerk/route.ts</code> to accept this POST request and insert a new user row into your PostgreSQL database.</li>
+  </ol>
+
+  <h2>The Critical Threat: Webhook Forgery</h2>
+  <p>Think like an engineer. You just exposed <code>/api/webhooks/clerk</code> to the public internet using ngrok. What stops a malicious actor from discovering that URL and sending a fake HTTP POST request that says "Create a new admin user" or "Delete user ID 5"?</p>
+  
+  <p>Nothing.</p>
+  
+  <p>Because HTTP is stateless and anyone can send a POST request, you must <strong>verify the authenticity</strong> of the request. You need mathematical proof that the request <em>definitely</em> came from Clerk and that the payload hasn't been tampered with in transit.</p>
+
+  <h2>Cryptographic Signatures (Svix)</h2>
+  <p>Clerk uses a service called <strong>Svix</strong> to send webhooks. Here is how it protects your endpoint:</p>
+  <ul>
+    <li>When you create a webhook in Clerk, you get a <strong>Signing Secret</strong>. You store this securely in your <code>.env</code> file (e.g., <code>WEBHOOK_SECRET=whsec_...</code>). This secret is known <em>only</em> to Clerk and your server.</li>
+    <li>When Clerk sends the webhook, it calculates a cryptographic hash (HMAC) of the payload using that Signing Secret. It attaches this hash in the HTTP headers (e.g., <code>svix-signature</code>).</li>
+    <li>When your Next.js route receives the request, it takes the incoming payload and your local <code>WEBHOOK_SECRET</code>, and calculates the hash itself.</li>
+    <li>If your calculated hash matches the hash in the header, the request is authentic. If it doesn't, you reject the request with a <code>400 Bad Request</code>.</li>
+  </ul>
+
+  <p>By verifying the signature, it doesn't matter if ngrok exposes your port to the entire internet—only requests cryptographically signed by Clerk will be processed.</p>
+
+  <div class="quiz-container">
+    <div class="quiz-question" id="question-text">Quiz: Why is webhook signature verification essential when using ngrok?</div>
+    <ul class="quiz-options" id="options-list">
+      <li class="quiz-option"><button class="quiz-button" data-correct="false">Because ngrok encrypts the tunnel, and you need the secret to decrypt the JSON payload.</button></li>
+      <li class="quiz-option"><button class="quiz-button" data-correct="false">Because ngrok blocks all incoming POST requests by default unless they have a specific header.</button></li>
+      <li class="quiz-option"><button class="quiz-button" data-correct="true">Because the ngrok URL is public, meaning anyone can send fake POST requests to your endpoint. Verification ensures the request actually came from Clerk.</button></li>
+    </ul>
+    <div id="feedback-area" class="feedback"></div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.quiz-button').forEach(button => {
+      button.addEventListener('click', function() {
+        // Disable all buttons
+        document.querySelectorAll('.quiz-button').forEach(btn => {
+          btn.disabled = true;
+          btn.style.cursor = 'default';
+          btn.style.opacity = '0.7';
+        });
+
+        const isCorrect = this.getAttribute('data-correct') === 'true';
+        const feedback = document.getElementById('feedback-area');
+        
+        if (isCorrect) {
+          this.classList.add('correct');
+          feedback.textContent = "Correct! ngrok exposes your endpoint to the whole internet. A malicious user could easily send fake user creation events to your database. Cryptographic signatures mathematically prove the request came from Clerk.";
+          feedback.style.backgroundColor = "#e6ffed";
+          feedback.style.color = "#0a5c26";
+        } else {
+          this.classList.add('incorrect');
+          feedback.textContent = "Incorrect. Think about network exposure. ngrok gives you a public URL. Anyone who finds that URL can send an HTTP POST to it. Verification is about proving identity and preventing forgery.";
+          feedback.style.backgroundColor = "#ffeef0";
+          feedback.style.color = "#8a171c";
+          
+          // Highlight the correct one
+          document.querySelector('.quiz-button[data-correct="true"]').classList.add('correct');
+        }
+        feedback.classList.add('show');
+      });
+    });
+  </script>
+</body>
+</html>
