@@ -3,6 +3,8 @@
 
 do not read the lessons and learning-records folders. 
 do not exceed the line of codes more then 200 lines.
+do not read what i do not tell  you to read, read only what i specify in the prompt or message.
+
 
 Read in this exact order before any implementation:
 

@@ -20,8 +20,8 @@ we are building version 1(prd_versions/v1.md)
 
 ### Page Routing & Directory Scaffolding
 - [ ] **Landing Page (`/`):** Verify public page routing and metadata settings.
-- [ ] **Auth Pages (`/login`, `/signup`):** Verify public page routing.
-- [ ] **Middleware Interceptor (`proxy.ts`):** Check authentication redirects correctly protect private routing boundaries.
+- [x] **Auth Pages (`/login`, `/signup`):** Verify public page routing.
+- [x] **Middleware Interceptor (`proxy.ts`):** Check authentication redirects correctly protect private routing boundaries.
 - [ ] **Dashboard (`/dashboard`):** Verify core layout shell and workspace switcher location.
 - [ ] **Organization Creator (`/organizations/create`):** Verify page routing and workspace slug uniqueness API.
 - [ ] **Members Settings (`/organizations/settings`):** Verify page routing and member invitation interface placement.
