@@ -62,48 +62,6 @@ export const createInsforgeServer = async () => {
 
 ---
 
-### Auth
-
-```typescript
-const insforge = await createInsforgeServer();
-const { data: { user }, error } = await insforge.auth.getUser();
-if (!user) redirect("/login");
-```
-
----
-
-### DB Queries
-
-```typescript
-// Read
-const { data, error } = await insforge
-  .from("tasks")
-  .select("*")
-  .eq("organization_id", orgId)
-  .order("created_at", { ascending: false });
-
-// Insert
-const { data, error } = await insforge
-  .from("tasks")
-  .insert({ title, organization_id: orgId })
-  .select()
-  .single();
-
-// Update
-const { error } = await insforge
-  .from("tasks")
-  .update({ status: "IN_PROGRESS" })
-  .eq("id", taskId)
-  .eq("organization_id", orgId);
-```
-
-**Rules:**
-- Always scope to `organization_id`.
-- Handle `error` return.
-- Use `.single()` for one row.
-
----
-
 ### Storage
 
 ```typescript

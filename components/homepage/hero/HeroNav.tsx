@@ -65,7 +65,7 @@ export default function HeroNav({ isDarkMode, setIsDarkMode }: HeroNavProps) {
 
             {/* Primary Action */}
             <Link
-              href="/signup"
+              href="/sign-up"
               className={`relative group bg-tertiary text-white border-2 font-sans text-sm font-bold px-4 py-1.5 rounded-full hover:bg-tertiary-hover active:scale-[0.97] transition-all focus-visible:ring-2 focus-visible:ring-tertiary focus-visible:outline-none cursor-pointer ${
                 isDarkMode
                   ? "border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]"
@@ -134,14 +134,14 @@ export default function HeroNav({ isDarkMode, setIsDarkMode }: HeroNavProps) {
             style={{ transitionDelay: "300ms" }}
           >
             <Link 
-              href="/login"
+              href="/sign-in"
               onClick={() => setIsMenuOpen(false)}
               className="text-white/60 text-lg font-semibold hover:text-white text-center"
             >
               Sign In
             </Link>
             <Link 
-              href="/signup"
+              href="/sign-up"
               onClick={() => setIsMenuOpen(false)}
               className="bg-tertiary text-white border-2 border-white font-sans text-lg font-bold px-8 py-3 rounded-full shadow-[4px_4px_0px_0px_#ffffff] text-center"
             >

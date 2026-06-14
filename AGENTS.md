@@ -8,14 +8,14 @@ do not read what i do not tell  you to read, read only what i specify in the pro
 
 Read in this exact order before any implementation:
 
-1. context/project-overview.md
-2. context/architecture.md
+1. context/overview.md
+2. context/archi.md
 3. context/ui-tokens.md
 4. context/ui-rules.md
 5. context/ui-registry.md
 6. context/code-standards.md
 7. context/library-docs.md
-8. context/build-plan.md
+8. context/build.md
 9. context/progress-tracker.md
 
 ## Rules That Never Change
@@ -23,7 +23,7 @@ Read in this exact order before any implementation:
 - Never use hardcoded hex values or raw Tailwind color classes
 - Update `progress-tracker.md` and `ui-registry.md` after every feature
 - Before any third party library — load its installed skill first,
-  then read `context/library-docs.md` for project-specific rules
+  then read `context/libs.md` for project-specific rules
 - If the same problem persists after one corrective prompt —
   stop immediately and run /recover
 
@@ -61,7 +61,7 @@ alwaysApply: true
 Backend-as-a-service (BaaS) platform providing:
 
 - **Database**: PostgreSQL with PostgREST API
-- **Authentication**: Email/password + OAuth (Google, GitHub)
+- **Authentication**: Clerk
 - **Storage**: File upload/download
 - **AI**: OpenRouter key provisioning and model catalog for direct OpenAI-compatible integrations
 - **Functions**: Serverless function deployment
@@ -178,7 +178,6 @@ Payments currently has TypeScript SDK docs only. Use the Payments API reference 
 
 ## Important Notes
 
-- For auth: use `auth-sdk` for custom UI, or framework-specific components for pre-built UI
 - SDK returns `{data, error}` structure for all operations
 - Database inserts require array format: `[{...}]`
 - Serverless functions have one endpoint and do not support nested route paths

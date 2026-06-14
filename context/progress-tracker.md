@@ -2,6 +2,9 @@
 
 Update this file after every completed feature. Any AI agent reading this should immediately know what is done, what is in progress, and what is next.
 
+We are building Version 1
+
+
 ---
 
 ## Current Status
