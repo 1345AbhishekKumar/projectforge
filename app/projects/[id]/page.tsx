@@ -7,6 +7,7 @@ import { useUser, useAuth } from "@clerk/nextjs";
 import { ArrowLeft, User as UserIcon, Loader2, Archive, Calendar, Users, ClipboardList, LogOut, Plus } from "lucide-react";
 
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { getProjectDetails, updateProject, archiveProject } from "@/actions/project";
 import { getOrganizationMembers, type MemberListItem } from "@/actions/membership";
 import { createTask, getProjectTasks, updateTask, deleteTask, type TaskWithAssignee } from "@/actions/task";
@@ -251,6 +252,8 @@ export default function ProjectDetailsPage({ params }: Props) {
         </div>
 
         <div className="flex items-center gap-4">
+          <NotificationBell />
+
           <div className="hidden sm:flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-neutral-bg">
             <UserIcon className="h-4 w-4 text-secondary" />
             <span className="font-sans text-xs font-semibold text-secondary">

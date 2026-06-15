@@ -8,9 +8,9 @@ We are building Version 1
 ---
 
 ## Current Status
-- **Status:** **Feature 1.7 (Comments & Attachments) Implemented**. Created database tables `comments` and `attachments`, set up storage bucket `attachments`, created comments and attachments server actions with uploader profile joining, and integrated chronological timeline feeds, drag-drop uploader dropzone, blocklists, progress bar and delete features inside the task drawer.
+- **Status:** **Feature 1.8 (Notification Center) Implemented**. Created `NotificationBell` client component with unread badge, date-grouped dropdown tray, per-item and bulk mark-read, 30-day cleanup, and empty state. Fixed missing `await` on `createInsforgeServer()` in notification actions. Wired bell into all 4 authenticated page navbars.
 - **Active Sprint:** MVP project and task setup.
-- **Target Milestones:** Implement Feature 1.8 (Notification Center).
+- **Target Milestones:** V1 MVP complete — all 8 features shipped.
 
 ## Progress
 - [x] Align project overview and description to ProjectForge (`context/project-overview.md`).
@@ -24,9 +24,7 @@ We are building Version 1
 - [x] Implement Feature 1.5: Project Management — database table (`projects`), Server Actions (`createProject`, `getUserProjects`, `getProjectDetails`, `updateProject`, `archiveProject`), Projects Directory (`/projects`), Project Details dynamic route (`/projects/[id]`), ProjectCard and CreateProjectModal components.
 - [x] Implement Feature 1.6: Tasks Engine — database table (`tasks`), Server Actions (`createTask`, `getProjectTasks`, `updateTask`, `deleteTask`), backlog columns, `TaskRow`, `TaskList`, `CreateTaskModal`, and `TaskDetailsSheet` components with overdue warnings and member scoping.
 - [x] Implement Feature 1.7: Comments & Attachments — database tables (`comments`, `attachments`), storage bucket (`attachments`), Server Actions (`createComment`, `getTaskComments`, `createAttachment`, `getTaskAttachments`, `deleteAttachment`), chronological timeline feed, sketchy file dropzone, size checking (<20MB), file blocklist, progress bar simulation, download/delete controls in `TaskDetailsSheet`.
-
-## Next Actions (Phase 1 Development)
-- [ ] Feature 1.8: Notification Center (unread badges, Notification Dropdown panel, mark read actions, cleanup scheduled scripts).
+- [x] Implement Feature 1.8: Notification Center — `NotificationBell` component (bell icon + unread badge + date-grouped dropdown tray + mark-read per item + mark-all-read + 30-day cleanup + empty state), fixed `await` bug in notification actions, integrated into all 4 authenticated page navbars.
 
 ## Decisions Made During Build
 - **Tech Stack Enforced:** Next.js 16 (React 19) App Router, Tailwind CSS v4, InsForge private PostgreSQL and storage client layers.

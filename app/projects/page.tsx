@@ -6,6 +6,7 @@ import { useUser, useAuth } from "@clerk/nextjs";
 import { LogOut, User as UserIcon, Plus, FolderKanban, Loader2, Info } from "lucide-react";
 
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
 import { ProjectCard } from "@/components/projects/ProjectCard";
 import { getUserOrganizations } from "@/actions/org";
@@ -153,6 +154,8 @@ export default function ProjectsDirectoryPage() {
         </div>
 
         <div className="flex items-center gap-4">
+          <NotificationBell />
+
           <div className="hidden sm:flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-neutral-bg">
             <UserIcon className="h-4 w-4 text-secondary" />
             <span className="font-sans text-xs font-semibold text-secondary">

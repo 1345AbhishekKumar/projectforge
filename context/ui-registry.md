@@ -126,3 +126,17 @@ After building any component — update this file with the component name, file 
 - **Uploader Dropzone:** `border-2 border-dashed border-black rounded-sketchy p-6 text-center hover:bg-neutral-bg/30 transition-all cursor-pointer block relative`
 - **Upload Progress Bar:** `w-full bg-neutral-dot border-2 border-black rounded-full h-4 overflow-hidden relative`
 - **Timeline Comment Card:** `bg-white border-2 border-black rounded-sketchy p-4 shadow-flat-offset-sm relative`
+
+### Notification Components
+
+#### NotificationBell Component
+- **File Path:** [NotificationBell.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/notifications/NotificationBell.tsx)
+- **Bell Button Classes:** `relative p-2 rounded-full border-2 border-black bg-white hover:bg-neutral-bg shadow-flat-offset-sm transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0`
+- **Unread Badge Classes:** `absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-accent-pink border-2 border-black rounded-full flex items-center justify-center font-sans text-[10px] font-bold text-primary leading-none px-0.5`
+- **Dropdown Panel Classes:** `absolute right-0 top-full mt-2 w-80 bg-white border-2 border-black rounded-sketchy shadow-flat-offset z-[100] overflow-hidden`
+- **Dropdown Header Classes:** `flex items-center justify-between px-4 py-3 border-b-2 border-black`
+- **Date Group Header Classes:** `px-4 py-1.5 border-b border-black/10 bg-neutral-bg/50` with `font-cursive text-sm font-bold text-secondary` label
+- **Notification Row (Unread):** `w-full text-left flex items-start gap-3 px-4 py-3 border-b border-black/10 bg-accent-yellow/20 hover:bg-accent-yellow/40`
+- **Notification Row (Read):** `w-full text-left flex items-start gap-3 px-4 py-3 border-b border-black/10 hover:bg-neutral-bg/50`
+- **Unread Dot:** `block w-2 h-2 rounded-full bg-tertiary`
+- **Empty State Classes:** `px-4 py-8 text-center`

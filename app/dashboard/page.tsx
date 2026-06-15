@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { LogOut, User as UserIcon, LayoutDashboard, Settings, BookOpen } from "lucide-react";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { syncProfile } from "@/actions/profile";
 
 export default function DashboardPage() {
@@ -49,6 +50,8 @@ export default function DashboardPage() {
         </div>
 
         <div className="flex items-center gap-4">
+          <NotificationBell />
+
           <div className="hidden sm:flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-neutral-bg">
             <UserIcon className="h-4 w-4 text-secondary" />
             <span className="font-sans text-xs font-semibold text-secondary">

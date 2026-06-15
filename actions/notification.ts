@@ -9,7 +9,7 @@ export async function getNotifications(): Promise<{ success: boolean; data: Noti
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
-    const insforge = createInsforgeServer();
+    const insforge = await createInsforgeServer();
 
     const { data, error } = await insforge.database
       .from("notifications")
@@ -32,7 +32,7 @@ export async function markNotificationRead(notificationId: string): Promise<{ su
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = await createInsforgeServer();
 
     const { error } = await insforge.database
       .from("notifications")
@@ -55,7 +55,7 @@ export async function markAllNotificationsRead(): Promise<{ success: boolean; er
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = await createInsforgeServer();
 
     const { error } = await insforge.database
       .from("notifications")
@@ -65,6 +65,32 @@ export async function markAllNotificationsRead(): Promise<{ success: boolean; er
 
     if (error) {
       return { success: false, error: "Failed to update notifications" };
+    }
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function deleteOldNotifications(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const insforge = await createInsforgeServer();
+
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - 30);
+
+    const { error } = await insforge.database
+      .from("notifications")
+      .delete()
+      .eq("user_id", userId)
+      .lt("created_at", cutoff.toISOString());
+
+    if (error) {
+      return { success: false, error: "Failed to delete old notifications" };
     }
 
     return { success: true };

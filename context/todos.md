@@ -76,8 +76,8 @@ we are building version 1(prd_versions/v1.md)
 - [x] **Comment Notification Trigger:** Post comment on task. Verify a notification triggers for the task assignee.
 
 ### Feature 1.8: Notification Center Verification
-- [ ] **Header Alert Indicator:** Trigger notification. Verify red badge displays next to header bell icon.
-- [ ] **Notifications Read Mutator:** Click "Mark all as read". Verify notification records in DB update `read` to `true` and the header count clears.
+- [x] **Header Alert Indicator:** Trigger notification. Verify red badge displays next to header bell icon.
+- [x] **Notifications Read Mutator:** Click "Mark all as read". Verify notification records in DB update `read` to `true` and the header count clears.
 
 ---
 
