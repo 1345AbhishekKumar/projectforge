@@ -19,7 +19,7 @@ We are building Version 1
 - [x] Implement Feature 1.1: Landing Page layout, styling, and session-checking logic (light mode only, isDarkMode props removed).
 - [x] Implement Feature 1.2: Authentication card, form fields, validation, and secure Clerk authentication integration (useSignIn, useSignUp, proxy.ts, layout wrapping, callback handler).
 - [x] Implement Feature 1.3: Multi-Tenant Workspace — InsForge DB tables (profiles, organizations, memberships), Server Actions (createOrg, checkSlug, getUserOrgs, setActiveOrg), Create Org page (`/orgs/create`), OrgSwitcher component, Dashboard integration.
-- [x] Clerk ↔ InsForge Profile Sync — Webhook handler (`/api/webhooks/clerk`) for `user.created/updated/deleted` events, fallback `syncProfile` Server Action on dashboard mount, middleware updated for public webhook route (database inserts corrected to array format).
+- [x] Clerk ↔ InsForge Profile Sync — Webhook handler (`/api/webhooks/clerk`) migrated to use manual `svix` signature verification, fallback `syncProfile` Server Action on dashboard mount, middleware updated for public webhook route.
 
 ## Next Actions (Phase 1 Development)
 - [ ] Implement Feature 1.4: Membership & Role Management (invite drawer, member list, role updates).
