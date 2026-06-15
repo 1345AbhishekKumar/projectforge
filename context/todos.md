@@ -12,7 +12,7 @@ we are building version 1(prd_versions/v1.md)
 - [ ] **`profiles` Table:** Verify schema matches user meta-data. Test sync trigger on successful authentication signup.
 - [ ] **`organizations` Table:** Verify name and unique URL slug fields. Enforce indexes on slug for fast lookups.
 - [ ] **`memberships` Table:** Verify composite unique key `(organization_id, user_id)` and role enum constraint (`OWNER`, `ADMIN`, `MEMBER`).
-- [ ] **`projects` Table:** Verify foreign key constraint linking to `organizations.id` and name/status fields.
+- [x] **`projects` Table:** Verify foreign key constraint linking to `organizations.id` and name/status fields.
 - [ ] **`tasks` Table:** Verify foreign key constraints linking to `projects.id` and `profiles.id` (assignee). Check priority/status constraints.
 - [ ] **`comments` Table:** Verify foreign key constraints linking to `tasks.id` and `profiles.id` (author).
 - [ ] **`attachments` Table:** Verify storage URL paths and size mappings are stored correctly.
@@ -25,8 +25,8 @@ we are building version 1(prd_versions/v1.md)
 - [x] **Dashboard (`/dashboard`):** Verify core layout shell and workspace switcher location.
 - [x] **Organization Creator (`/organizations/create`):** Verify page routing and workspace slug uniqueness API.
 - [x] **Members Settings (`/organizations/settings`):** Verify page routing and member invitation interface placement.
-- [ ] **Projects Directory (`/projects`):** Verify page layout and project creation modal triggers.
-- [ ] **Project Details (`/projects/[id]`):** Verify dynamic project page layout and tabs routing.
+- [x] **Projects Directory (`/projects`):** Verify page layout and project creation modal triggers.
+- [x] **Project Details (`/projects/[id]`):** Verify dynamic project page layout and tabs routing.
 - [ ] **Task Details View (`/tasks/[id]` or drawer):** Verify overlay task details component.
 - [x] **Clerk Webhook Endpoint (`/api/webhooks/clerk`):** Verify that the Clerk webhook handler successfully receives and validates Clerk user.created event payloads.
 
@@ -60,9 +60,9 @@ we are building version 1(prd_versions/v1.md)
 - [x] **Role Updates:** Change a member's role from dropdown. Verify membership record is updated in the database.
 
 ### Feature 1.5: Project Management Verification
-- [ ] **Multi-Tenant Data Isolation:** Verify that a user cannot query projects outside of their active `organization_id`.
-- [ ] **Project CRUD Lifecycle:** Test project creation, reading, status updates, and archiving. Verify database updates match input fields.
-- [ ] **Empty State Renders:** Navigate to a newly created project. Verify empty state illustration and "No projects found" caption render when count is 0.
+- [x] **Multi-Tenant Data Isolation:** Verify that a user cannot query projects outside of their active `organization_id`.
+- [x] **Project CRUD Lifecycle:** Test project creation, reading, status updates, and archiving. Verify database updates match input fields.
+- [x] **Empty State Renders:** Navigate to a newly created project. Verify empty state illustration and "No projects found" caption render when count is 0.
 
 ### Feature 1.6: Tasks Engine Verification
 - [ ] **Task CRUD Lifecycle:** Verify task creation modal properly inputs title, description, priority status, and due date.

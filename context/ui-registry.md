@@ -71,3 +71,28 @@ After building any component — update this file with the component name, file 
 - **Card Classes:** `bg-accent-yellow border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 rotate-[0.5deg]`
 - **Input Classes:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary`
 
+### Project Management Screens
+
+#### Projects Directory Page
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/projects/page.tsx)
+- **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex flex-col`
+- **Header Card Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col md:flex-row md:items-center justify-between gap-4`
+- **Column Card Classes:** `bg-white border-2 border-black rounded-sketchy p-5 shadow-flat-offset-sm flex flex-col gap-4`
+
+#### Project Details Page
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/projects/[id]/page.tsx)
+- **Header Card Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col md:flex-row md:items-center justify-between gap-6`
+- **Tab Button (Active):** `bg-accent-yellow border-2 border-black border-b-0 rounded-t-lg shadow-[0_-2px_0_rgba(0,0,0,1)] px-6 py-2.5 text-sm font-bold font-cursive`
+- **Empty State Card:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8 md:p-12 text-center max-w-lg mx-auto`
+
+#### ProjectCard Component
+- **File Path:** [ProjectCard.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/projects/ProjectCard.tsx)
+- **Card Link:** `block w-full rounded-sketchy p-5 shadow-flat-offset-sm hover:-translate-y-1 hover:rotate-1 hover:shadow-flat-offset active:translate-y-0.5 active:rotate-0 transition-all duration-200 cursor-pointer`
+- **Badge Colors:** `PLANNING: bg-accent-yellow`, `ACTIVE: bg-accent-blue`, `COMPLETED: bg-accent-green`, `ARCHIVED: bg-neutral-bg`
+
+#### CreateProjectModal Component
+- **File Path:** [CreateProjectModal.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/projects/CreateProjectModal.tsx)
+- **Card Wrapper:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-md w-full relative rotate-[0.5deg]`
+- **Input Classes:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary`
+
+

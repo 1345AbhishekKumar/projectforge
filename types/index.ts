@@ -28,3 +28,16 @@ export type Membership = {
 export type OrganizationWithRole = Organization & {
   role: MembershipRole;
 };
+
+export type ProjectStatus = "PLANNING" | "ACTIVE" | "COMPLETED" | "ARCHIVED";
+
+export type Project = {
+  id: string;
+  organization_id: string;
+  name: string;
+  description: string | null;
+  status: ProjectStatus;
+  created_at: string;
+  updated_at: string;
+};
+
