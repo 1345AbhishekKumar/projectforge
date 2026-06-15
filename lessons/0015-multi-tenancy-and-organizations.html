@@ -1,0 +1,386 @@
+# 0012 - Multi-Tenancy and Organizations in B2B SaaS
+
+## Context
+Following the lessons on basic user authentication and frontend route security, the curriculum required a paradigm shift. ProjectForge operates as a SaaS platform where users collaborate in workspaces. This necessitated learning about Multi-Tenancy, shifting the core domain anchor from the `User` to the `Organization`.
+
+## Key Insights
+- **The B2B Paradigm Shift**: In consumer apps, `User` owns data. In SaaS/B2B apps, an `Organization` (Tenant) owns data, and `Users` are merely members acting within the context of that organization.
+- **Cross-Tenant Data Leaks**: The most critical security boundary in multi-tenancy is Data Isolation. Every core domain model (e.g., Projects, Tasks, Invoices) MUST have an `orgId` foreign key, and every database query MUST filter by the active `orgId`.
+- **Database Schema Modeling**: A join table (e.g., `OrgMembership`) is required to map the Many-to-Many relationship between Users and Organizations, storing specific roles (e.g., Admin vs Member).
+- **Middleware Enforcement**: Clerk provides the concept of an "Active Organization". Middleware can be used as an architectural choke-point to forcefully redirect users to an `/org-selection` page if they are authenticated but lack an active organization context.
+- **Drop-in UI Components**: Managing the complexities of invitations, role-switching, and org management is best delegated to pre-built components like `<OrganizationSwitcher />` and `<OrganizationProfile />` rather than reinventing the wheel.
+
+## Impact on Next Steps
+With Multi-Tenancy understood, the foundation for a scalable SaaS architecture is set. The user understands how to isolate data, secure routes, and sync identities. The next logical progression would involve implementing the actual core features of ProjectForge (e.g., creating Projects) utilizing this enforced `orgId` context, or diving deeper into advanced Clerk features like granular Role-Based Access Control (RBAC) permissions. var(--font-mono);
+      background: #e1e4e8;
+      padding: 0.2em 0.4em;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: #b31d28;
+    }
+
+    pre {
+      background: var(--code-bg);
+      color: var(--code-text);
+      padding: 1.5rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+      margin: 2rem 0;
+      border: 1px solid #181a1f;
+      font-size: 0.95em;
+      line-height: 1.5;
+    }
+
+    pre code { background: none; padding: 0; color: inherit; }
+
+    /* Mock Syntax Highlighting */
+    .kw { color: #c678dd; } /* Keyword */
+    .fn { color: #61afef; } /* Function */
+    .st { color: #98c379; } /* String */
+    .cm { color: #7f848e; font-style: italic; } /* Comment */
+    .ty { color: #e5c07b; } /* Type */
+    .op { color: #56b6c2; } /* Operator */
+    .va { color: #e06c75; } /* Variable/Prop */
+
+    /* --- Callouts --- */
+    .epigraph {
+      margin: 1.5rem 0 3.5rem 0;
+      font-style: italic;
+      color: #586069;
+      font-size: 1.3rem;
+      border-left: 4px solid var(--accent);
+      padding-left: 1.5rem;
+    }
+
+    .callout {
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin: 2rem 0;
+      border-left: 6px solid;
+    }
+
+    .callout.info { background-color: var(--info-bg); border-color: var(--info-border); color: var(--info-text); }
+    .callout.warning { background-color: #fffbdd; border-color: #f9c513; color: #735c0f; }
+    .callout.critical { background-color: var(--error-bg); border-color: var(--error-border); color: var(--error-text); }
+    .callout h4 { margin-top: 0; margin-bottom: 0.75rem; font-size: 1.25rem; }
+    .callout p:last-child { margin-bottom: 0; }
+
+    /* --- Interactive Quizzes --- */
+    .quiz-section {
+      margin-top: 5rem;
+      padding-top: 2rem;
+      border-top: 2px dashed var(--border);
+    }
+
+    .quiz-container {
+      margin-bottom: 3.5rem;
+      background: #fff;
+      padding: 2.5rem;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    }
+
+    .quiz-question {
+      font-size: 1.4rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: #111;
+    }
+
+    .quiz-options {
+      list-style: none;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .quiz-button {
+      width: 100%;
+      text-align: left;
+      padding: 1.25rem;
+      font-size: 1.15rem;
+      background: #fafbfc;
+      border: 2px solid var(--border);
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      font-family: var(--font-main);
+      color: var(--text);
+    }
+
+    .quiz-button:hover:not(:disabled) {
+      background: #f1f8ff;
+      border-color: var(--info-border);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+    }
+
+    .quiz-button:disabled { cursor: not-allowed; opacity: 0.65; transform: none; box-shadow: none; }
+    .quiz-button.correct { background: var(--success-bg); border-color: var(--success-border); color: var(--success-text); font-weight: 600; opacity: 1; }
+    .quiz-button.incorrect { background: var(--error-bg); border-color: var(--error-border); color: var(--error-text); }
+
+    .feedback {
+      margin-top: 1.5rem;
+      padding: 1.5rem;
+      border-radius: 8px;
+      font-size: 1.15rem;
+      display: none;
+      animation: slideDown 0.3s ease forwards;
+    }
+    .feedback.show { display: block; }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-15px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Multi-Tenancy & Organizations</h1>
+  <div class="epigraph">Transitioning from B2C logic to scalable B2B Architectures.</div>
+
+  <p>Until now, we have assumed a B2C (Business to Consumer) model. A user signs up, logs in, and views <em>their</em> data. The core identity is the <code>User</code>. But most SaaS applications, including ProjectForge, are B2B (Business to Business). In B2B, the core entity is not the User; it is the <strong>Organization</strong> (or Workspace, Team, Tenant).</p>
+
+  <p>This architectural shift is called <strong>Multi-Tenancy</strong>. A single instance of your software serves multiple distinct tenants (organizations). A user does not own a project; an <em>Organization</em> owns the project, and users are <em>Members</em> of that Organization with specific roles.</p>
+
+  <h2>1. The Architectural Shift: Data Isolation</h2>
+
+  <p>In B2C, your database queries look like this:</p>
+  <pre><code><span class="cm">// B2C Query: Fetch my projects</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> projects <span class="kw">WHERE</span> user_id = <span class="st">'user_123'</span>;</code></pre>
+
+  <p>In a B2B multi-tenant application, users can belong to multiple organizations. When they are logged into the "Acme Corp" context, they should absolutely NOT see data from "Globex Inc". Data isolation is the most critical security boundary in SaaS.</p>
+
+  <pre><code><span class="cm">// B2B Query: Fetch projects for the currently active organization</span>
+<span class="kw">SELECT</span> * <span class="kw">FROM</span> projects <span class="kw">WHERE</span> org_id = <span class="st">'org_abc'</span>;</code></pre>
+
+  <div class="callout critical">
+    <h4>The Cross-Tenant Data Leak</h4>
+    <p>If you fail to include <code>WHERE org_id = ?</code> on a query in a B2B app, you will leak proprietary data from one company to another. This is a catastrophic security failure that destroys business trust instantly. <strong>Every</strong> domain model in a B2B app must associate with a Tenant ID.</p>
+  </div>
+
+  <h2>2. Modeling Multi-Tenancy in the Database</h2>
+
+  <p>Because we use Clerk for organizations, Clerk handles the complexities of invitations, billing limits on seats, and role assignments (Admin vs Member). However, just like we synced Users in Lesson 13, we must sync Organizations to maintain referential integrity in our local database.</p>
+
+<pre><code><span class="cm">// schema.prisma</span>
+
+<span class="kw">model</span> <span class="ty">Organization</span> {
+  id        <span class="ty">String</span>   <span class="kw">@id</span> <span class="kw">@unique</span> <span class="cm">// Stores the Clerk org_id</span>
+  name      <span class="ty">String</span>
+  slug      <span class="ty">String?</span>  <span class="kw">@unique</span>
+  imageUrl  <span class="ty">String?</span>
+
+  <span class="cm">// The Organization owns the domain data</span>
+  projects  <span class="ty">Project</span>[]
+  members   <span class="ty">OrgMembership</span>[]
+}
+
+<span class="cm">// The Join Table: Users can be in many Orgs, Orgs have many Users</span>
+<span class="kw">model</span> <span class="ty">OrgMembership</span> {
+  id        <span class="ty">String</span>       <span class="kw">@id</span> <span class="kw">@default</span>(<span class="fn">cuid</span>())
+  role      <span class="ty">String</span>       <span class="cm">// e.g., 'org:admin', 'org:member'</span>
+  
+  userId    <span class="ty">String</span>
+  user      <span class="ty">User</span>         <span class="kw">@relation</span>(<span class="va">fields</span>: [userId], <span class="va">references</span>: [id])
+  
+  orgId     <span class="ty">String</span>
+  org       <span class="ty">Organization</span> <span class="kw">@relation</span>(<span class="va">fields</span>: [orgId], <span class="va">references</span>: [id])
+
+  <span class="kw">@@unique</span>([userId, orgId]) <span class="cm">// A user has only one membership per org</span>
+}
+
+<span class="kw">model</span> <span class="ty">Project</span> {
+  id        <span class="ty">String</span>       <span class="kw">@id</span> <span class="kw">@default</span>(<span class="fn">cuid</span>())
+  title     <span class="ty">String</span>
+  
+  <span class="cm">// Bound to the Organization, NOT the User</span>
+  orgId     <span class="ty">String</span>
+  org       <span class="ty">Organization</span> <span class="kw">@relation</span>(<span class="va">fields</span>: [orgId], <span class="va">references</span>: [id])
+}</code></pre>
+
+  <p>To keep this in sync, you would expand your Webhook handler from Lesson 13 to listen to <code>organization.created</code>, <code>organization.updated</code>, and <code>organizationMembership.created</code> events.</p>
+
+  <h2>3. Routing by Organization (Next.js Middleware)</h2>
+
+  <p>In a B2B app, URLs often encode the organization context, e.g., <code>/orgs/acme-corp/projects</code>. But even if they don't, your backend needs to know <em>which</em> organization the user is currently operating as.</p>
+
+  <p>Clerk introduces the concept of an <strong>Active Organization</strong>. A user might belong to 5 orgs, but they are only "acting" as one at any given time. Clerk's token provides the <code>orgId</code> of the currently active organization.</p>
+
+  <p>We can use Middleware to force users to select an organization before they can access the application.</p>
+
+<pre><code><span class="cm">// middleware.ts</span>
+<span class="kw">import</span> { <span class="fn">clerkMiddleware</span>, <span class="fn">createRouteMatcher</span> } <span class="kw">from</span> <span class="st">"@clerk/nextjs/server"</span>;
+<span class="kw">import</span> { <span class="va">NextResponse</span> } <span class="kw">from</span> <span class="st">"next/server"</span>;
+
+<span class="kw">const</span> <span class="fn">isPublicRoute</span> <span class="op">=</span> <span class="fn">createRouteMatcher</span>([<span class="st">'/'</span>, <span class="st">'/sign-in(.*)'</span>, <span class="st">'/sign-up(.*)'</span>]);
+
+<span class="kw">export default</span> <span class="fn">clerkMiddleware</span>((<span class="va">auth</span>, <span class="va">req</span>) <span class="op">=></span> {
+  <span class="kw">const</span> { <span class="va">userId</span>, <span class="va">orgId</span> } <span class="op">=</span> <span class="fn">auth</span>();
+
+  <span class="cm">// 1. Protect all non-public routes</span>
+  <span class="kw">if</span> (<span class="op">!</span><span class="fn">isPublicRoute</span>(<span class="va">req</span>)) {
+    <span class="va">auth</span>().<span class="fn">protect</span>();
+  }
+
+  <span class="cm">// 2. Enforce Organization Selection</span>
+  <span class="cm">// If they are logged in, but haven't selected an active organization,</span>
+  <span class="cm">// and they are NOT already on the org-selection page, redirect them.</span>
+  <span class="kw">if</span> (<span class="va">userId</span> <span class="op">&&</span> <span class="op">!</span><span class="va">orgId</span> <span class="op">&&</span> <span class="va">req</span>.<span class="va">nextUrl</span>.<span class="va">pathname</span> <span class="op">!==</span> <span class="st">'/org-selection'</span>) {
+    <span class="kw">const</span> <span class="va">orgSelectionUrl</span> <span class="op">=</span> <span class="keyword">new</span> <span class="type">URL</span>(<span class="st">'/org-selection'</span>, <span class="va">req</span>.<span class="va">url</span>);
+    <span class="kw">return</span> <span class="type">NextResponse</span>.<span class="fn">redirect</span>(<span class="va">orgSelectionUrl</span>);
+  }
+});</code></pre>
+
+  <div class="callout info">
+    <h4>UX Considerations: The Orphaned User</h4>
+    <p>What happens if a user signs up, but they haven't been invited to any organization and haven't created one? The middleware above will trap them on <code>/org-selection</code>. Your <code>/org-selection</code> page must gracefully handle this state by offering a "Create an Organization" form or a message instructing them to wait for an email invitation.</p>
+  </div>
+
+  <h2>4. Context in Server Components</h2>
+
+  <p>Once the middleware guarantees the user has an active organization, accessing that context in a Next.js Server Component is trivial and highly secure.</p>
+
+<pre><code><span class="cm">// app/dashboard/projects/page.tsx (Server Component)</span>
+<span class="kw">import</span> { <span class="fn">auth</span> } <span class="kw">from</span> <span class="st">'@clerk/nextjs/server'</span>;
+<span class="kw">import</span> { <span class="va">db</span> } <span class="kw">from</span> <span class="st">'@/lib/db'</span>;
+
+<span class="kw">export default async function</span> <span class="fn">ProjectsPage</span>() {
+  <span class="cm">// The middleware ensures orgId exists, but TS requires a fallback</span>
+  <span class="kw">const</span> { <span class="va">orgId</span> } <span class="op">=</span> <span class="fn">auth</span>();
+  <span class="kw">if</span> (<span class="op">!</span><span class="va">orgId</span>) <span class="kw">return</span> <span class="op">&lt;</span><span class="ty">div</span><span class="op">&gt;</span>Unauthorized<span class="op">&lt;/</span><span class="ty">div</span><span class="op">&gt;</span>;
+
+  <span class="cm">// B2B Data Isolation enforced at the query level!</span>
+  <span class="kw">const</span> <span class="va">projects</span> <span class="op">=</span> <span class="kw">await</span> <span class="va">db</span>.<span class="va">project</span>.<span class="fn">findMany</span>({
+    <span class="va">where</span>: { <span class="va">orgId</span>: <span class="va">orgId</span> }
+  });
+
+  <span class="kw">return</span> (
+    <span class="op">&lt;</span><span class="ty">div</span><span class="op">&gt;</span>
+      <span class="op">&lt;</span><span class="ty">h1</span><span class="op">&gt;</span>Organization Projects<span class="op">&lt;/</span><span class="ty">h1</span><span class="op">&gt;</span>
+      <span class="op">&lt;</span><span class="ty">ul</span><span class="op">&gt;</span>
+        {<span class="va">projects</span>.<span class="fn">map</span>(<span class="va">p</span> <span class="op">=></span> <span class="op">&lt;</span><span class="ty">li</span> <span class="va">key</span><span class="op">=</span>{<span class="va">p</span>.<span class="va">id</span>}<span class="op">&gt;</span>{<span class="va">p</span>.<span class="va">title</span>}<span class="op">&lt;/</span><span class="ty">li</span><span class="op">&gt;</span>)}
+      <span class="op">&lt;/</span><span class="ty">ul</span><span class="op">&gt;</span>
+    <span class="op">&lt;/</span><span class="ty">div</span><span class="op">&gt;</span>
+  );
+}</code></pre>
+
+  <h2>5. Clerk's Drop-in Organization Components</h2>
+
+  <p>Building organization management UI (inviting members, managing roles, switching orgs) from scratch is incredibly tedious. Clerk provides drop-in Client Components that handle all of this safely.</p>
+
+<pre><code><span class="st">'use client'</span>;
+<span class="kw">import</span> { <span class="fn">OrganizationSwitcher</span>, <span class="fn">OrganizationProfile</span> } <span class="kw">from</span> <span class="st">'@clerk/nextjs'</span>;
+
+<span class="kw">export function</span> <span class="fn">Navbar</span>() {
+  <span class="kw">return</span> (
+    <span class="op">&lt;</span><span class="ty">nav</span><span class="op">&gt;</span>
+      <span class="cm">{/* Allows the user to toggle between their organizations */}</span>
+      <span class="op">&lt;</span><span class="ty">OrganizationSwitcher</span> <span class="va">hidePersonal</span><span class="op">=</span>{<span class="kw">true</span>} <span class="op">/&gt;</span>
+    <span class="op">&lt;/</span><span class="ty">nav</span><span class="op">&gt;</span>
+  );
+}
+
+<span class="kw">export function</span> <span class="fn">OrgSettingsPage</span>() {
+  <span class="kw">return</span> (
+    <span class="op">&lt;</span><span class="ty">div</span><span class="op">&gt;</span>
+      <span class="cm">{/* Fully featured UI for inviting users and managing roles */}</span>
+      <span class="op">&lt;</span><span class="ty">OrganizationProfile</span> <span class="op">/&gt;</span>
+    <span class="op">&lt;/</span><span class="ty">div</span><span class="op">&gt;</span>
+  );
+}</code></pre>
+
+  <!-- ====================================================================== -->
+  <!-- QUIZ SECTION                                                           -->
+  <!-- ====================================================================== -->
+  <div class="quiz-section">
+    <h2>Knowledge Check</h2>
+
+    <!-- QUIZ 1 -->
+    <div class="quiz-container" id="quiz-1">
+      <div class="quiz-question">Question 1: In a B2B SaaS architecture, what is the primary purpose of the <code>orgId</code> in database tables like <code>Projects</code> or <code>Tasks</code>?</div>
+      <ul class="quiz-options">
+        <li class="quiz-option"><button class="quiz-button" data-correct="false">A) It acts as a routing parameter so Next.js knows which page to render.</button></li>
+        <li class="quiz-option"><button class="quiz-button" data-correct="true">B) It establishes Data Isolation boundaries, ensuring that queries naturally filter data so tenants cannot view each other's proprietary information.</button></li>
+        <li class="quiz-option"><button class="quiz-button" data-correct="false">C) It encrypts the row data so that even database administrators cannot read the contents without the Clerk API key.</button></li>
+        <li class="quiz-option"><button class="quiz-button" data-correct="false">D) It replaces the need for an auto-incrementing Primary Key.</button></li>
+      </ul>
+      <div class="feedback"></div>
+    </div>
+
+    <!-- QUIZ 2 -->
+    <div class="quiz-container" id="quiz-2">
+      <div class="quiz-question">Question 2: Why do we use Middleware to enforce the presence of an active <code>orgId</code> rather than checking it on every individual page component?</div>
+      <ul class="quiz-options">
+        <li class="quiz-option"><button class="quiz-button" data-correct="false">A) Middleware runs in the browser, making the redirect instantaneous without requiring a network round-trip.</button></li>
+        <li class="quiz-option"><button class="quiz-button" data-correct="false">B) React Server Components cannot access the <code>orgId</code>, so the check MUST happen in middleware.</button></li>
+        <li class="quiz-option"><button class="quiz-button" data-correct="true">C) Edge-level middleware prevents un-tenanted users from even executing the server-side code of a protected route, creating a fail-safe, "secure by default" architecture.</button></li>
+        <li class="quiz-option"><button class="quiz-button" data-correct="false">D) Middleware automatically provisions a new organization in the database if one does not exist.</button></li>
+      </ul>
+      <div class="feedback"></div>
+    </div>
+  </div>
+
+  <script>
+    /* ==========================================================================
+       QUIZ LOGIC
+       Handles interactive state, feedback styling, and selection locking.
+       ========================================================================== */
+    function initializeQuizzes() {
+      const quizContainers = document.querySelectorAll('.quiz-container');
+
+      quizContainers.forEach((container, index) => {
+        const buttons = container.querySelectorAll('.quiz-button');
+        const feedbackEl = container.querySelector('.feedback');
+        
+        const feedbackContent = {
+          0: { // Quiz 1
+            correct: "Excellent! Data isolation is the bedrock of multi-tenancy. Tying domain entities to an orgId, and strictly enforcing WHERE orgId = ? on queries guarantees that Tenant A cannot access Tenant B's data.",
+            incorrect: "Incorrect. The orgId is a foreign key used strictly for Data Isolation. Without it, you cannot reliably filter which data belongs to which corporate client, leading to catastrophic cross-tenant data leaks."
+          },
+          1: { // Quiz 2
+            correct: "Spot on! By enforcing organization selection at the Middleware (Edge) level, you create an architectural choke-point. You guarantee that no downstream Server Component will ever be rendered for a user lacking a valid organization context.",
+            incorrect: "Not quite. While Server Components CAN access the orgId, relying on engineers to manually check it on every single page is error-prone. Middleware provides a centralized, edge-level guard that runs before the page code even executes."
+          }
+        };
+
+        buttons.forEach(button => {
+          button.addEventListener('click', function() {
+            // Lock all buttons
+            buttons.forEach(btn => btn.disabled = true);
+
+            const isCorrect = this.getAttribute('data-correct') === 'true';
+            
+            // Apply feedback styling
+            if (isCorrect) {
+              this.classList.add('correct');
+              feedbackEl.textContent = feedbackContent[index].correct;
+              feedbackEl.style.backgroundColor = 'var(--success-bg)';
+              feedbackEl.style.color = 'var(--success-text)';
+              feedbackEl.style.border = '1px solid var(--success-border)';
+            } else {
+              this.classList.add('incorrect');
+              feedbackEl.textContent = feedbackContent[index].incorrect;
+              feedbackEl.style.backgroundColor = 'var(--error-bg)';
+              feedbackEl.style.color = 'var(--error-text)';
+              feedbackEl.style.border = '1px solid var(--error-border)';
+              
+              // Highlight the correct answer
+              container.querySelector('.quiz-button[data-correct="true"]').classList.add('correct');
+            }
+            
+            // Show feedback
+            feedbackEl.classList.add('show');
+          });
+        });
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', initializeQuizzes);
+  </script>
+</body>
+</html>

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useAuth } from "@clerk/nextjs";
-import { ArrowLeft, Building2, LogOut, User as UserIcon } from "lucide-react";
+import { ArrowLeft, Building2, LogOut, User as UserIcon, Loader2 } from "lucide-react";
 
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { MemberList } from "@/components/orgs/MemberList";
@@ -16,7 +16,6 @@ import {
   type MemberListItem,
 } from "@/actions/membership";
 import { getUserOrganizations } from "@/actions/org";
-import type { OrganizationWithRole } from "@/types";
 
 function getActiveOrgId(): string | null {
   if (typeof document === "undefined") return null;
@@ -29,10 +28,11 @@ export default function SettingsPage() {
   const { user, isLoaded } = useUser();
   const { signOut } = useAuth();
 
-  const [activeOrgId, setActiveOrgId] = useState<string | null>(null);
+  const initialOrgId = getActiveOrgId();
+  const [activeOrgId, setActiveOrgId] = useState<string | null>(initialOrgId);
   const [activeOrgName, setActiveOrgName] = useState<string>("");
   const [members, setMembers] = useState<MemberListItem[]>([]);
-  const [loadingMembers, setLoadingMembers] = useState(true);
+  const [loadingMembers, setLoadingMembers] = useState(!!initialOrgId);
   const [error, setError] = useState("");
 
   const handleSignOut = async () => {
@@ -62,11 +62,7 @@ export default function SettingsPage() {
 
   // Fetch members when activeOrgId updates
   useEffect(() => {
-    if (!activeOrgId) {
-      setMembers([]);
-      setLoadingMembers(false);
-      return;
-    }
+    if (!activeOrgId) return;
 
     async function loadMembers() {
       setLoadingMembers(true);
@@ -85,27 +81,33 @@ export default function SettingsPage() {
 
   // Handle workspace switcher updates
   // Since switching active org modifies the cookie, we scan for it and refresh page states
-  const handleRefreshState = () => {
+  const handleRefreshState = useCallback(() => {
     const orgId = getActiveOrgId();
     if (orgId !== activeOrgId) {
       setActiveOrgId(orgId);
-      // Fetch org details again
-      getUserOrganizations().then((result) => {
-        if (result.success) {
-          const currentOrg = result.data.find((o) => o.id === orgId);
-          if (currentOrg) {
-            setActiveOrgName(currentOrg.name);
+      if (!orgId) {
+        setMembers([]);
+        setLoadingMembers(false);
+        setActiveOrgName("");
+      } else {
+        // Fetch org details again
+        getUserOrganizations().then((result) => {
+          if (result.success) {
+            const currentOrg = result.data.find((o) => o.id === orgId);
+            if (currentOrg) {
+              setActiveOrgName(currentOrg.name);
+            }
           }
-        }
-      });
+        });
+      }
     }
-  };
+  }, [activeOrgId]);
 
   // Listen to switcher click updates (cookie updates router)
   useEffect(() => {
     const interval = setInterval(handleRefreshState, 1000);
     return () => clearInterval(interval);
-  }, [activeOrgId]);
+  }, [handleRefreshState]);
 
   // Action callbacks passed to subcomponents
   async function handleInvite(email: string, role: "ADMIN" | "MEMBER") {

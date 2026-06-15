@@ -36,15 +36,7 @@ export default function CreateOrgPage() {
   }, []);
 
   useEffect(() => {
-    if (!slugEdited && name.length >= 3) {
-      const generated = slugify(name);
-      setSlug(generated);
-    }
-  }, [name, slugEdited]);
-
-  useEffect(() => {
     if (slug.length < 3) {
-      setSlugStatus("idle");
       return;
     }
     const timer = setTimeout(() => checkSlug(slug), 400);
@@ -109,7 +101,19 @@ export default function CreateOrgPage() {
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setName(val);
+                  if (!slugEdited) {
+                    const generated = slugify(val);
+                    setSlug(generated);
+                    if (generated.length >= 3) {
+                      setSlugStatus("checking");
+                    } else {
+                      setSlugStatus("idle");
+                    }
+                  }
+                }}
                 placeholder="e.g. DevOps Pioneers"
                 minLength={3}
                 maxLength={50}
@@ -131,7 +135,13 @@ export default function CreateOrgPage() {
                   value={slug}
                   onChange={(e) => {
                     setSlugEdited(true);
-                    setSlug(slugify(e.target.value));
+                    const val = slugify(e.target.value);
+                    setSlug(val);
+                    if (val.length >= 3) {
+                      setSlugStatus("checking");
+                    } else {
+                      setSlugStatus("idle");
+                    }
                   }}
                   placeholder="e.g. devops-pioneers"
                   minLength={3}

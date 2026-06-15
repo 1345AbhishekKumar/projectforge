@@ -8,7 +8,8 @@ interface HeroNavProps {
   setIsDarkMode: (val: boolean) => void;
 }
 
-export default function HeroNav({ isDarkMode, setIsDarkMode }: HeroNavProps) {
+export default function HeroNav(props: HeroNavProps) {
+  const { isDarkMode } = props;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   return (

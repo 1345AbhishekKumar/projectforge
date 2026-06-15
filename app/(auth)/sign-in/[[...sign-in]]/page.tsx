@@ -17,15 +17,16 @@ export default function SignInPage() {
 
   const isLoading = fetchStatus === "fetching";
 
-  const handleAction = async (e: React.FormEvent, fn: () => Promise<any>) => {
+  const handleAction = async (e: React.FormEvent, fn: () => Promise<unknown>) => {
     e.preventDefault();
     if (!signIn) return;
     setErrorMsg("");
     try {
-      const res = await fn();
-      if (res?.error) setErrorMsg(res.error.message);
-    } catch (err: any) {
-      setErrorMsg(err.message || "An error occurred. Please try again.");
+      const res = (await fn()) as { error?: { message?: string } } | null | undefined;
+      if (res?.error?.message) setErrorMsg(res.error.message);
+    } catch (err) {
+      const error = err as { message?: string };
+      setErrorMsg(error.message || "An error occurred. Please try again.");
     }
   };
 
@@ -66,8 +67,9 @@ export default function SignInPage() {
         redirectCallbackUrl: "/sso-callback",
       });
       if (res?.error) setErrorMsg(res.error.message);
-    } catch (err: any) {
-      setErrorMsg(err.message || "OAuth redirect failed.");
+    } catch (err) {
+      const error = err as { message?: string };
+      setErrorMsg(error.message || "OAuth redirect failed.");
     }
   };
 
