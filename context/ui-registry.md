@@ -55,3 +55,19 @@ After building any component — update this file with the component name, file 
 - **Trigger Classes:** `flex items-center gap-2 bg-white border-2 border-black rounded-full px-3 py-1.5 font-sans text-xs font-bold shadow-flat-offset-sm`
 - **Dropdown Classes:** `bg-white border-2 border-black rounded-sketchy-sm shadow-flat-offset z-50`
 - **Role Badge Colors:** `OWNER: bg-accent-purple text-white`, `ADMIN: bg-accent-blue text-primary`, `MEMBER: bg-accent-green text-primary`
+
+#### Members Settings Page
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/organizations/settings/page.tsx)
+- **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex flex-col`
+- **Card Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4`
+
+#### MemberList Component
+- **File Path:** [MemberList.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/orgs/MemberList.tsx)
+- **Table Row Classes:** `border-b border-black/10 hover:bg-neutral-bg/50`
+- **Dropdown Selector Classes:** `bg-white border-2 border-black rounded-full px-2.5 py-1 font-sans text-xs font-bold shadow-flat-offset-sm focus:outline-none`
+
+#### InviteModal Component (Invite Form Card)
+- **File Path:** [InviteModal.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/orgs/InviteModal.tsx)
+- **Card Classes:** `bg-accent-yellow border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 rotate-[0.5deg]`
+- **Input Classes:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary`
+

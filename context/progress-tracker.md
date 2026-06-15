@@ -8,9 +8,9 @@ We are building Version 1
 ---
 
 ## Current Status
-- **Status:** **Feature 1.3 (Multi-Tenant Workspace) Implemented**. InsForge DB tables created, Server Actions built, Create Org page and OrgSwitcher integrated into Dashboard.
-- **Active Sprint:** MVP organization and membership setup.
-- **Target Milestones:** Implement Feature 1.4 (Membership & Role Management).
+- **Status:** **Feature 1.4 (Membership & Role Management) Implemented**. Members list table, invitation card, and role updates fully operational with Server Actions.
+- **Active Sprint:** MVP project and task setup.
+- **Target Milestones:** Implement Feature 1.5 (Project Management).
 
 ## Progress
 - [x] Align project overview and description to ProjectForge (`context/project-overview.md`).
@@ -20,9 +20,10 @@ We are building Version 1
 - [x] Implement Feature 1.2: Authentication card, form fields, validation, and secure Clerk authentication integration (useSignIn, useSignUp, proxy.ts, layout wrapping, callback handler).
 - [x] Implement Feature 1.3: Multi-Tenant Workspace — InsForge DB tables (profiles, organizations, memberships), Server Actions (createOrg, checkSlug, getUserOrgs, setActiveOrg), Create Org page (`/orgs/create`), OrgSwitcher component, Dashboard integration.
 - [x] Clerk ↔ InsForge Profile Sync — Webhook handler (`/api/webhooks/clerk`) migrated to use manual `svix` signature verification, fallback `syncProfile` Server Action on dashboard mount, middleware updated for public webhook route.
+- [x] Implement Feature 1.4: Membership & Role Management — Server Actions (getOrganizationMembers, inviteMember, updateMemberRole, removeMember), Settings Page (`/organizations/settings`), MemberList component, InviteModal card.
 
 ## Next Actions (Phase 1 Development)
-- [ ] Implement Feature 1.4: Membership & Role Management (invite drawer, member list, role updates).
+- [ ] Implement Feature 1.5: Project Management (projects list, creation modal, project dynamic view).
 
 ## Decisions Made During Build
 - **Tech Stack Enforced:** Next.js 16 (React 19) App Router, Tailwind CSS v4, InsForge private PostgreSQL and storage client layers.

@@ -94,7 +94,10 @@ export default function DashboardPage() {
             </div>
 
             {/* Widget 2: Settings */}
-            <div className="bg-accent-blue border-2 border-black rounded-sketchy-sm p-6 shadow-flat-offset-sm rotate-[1.2deg] hover:rotate-0 transition-transform duration-200">
+            <div
+              onClick={() => router.push("/organizations/settings")}
+              className="bg-accent-blue border-2 border-black rounded-sketchy-sm p-6 shadow-flat-offset-sm rotate-[1.2deg] hover:rotate-0 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 active:translate-y-0.5"
+            >
               <div className="flex items-center gap-2 mb-3">
                 <Settings className="h-5 w-5" />
                 <h3 className="font-cursive text-xl font-bold">Workspace Setup</h3>

@@ -23,12 +23,12 @@ we are building version 1(prd_versions/v1.md)
 - [x] **Auth Pages (`/login`, `/signup`):** Verify public page routing.
 - [x] **Middleware Interceptor (`proxy.ts`):** Check authentication redirects correctly protect private routing boundaries.
 - [x] **Dashboard (`/dashboard`):** Verify core layout shell and workspace switcher location.
-- [ ] **Organization Creator (`/organizations/create`):** Verify page routing and workspace slug uniqueness API.
-- [ ] **Members Settings (`/organizations/settings`):** Verify page routing and member invitation interface placement.
+- [x] **Organization Creator (`/organizations/create`):** Verify page routing and workspace slug uniqueness API.
+- [x] **Members Settings (`/organizations/settings`):** Verify page routing and member invitation interface placement.
 - [ ] **Projects Directory (`/projects`):** Verify page layout and project creation modal triggers.
 - [ ] **Project Details (`/projects/[id]`):** Verify dynamic project page layout and tabs routing.
 - [ ] **Task Details View (`/tasks/[id]` or drawer):** Verify overlay task details component.
-- [ ] **Clerk Webhook Endpoint (`/api/webhooks/clerk`):** Verify that the Clerk webhook handler successfully receives and validates Clerk user.created event payloads.
+- [x] **Clerk Webhook Endpoint (`/api/webhooks/clerk`):** Verify that the Clerk webhook handler successfully receives and validates Clerk user.created event payloads.
 
 ---
 
@@ -49,15 +49,15 @@ we are building version 1(prd_versions/v1.md)
 - [x] **Clerk OAuth Integration:** Verify Google and GitHub buttons trigger OAuth flow simulation and redirect to workspace.
 
 ### Feature 1.3: Multi-Tenant Workspace (Organizations) Verification
-- [ ] **Organization Creation:** Create a workspace named `"DevOps Pioneers"`. Verify matching record is inserted in `organizations`.
-- [ ] **Membership Association:** Verify organization creator is automatically mapped with `OWNER` role in `memberships`.
-- [ ] **Slug Uniqueness:** Attempt to register a duplicate URL slug `"devops-pioneers"`. Verify the UI blocks submit and debounced warning displays.
-- [ ] **Active Context Switcher:** Switch active organizations in the sidebar selector. Verify the `active_org_id` cookie updates and triggers route revalidation.
+- [x] **Organization Creation:** Create a workspace named `"DevOps Pioneers"`. Verify matching record is inserted in `organizations`.
+- [x] **Membership Association:** Verify organization creator is automatically mapped with `OWNER` role in `memberships`.
+- [x] **Slug Uniqueness:** Attempt to register a duplicate URL slug `"devops-pioneers"`. Verify the UI blocks submit and debounced warning displays.
+- [x] **Active Context Switcher:** Switch active organizations in the sidebar selector. Verify the `active_org_id` cookie updates and triggers route revalidation.
 
 ### Feature 1.4: Membership & Role Management Verification
-- [ ] **Invitation Security checks:** Login as a `MEMBER` user. Verify that invitation drawers are hidden and endpoint rejects requests.
-- [ ] **Duplicate Invite Guard:** Attempt to invite a member who is already invited or joined. Verify unique constraint checks block duplicates.
-- [ ] **Role Updates:** Change a member's role from dropdown. Verify membership record is updated in the database.
+- [x] **Invitation Security checks:** Login as a `MEMBER` user. Verify that invitation drawers are hidden and endpoint rejects requests.
+- [x] **Duplicate Invite Guard:** Attempt to invite a member who is already invited or joined. Verify unique constraint checks block duplicates.
+- [x] **Role Updates:** Change a member's role from dropdown. Verify membership record is updated in the database.
 
 ### Feature 1.5: Project Management Verification
 - [ ] **Multi-Tenant Data Isolation:** Verify that a user cannot query projects outside of their active `organization_id`.

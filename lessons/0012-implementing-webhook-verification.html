@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lesson 12: Implementing Webhook Verification</title>
+  <style>
+    :root {
+      --bg: #fdfdfc;
+      --text: #111;
+      --accent: #d33682;
+      --code-bg: #f4f4f4;
+      --border: #ddd;
+    }
+    body {
+      font-family: et-book, Palatino, "Palatino Linotype", "Palatino LT STD", "Book Antiqua", Georgia, serif;
+      background-color: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 2rem 1rem;
+    }
+    h1, h2, h3 { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-weight: 400; }
+    h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    h2 { font-size: 1.8rem; margin-top: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+    p { font-size: 1.2rem; }
+    code { font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace; background: var(--code-bg); padding: 0.2rem 0.4rem; border-radius: 3px; font-size: 0.9em; }
+    pre code { background: none; padding: 0; }
+    pre { background: var(--code-bg); padding: 1rem; border-radius: 5px; overflow-x: auto; }
+    .epigraph { margin: 2rem 0; font-style: italic; color: #555; }
+    blockquote { border-left: 3px solid var(--accent); margin: 1.5rem 0; padding-left: 1rem; font-style: italic; }
+    .quiz-container { margin-top: 3rem; background: #fff; padding: 2rem; border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    .quiz-question { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; font-size: 1.2rem; font-weight: bold; margin-bottom: 1rem; }
+    .quiz-options { list-style: none; padding: 0; }
+    .quiz-option { margin-bottom: 0.5rem; }
+    .quiz-button { width: 100%; text-align: left; padding: 1rem; font-size: 1.1rem; background: #fafafa; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; transition: all 0.2s ease; }
+    .quiz-button:hover { background: #f0f0f0; border-color: #ccc; }
+    .quiz-button.correct { background: #e6ffed; border-color: #a3e6b5; color: #0a5c26; }
+    .quiz-button.incorrect { background: #ffeef0; border-color: #fca5a5; color: #8a171c; }
+    .feedback { margin-top: 1rem; font-weight: bold; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; display: none; padding: 1rem; border-radius: 4px; }
+    .feedback.show { display: block; }
+  </style>
+</head>
+<body>
+  <h1>Implementing Webhook Verification</h1>
+  <div class="epigraph">Turning cryptographic theory into a bulletproof Next.js Route Handler.</div>
+
+  <p>In Lesson 11, we learned that exposing our local server via ngrok requires us to verify incoming webhooks using Svix to prevent forgery. Today, we implement this verification logic in a Next.js App Router endpoint.</p>
+
+  <h2>The Implementation Steps</h2>
+  <p>When Clerk sends a webhook, it includes three critical headers: <code>svix-id</code>, <code>svix-timestamp</code>, and <code>svix-signature</code>. To verify these in JavaScript, we use the official <code>svix</code> library.</p>
+  
+  <h3>1. The Route Handler Setup</h3>
+  <p>In Next.js, we create a file at <code>app/api/webhooks/clerk/route.ts</code>. Because webhooks send raw JSON, we must extract the body and the headers from the incoming <code>Request</code> object.</p>
+
+  <pre><code>import { Webhook } from 'svix'
+import { headers } from 'next/headers'
+import { WebhookEvent } from '@clerk/nextjs/server'
+
+export async function POST(req: Request) {
+  const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET
+  if (!WEBHOOK_SECRET) throw new Error('Missing WEBHOOK_SECRET')
+
+  // Get the headers
+  const headerPayload = await headers()
+  const svix_id = headerPayload.get('svix-id')
+  const svix_timestamp = headerPayload.get('svix-timestamp')
+  const svix_signature = headerPayload.get('svix-signature')
+
+  // If there are no Svix headers, error out
+  if (!svix_id || !svix_timestamp || !svix_signature) {
+    return new Response('Error: Missing svix headers', { status: 400 })
+  }
+  
+  // Get the raw body
+  const payload = await req.json()
+  const body = JSON.stringify(payload)
+  
+  // ... verification comes next
+}</code></pre>
+
+  <h2>2. Verifying the Payload</h2>
+  <p>We instantiate a new Svix <code>Webhook</code> object using our secret, and call the <code>verify()</code> method. If the cryptographic signature does not match the payload and the secret, <code>verify()</code> will throw an error. Therefore, we must wrap it in a <code>try/catch</code> block.</p>
+
+  <pre><code>  const wh = new Webhook(WEBHOOK_SECRET)
+  let evt: WebhookEvent
+
+  try {
+    evt = wh.verify(body, {
+      'svix-id': svix_id,
+      'svix-timestamp': svix_timestamp,
+      'svix-signature': svix_signature,
+    }) as WebhookEvent
+  } catch (err) {
+    console.error('Error verifying webhook:', err)
+    return new Response('Error occured', { status: 400 })
+  }
+
+  // If we reach here, the request is 100% authentic!
+  console.log(`Received webhook: ${evt.type}`)
+  return new Response('Webhook received', { status: 200 })
+</code></pre>
+
+  <h2>3. Handling the Event</h2>
+  <p>Once verified, the <code>evt.type</code> property tells us what happened (e.g., <code>user.created</code>). We can then safely extract the user's data from <code>evt.data</code> and sync it with our PostgreSQL database, knowing with mathematical certainty that the event was actually dispatched by Clerk.</p>
+
+  <div class="quiz-container">
+    <div class="quiz-question" id="question-text">Quiz: Why do we wrap <code>wh.verify()</code> in a <code>try/catch</code> block and return a 400 status if it fails?</div>
+    <ul class="quiz-options" id="options-list">
+      <li class="quiz-option"><button class="quiz-button" data-correct="false">Because it handles database connection failures if the user data cannot be saved.</button></li>
+      <li class="quiz-option"><button class="quiz-button" data-correct="true">Because the Svix library throws an exception if the signatures do not match, meaning the webhook is potentially forged.</button></li>
+      <li class="quiz-option"><button class="quiz-button" data-correct="false">Because the Clerk API might be down, and we need to retry the connection later.</button></li>
+    </ul>
+    <div id="feedback-area" class="feedback"></div>
+  </div>
+
+  <script>
+    document.querySelectorAll('.quiz-button').forEach(button => {
+      button.addEventListener('click', function() {
+        document.querySelectorAll('.quiz-button').forEach(btn => {
+          btn.disabled = true;
+          btn.style.cursor = 'default';
+          btn.style.opacity = '0.7';
+        });
+
+        const isCorrect = this.getAttribute('data-correct') === 'true';
+        const feedback = document.getElementById('feedback-area');
+        
+        if (isCorrect) {
+          this.classList.add('correct');
+          feedback.textContent = "Correct! The svix library aggressively protects your endpoint. If the calculated hash doesn't match the svix-signature header, it throws an error to stop execution immediately. We return 400 to tell the sender the request was invalid.";
+          feedback.style.backgroundColor = "#e6ffed";
+          feedback.style.color = "#0a5c26";
+        } else {
+          this.classList.add('incorrect');
+          feedback.textContent = "Incorrect. The verify() method doesn't connect to a database or call an external API. It solely performs local cryptographic math. If the math doesn't check out (signatures don't match), it throws an error to prevent forged data from entering your system.";
+          feedback.style.backgroundColor = "#ffeef0";
+          feedback.style.color = "#8a171c";
+          
+          document.querySelector('.quiz-button[data-correct="true"]').classList.add('correct');
+        }
+        feedback.classList.add('show');
+      });
+    });
+  </script>
+</body>
+</html>
