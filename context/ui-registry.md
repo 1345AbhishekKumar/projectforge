@@ -95,4 +95,30 @@ After building any component — update this file with the component name, file 
 - **Card Wrapper:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-md w-full relative rotate-[0.5deg]`
 - **Input Classes:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary`
 
+### Task Management Components
+
+#### CreateTaskModal Component
+- **File Path:** [CreateTaskModal.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/CreateTaskModal.tsx)
+- **Card Wrapper:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-md w-full relative rotate-[0.5deg] max-h-[90vh]`
+- **Input Classes:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary`
+
+#### TaskDetailsSheet Component
+- **File Path:** [TaskDetailsSheet.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/TaskDetailsSheet.tsx)
+- **Container Classes:** `fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex justify-end`
+- **Drawer Classes:** `bg-white border-l-2 border-black w-full max-w-lg h-full p-6 md:p-8 relative shadow-[-4px_0_0_rgba(0,0,0,1)] flex flex-col gap-6 overflow-y-auto`
+
+#### TaskList Component
+- **File Path:** [TaskList.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/TaskList.tsx)
+- **Grid Layout Classes:** `grid grid-cols-1 md:grid-cols-3 gap-6`
+- **Column Card Classes:** `bg-white border-2 border-black rounded-sketchy p-5 shadow-flat-offset-sm flex flex-col gap-4 min-h-[300px]`
+- **Column Header Classes:** `flex items-center justify-between border-b-2 border-black pb-2 mb-1`
+
+#### TaskRow Component
+- **File Path:** [TaskRow.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/TaskRow.tsx)
+- **Row Container Classes:** `flex items-center justify-between p-4 border-2 border-black rounded-sketchy bg-white hover:bg-neutral-bg/30 transition-all duration-200 shadow-flat-offset-sm hover:-translate-y-0.5 cursor-pointer gap-4`
+- **Checkbox Classes:** `w-5 h-5 border-2 border-black rounded-sm flex items-center justify-center cursor-pointer bg-white`
+- **Priority Badge Colors:** `LOW: bg-white border border-black/20`, `MEDIUM: bg-accent-blue/40 border-2 border-black`, `HIGH: bg-accent-yellow border-2 border-black`, `URGENT: bg-accent-pink border-2 border-black`
+- **Overdue Date Badge:** `bg-accent-pink text-primary animate-pulse`
+
+
 

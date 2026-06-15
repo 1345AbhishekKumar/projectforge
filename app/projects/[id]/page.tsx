@@ -4,12 +4,17 @@ import React, { useState, useEffect, useCallback, use } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useUser, useAuth } from "@clerk/nextjs";
-import { ArrowLeft, User as UserIcon, Loader2, Archive, Calendar, Users, ClipboardList, LogOut } from "lucide-react";
+import { ArrowLeft, User as UserIcon, Loader2, Archive, Calendar, Users, ClipboardList, LogOut, Plus } from "lucide-react";
 
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { getProjectDetails, updateProject, archiveProject } from "@/actions/project";
 import { getOrganizationMembers, type MemberListItem } from "@/actions/membership";
-import type { Project, ProjectStatus } from "@/types";
+import { createTask, getProjectTasks, updateTask, deleteTask, type TaskWithAssignee } from "@/actions/task";
+import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
+import { TaskList } from "@/components/tasks/TaskList";
+import { TaskDetailsSheet } from "@/components/tasks/TaskDetailsSheet";
+import type { Project, ProjectStatus, TaskStatus, TaskPriority } from "@/types";
+
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -38,12 +43,19 @@ export default function ProjectDetailsPage({ params }: Props) {
   const [error, setError] = useState("");
   const [activeTab, setActiveTab] = useState<"backlog" | "members">("backlog");
 
+  // Task states
+  const [tasks, setTasks] = useState<TaskWithAssignee[]>([]);
+  const [loadingTasks, setLoadingTasks] = useState(false);
+  const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<TaskWithAssignee | null>(null);
+  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
   const handleSignOut = async () => {
     await signOut();
     router.push("/sign-in");
   };
 
-  // Fetch project details and org members
+  // Fetch project details
   useEffect(() => {
     if (!activeOrgId || !projectId) return;
 
@@ -64,9 +76,28 @@ export default function ProjectDetailsPage({ params }: Props) {
     loadProjectDetails();
   }, [projectId, activeOrgId]);
 
-  // Fetch organization members for Members tab
+  // Load tasks callback
+  const loadTasks = useCallback(async () => {
+    if (!activeOrgId || !projectId) return;
+    setLoadingTasks(true);
+    const result = await getProjectTasks(projectId, activeOrgId);
+    if (result.success) {
+      setTasks(result.data);
+    }
+    setLoadingTasks(false);
+  }, [projectId, activeOrgId]);
+
+  // Fetch tasks on org/project change
   useEffect(() => {
-    if (!activeOrgId || activeTab !== "members") return;
+    const timer = setTimeout(() => {
+      loadTasks();
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [loadTasks]);
+
+  // Fetch organization members
+  useEffect(() => {
+    if (!activeOrgId) return;
 
     async function loadMembers() {
       setLoadingMembers(true);
@@ -78,7 +109,7 @@ export default function ProjectDetailsPage({ params }: Props) {
     }
 
     loadMembers();
-  }, [activeOrgId, activeTab]);
+  }, [activeOrgId]);
 
   // Handle workspace switcher updates
   const handleRefreshState = useCallback(() => {
@@ -125,6 +156,62 @@ export default function ProjectDetailsPage({ params }: Props) {
     } else {
       alert(res.error || "Failed to archive project");
       setArchiving(false);
+    }
+  }
+
+  // Task Handlers
+  async function handleCreateTask(
+    title: string,
+    description: string | null,
+    status: TaskStatus,
+    priority: TaskPriority,
+    assigneeId: string | null,
+    dueDate: string | null
+  ) {
+    if (!activeOrgId || !projectId) return { success: false, error: "Missing context" };
+    const res = await createTask(projectId, activeOrgId, title, description, status, priority, assigneeId, dueDate);
+    if (res.success) {
+      loadTasks();
+    }
+    return res;
+  }
+
+  async function handleUpdateTask(
+    taskId: string,
+    updates: {
+      title?: string;
+      description?: string | null;
+      status?: TaskStatus;
+      priority?: TaskPriority;
+      assignee_id?: string | null;
+      due_date?: string | null;
+    }
+  ) {
+    if (!activeOrgId || !projectId) return { success: false, error: "Missing context" };
+    const res = await updateTask(taskId, projectId, activeOrgId, updates);
+    if (res.success) {
+      loadTasks();
+    }
+    return res;
+  }
+
+  async function handleDeleteTask(taskId: string) {
+    if (!activeOrgId || !projectId) return { success: false, error: "Missing context" };
+    const res = await deleteTask(taskId, projectId, activeOrgId);
+    if (res.success) {
+      loadTasks();
+    }
+    return res;
+  }
+
+  async function handleStatusToggle(task: TaskWithAssignee) {
+    if (!activeOrgId || !projectId) return;
+    const newStatus: TaskStatus = task.status === "DONE" ? "TODO" : "DONE";
+    const res = await updateTask(task.id, projectId, activeOrgId, { status: newStatus });
+    if (res.success) {
+      loadTasks();
+    } else {
+      alert(res.error || "Failed to toggle status");
     }
   }
 
@@ -317,20 +404,50 @@ export default function ProjectDetailsPage({ params }: Props) {
                 
                 {/* Backlog Tab Content */}
                 {activeTab === "backlog" && (
-                  <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8 md:p-12 text-center max-w-lg mx-auto">
-                    <div className="w-16 h-16 rounded-full bg-accent-yellow border-2 border-black flex items-center justify-center mx-auto mb-4 rotate-[1.5deg] shadow-flat-offset-sm">
-                      <ClipboardList className="h-8 w-8 text-primary" />
+                  <div className="flex flex-col gap-6">
+                    {/* Toolbar */}
+                    <div className="flex items-center justify-between">
+                      <h2 className="font-cursive text-2xl font-bold">Project Backlog</h2>
+                      <button
+                        onClick={() => setIsCreateTaskModalOpen(true)}
+                        className="flex items-center justify-center gap-1.5 bg-accent-yellow hover:bg-[#FFE680] text-primary border-2 border-black font-sans text-xs font-bold px-4 py-2 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
+                      >
+                        <Plus className="h-4 w-4" />
+                        Create Task
+                      </button>
                     </div>
-                    <h3 className="font-cursive text-2xl font-bold mb-2">Backlog Empty</h3>
-                    <p className="font-sans text-sm text-secondary mb-6 leading-relaxed">
-                      No tasks have been mapped to this project scope yet. Tasks engine and priority statuses will be implemented next.
-                    </p>
-                    <button
-                      disabled
-                      className="bg-neutral-bg border-2 border-black/20 text-secondary/40 font-sans text-xs font-bold px-5 py-2 rounded-full cursor-not-allowed opacity-50"
-                    >
-                      Create Task (Feature 1.6)
-                    </button>
+
+                    {loadingTasks ? (
+                      <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-12 flex items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin text-tertiary mr-3" />
+                        <span className="font-cursive text-xl">Loading backlog...</span>
+                      </div>
+                    ) : tasks.length === 0 ? (
+                      <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8 md:p-12 text-center max-w-lg mx-auto">
+                        <div className="w-16 h-16 rounded-full bg-accent-yellow border-2 border-black flex items-center justify-center mx-auto mb-4 rotate-[1.5deg] shadow-flat-offset-sm">
+                          <ClipboardList className="h-8 w-8 text-primary" />
+                        </div>
+                        <h3 className="font-cursive text-2xl font-bold mb-2">Backlog Empty</h3>
+                        <p className="font-sans text-sm text-secondary mb-6 leading-relaxed">
+                          No tasks have been mapped to this project scope yet. Let&apos;s map the first task!
+                        </p>
+                        <button
+                          onClick={() => setIsCreateTaskModalOpen(true)}
+                          className="bg-accent-yellow hover:bg-[#FFE680] text-primary border-2 border-black font-sans text-xs font-bold px-5 py-2 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
+                        >
+                          Create First Task
+                        </button>
+                      </div>
+                    ) : (
+                      <TaskList
+                        tasks={tasks}
+                        onTaskClick={(task) => {
+                          setSelectedTask(task);
+                          setIsDetailsOpen(true);
+                        }}
+                        onStatusToggle={handleStatusToggle}
+                      />
+                    )}
                   </div>
                 )}
 
@@ -394,6 +511,27 @@ export default function ProjectDetailsPage({ params }: Props) {
           </div>
         )}
       </div>
+
+      {/* Create Task Modal */}
+      <CreateTaskModal
+        isOpen={isCreateTaskModalOpen}
+        onClose={() => setIsCreateTaskModalOpen(false)}
+        members={members}
+        onCreate={handleCreateTask}
+      />
+
+      {/* Task Details Sheet */}
+      <TaskDetailsSheet
+        task={selectedTask}
+        isOpen={isDetailsOpen}
+        onClose={() => {
+          setIsDetailsOpen(false);
+          setSelectedTask(null);
+        }}
+        members={members}
+        onUpdate={handleUpdateTask}
+        onDelete={handleDeleteTask}
+      />
     </main>
   );
 }

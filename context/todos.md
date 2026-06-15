@@ -65,9 +65,9 @@ we are building version 1(prd_versions/v1.md)
 - [x] **Empty State Renders:** Navigate to a newly created project. Verify empty state illustration and "No projects found" caption render when count is 0.
 
 ### Feature 1.6: Tasks Engine Verification
-- [ ] **Task CRUD Lifecycle:** Verify task creation modal properly inputs title, description, priority status, and due date.
-- [ ] **Overdue Warnings:** Create a task with due date set in the past. Verify due date badge appears in red on list and details views.
-- [ ] **Assignee Validation:** Verify assignee list dropdown is scoped to members of the active organization only.
+- [x] **Task CRUD Lifecycle:** Verify task creation modal properly inputs title, description, priority status, and due date.
+- [x] **Overdue Warnings:** Create a task with due date set in the past. Verify due date badge appears in red on list and details views.
+- [x] **Assignee Validation:** Verify assignee list dropdown is scoped to members of the active organization only.
 
 ### Feature 1.7: Comments & Attachments Verification
 - [ ] **Upload Size Limits:** Try to upload file larger than 20MB. Verify upload fails validation checks.
