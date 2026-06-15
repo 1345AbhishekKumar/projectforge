@@ -9,14 +9,14 @@ we are building version 1(prd_versions/v1.md)
 ## Phase 1 Scaffolding & Database Setup Checklist
 
 ### Database Tables & Schema Verification
-- [ ] **`profiles` Table:** Verify schema matches user meta-data. Test sync trigger on successful authentication signup.
-- [ ] **`organizations` Table:** Verify name and unique URL slug fields. Enforce indexes on slug for fast lookups.
-- [ ] **`memberships` Table:** Verify composite unique key `(organization_id, user_id)` and role enum constraint (`OWNER`, `ADMIN`, `MEMBER`).
+- [x] **`profiles` Table:** Verify schema matches user meta-data. Test sync trigger on successful authentication signup.
+- [x] **`organizations` Table:** Verify name and unique URL slug fields. Enforce indexes on slug for fast lookups.
+- [x] **`memberships` Table:** Verify composite unique key `(organization_id, user_id)` and role enum constraint (`OWNER`, `ADMIN`, `MEMBER`).
 - [x] **`projects` Table:** Verify foreign key constraint linking to `organizations.id` and name/status fields.
-- [ ] **`tasks` Table:** Verify foreign key constraints linking to `projects.id` and `profiles.id` (assignee). Check priority/status constraints.
-- [ ] **`comments` Table:** Verify foreign key constraints linking to `tasks.id` and `profiles.id` (author).
-- [ ] **`attachments` Table:** Verify storage URL paths and size mappings are stored correctly.
-- [ ] **`notifications` Table:** Verify read/unread states, recipient links, and event type categories.
+- [x] **`tasks` Table:** Verify foreign key constraints linking to `projects.id` and `profiles.id` (assignee). Check priority/status constraints.
+- [x] **`comments` Table:** Verify foreign key constraints linking to `tasks.id` and `profiles.id` (author).
+- [x] **`attachments` Table:** Verify storage URL paths and size mappings are stored correctly.
+- [x] **`notifications` Table:** Verify read/unread states, recipient links, and event type categories.
 
 ### Page Routing & Directory Scaffolding
 - [x] **Landing Page (`/`):** Verify public page routing and metadata settings.
@@ -27,7 +27,7 @@ we are building version 1(prd_versions/v1.md)
 - [x] **Members Settings (`/organizations/settings`):** Verify page routing and member invitation interface placement.
 - [x] **Projects Directory (`/projects`):** Verify page layout and project creation modal triggers.
 - [x] **Project Details (`/projects/[id]`):** Verify dynamic project page layout and tabs routing.
-- [ ] **Task Details View (`/tasks/[id]` or drawer):** Verify overlay task details component.
+- [x] **Task Details View (`/tasks/[id]` or drawer):** Verify overlay task details component.
 - [x] **Clerk Webhook Endpoint (`/api/webhooks/clerk`):** Verify that the Clerk webhook handler successfully receives and validates Clerk user.created event payloads.
 
 ---
@@ -70,10 +70,10 @@ we are building version 1(prd_versions/v1.md)
 - [x] **Assignee Validation:** Verify assignee list dropdown is scoped to members of the active organization only.
 
 ### Feature 1.7: Comments & Attachments Verification
-- [ ] **Upload Size Limits:** Try to upload file larger than 20MB. Verify upload fails validation checks.
-- [ ] **Upload Progress:** Verify linear progress bar displays matching upload percentage during transmission.
-- [ ] **Security Sanitization:** Attempt to upload script `malicious.sh`. Verify file type constraints block execution and upload.
-- [ ] **Comment Notification Trigger:** Post comment on task. Verify a notification triggers for the task assignee.
+- [x] **Upload Size Limits:** Try to upload file larger than 20MB. Verify upload fails validation checks.
+- [x] **Upload Progress:** Verify linear progress bar displays matching upload percentage during transmission.
+- [x] **Security Sanitization:** Attempt to upload script `malicious.sh`. Verify file type constraints block execution and upload.
+- [x] **Comment Notification Trigger:** Post comment on task. Verify a notification triggers for the task assignee.
 
 ### Feature 1.8: Notification Center Verification
 - [ ] **Header Alert Indicator:** Trigger notification. Verify red badge displays next to header bell icon.

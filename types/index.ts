@@ -58,4 +58,51 @@ export type Task = {
   updated_at: string;
 };
 
+export type Comment = {
+  id: string;
+  task_id: string;
+  user_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CommentWithUser = Comment & {
+  user: {
+    id: string;
+    full_name: string | null;
+    email: string;
+    avatar_url: string | null;
+  };
+};
+
+export type Attachment = {
+  id: string;
+  task_id: string;
+  user_id: string;
+  file_name: string;
+  file_size: number;
+  file_url: string;
+  storage_path: string;
+  created_at: string;
+};
+
+export type AttachmentWithUser = Attachment & {
+  user: {
+    id: string;
+    full_name: string | null;
+    email: string;
+    avatar_url: string | null;
+  };
+};
+
+export type Notification = {
+  id: string;
+  user_id: string;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+};
+
+
 

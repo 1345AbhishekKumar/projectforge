@@ -8,9 +8,9 @@ We are building Version 1
 ---
 
 ## Current Status
-- **Status:** **Feature 1.6 (Tasks Engine) Implemented**. The Tasks table has been configured, TypeScript schemas and Server Actions are built, and interactive backlog column components, creation modal, details drawer, and overdue highlights are fully integrated.
+- **Status:** **Feature 1.7 (Comments & Attachments) Implemented**. Created database tables `comments` and `attachments`, set up storage bucket `attachments`, created comments and attachments server actions with uploader profile joining, and integrated chronological timeline feeds, drag-drop uploader dropzone, blocklists, progress bar and delete features inside the task drawer.
 - **Active Sprint:** MVP project and task setup.
-- **Target Milestones:** Implement Feature 1.7 (Comments & Attachments).
+- **Target Milestones:** Implement Feature 1.8 (Notification Center).
 
 ## Progress
 - [x] Align project overview and description to ProjectForge (`context/project-overview.md`).
@@ -23,9 +23,10 @@ We are building Version 1
 - [x] Implement Feature 1.4: Membership & Role Management — Server Actions (getOrganizationMembers, inviteMember, updateMemberRole, removeMember), Settings Page (`/organizations/settings`), MemberList component, InviteModal card.
 - [x] Implement Feature 1.5: Project Management — database table (`projects`), Server Actions (`createProject`, `getUserProjects`, `getProjectDetails`, `updateProject`, `archiveProject`), Projects Directory (`/projects`), Project Details dynamic route (`/projects/[id]`), ProjectCard and CreateProjectModal components.
 - [x] Implement Feature 1.6: Tasks Engine — database table (`tasks`), Server Actions (`createTask`, `getProjectTasks`, `updateTask`, `deleteTask`), backlog columns, `TaskRow`, `TaskList`, `CreateTaskModal`, and `TaskDetailsSheet` components with overdue warnings and member scoping.
+- [x] Implement Feature 1.7: Comments & Attachments — database tables (`comments`, `attachments`), storage bucket (`attachments`), Server Actions (`createComment`, `getTaskComments`, `createAttachment`, `getTaskAttachments`, `deleteAttachment`), chronological timeline feed, sketchy file dropzone, size checking (<20MB), file blocklist, progress bar simulation, download/delete controls in `TaskDetailsSheet`.
 
 ## Next Actions (Phase 1 Development)
-- [ ] Feature 1.7: Comments & Attachments ( timeline feed, upload size validations, file transmission progress bar, assignee comment notification triggers).
+- [ ] Feature 1.8: Notification Center (unread badges, Notification Dropdown panel, mark read actions, cleanup scheduled scripts).
 
 ## Decisions Made During Build
 - **Tech Stack Enforced:** Next.js 16 (React 19) App Router, Tailwind CSS v4, InsForge private PostgreSQL and storage client layers.

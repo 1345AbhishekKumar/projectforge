@@ -1,0 +1,128 @@
+"use server";
+
+import { auth } from "@clerk/nextjs/server";
+import { revalidatePath } from "next/cache";
+import { createInsforgeServer } from "@/lib/insforge-server";
+import { z } from "zod";
+import type { CommentWithUser } from "@/types";
+
+const commentSchema = z.object({
+  content: z.string().min(1, "Comment content cannot be empty").max(1000, "Comment must not exceed 1000 characters"),
+});
+
+// Helper to verify if user is member of organization
+async function verifyMembership(insforge: ReturnType<typeof createInsforgeServer>, orgId: string, userId: string): Promise<boolean> {
+  const { data } = await insforge.database
+    .from("memberships")
+    .select("id")
+    .eq("organization_id", orgId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return !!data;
+}
+
+export async function createComment(
+  taskId: string,
+  projectId: string,
+  orgId: string,
+  content: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const validated = commentSchema.safeParse({ content });
+    if (!validated.success) {
+      return { success: false, error: validated.error.issues[0].message };
+    }
+
+    const insforge = createInsforgeServer();
+
+    const isMember = await verifyMembership(insforge, orgId, userId);
+    if (!isMember) {
+      return { success: false, error: "Not a member of this workspace" };
+    }
+
+    // Insert comment
+    const { error: commentError } = await insforge.database
+      .from("comments")
+      .insert([
+        {
+          task_id: taskId,
+          user_id: userId,
+          content: validated.data.content,
+        },
+      ]);
+
+    if (commentError) {
+      return { success: false, error: "Failed to post comment" };
+    }
+
+    // Get task details for notification trigger
+    const { data: task } = await insforge.database
+      .from("tasks")
+      .select("title, assignee_id")
+      .eq("id", taskId)
+      .single();
+
+    if (task && task.assignee_id && task.assignee_id !== userId) {
+      // Get commenter's name
+      const { data: profile } = await insforge.database
+        .from("profiles")
+        .select("full_name")
+        .eq("id", userId)
+        .single();
+
+      const name = profile?.full_name || "A member";
+      
+      // Trigger notification record in DB
+      await insforge.database
+        .from("notifications")
+        .insert([
+          {
+            user_id: task.assignee_id,
+            content: `${name} commented on your assigned task "${task.title}"`,
+          },
+        ]);
+    }
+
+    revalidatePath(`/projects/${projectId}`);
+    return { success: true };
+  } catch {
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function getTaskComments(
+  taskId: string,
+  orgId: string
+): Promise<{ success: boolean; data: CommentWithUser[]; error?: string }> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized", data: [] };
+
+    const insforge = createInsforgeServer();
+
+    const isMember = await verifyMembership(insforge, orgId, userId);
+    if (!isMember) {
+      return { success: false, error: "Not a member of this workspace", data: [] };
+    }
+
+    const { data, error } = await insforge.database
+      .from("comments")
+      .select(`
+        *,
+        user:profiles(id, full_name, email, avatar_url)
+      `)
+      .eq("task_id", taskId)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      return { success: false, error: "Failed to fetch comments", data: [] };
+    }
+
+    return { success: true, data: data as unknown as CommentWithUser[] };
+  } catch {
+    return { success: false, error: "An unexpected error occurred", data: [] };
+  }
+}

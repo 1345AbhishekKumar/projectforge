@@ -120,5 +120,9 @@ After building any component — update this file with the component name, file 
 - **Priority Badge Colors:** `LOW: bg-white border border-black/20`, `MEDIUM: bg-accent-blue/40 border-2 border-black`, `HIGH: bg-accent-yellow border-2 border-black`, `URGENT: bg-accent-pink border-2 border-black`
 - **Overdue Date Badge:** `bg-accent-pink text-primary animate-pulse`
 
-
-
+#### TaskDetailsSheet Component (Tabs & Uploaders)
+- **Tabs Container Classes:** `flex border-b border-black`
+- **Active Tab Button:** `px-4 py-2 font-cursive text-lg font-bold border-t-2 border-x-2 border-black rounded-t-lg -mb-[2px] transition-all bg-accent-yellow shadow-[0_-2px_0_rgba(0,0,0,1)]`
+- **Uploader Dropzone:** `border-2 border-dashed border-black rounded-sketchy p-6 text-center hover:bg-neutral-bg/30 transition-all cursor-pointer block relative`
+- **Upload Progress Bar:** `w-full bg-neutral-dot border-2 border-black rounded-full h-4 overflow-hidden relative`
+- **Timeline Comment Card:** `bg-white border-2 border-black rounded-sketchy p-4 shadow-flat-offset-sm relative`

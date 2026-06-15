@@ -1,10 +1,15 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, Trash2, Loader2 } from "lucide-react";
+import Image from "next/image";
+import { X, Trash2, Loader2, Paperclip, Send, Download, File as FileIcon } from "lucide-react";
 import type { TaskStatus, TaskPriority } from "@/types";
 import type { TaskWithAssignee } from "@/actions/task";
 import type { MemberListItem } from "@/actions/membership";
+import { createComment, getTaskComments } from "@/actions/comment";
+import { createAttachment, getTaskAttachments, deleteAttachment } from "@/actions/attachment";
+import { insforge } from "@/lib/insforge-client";
+import type { CommentWithUser, AttachmentWithUser } from "@/types";
 
 type Props = {
   task: TaskWithAssignee | null;
@@ -36,6 +41,173 @@ export function TaskDetailsSheet({ task, isOpen, onClose, members, onUpdate, onD
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
+
+  const [activeTab, setActiveTab] = useState<"details" | "comments">("details");
+  const [newComment, setNewComment] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
+  const [comments, setComments] = useState<CommentWithUser[]>([]);
+  const [attachments, setAttachments] = useState<AttachmentWithUser[]>([]);
+  const [loadingComments, setLoadingComments] = useState(false);
+  const [loadingAttachments, setLoadingAttachments] = useState(false);
+  
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const [commentError, setCommentError] = useState("");
+  const [uploadError, setUploadError] = useState("");
+
+  function formatBytes(bytes: number, decimals = 2) {
+    if (!+bytes) return "0 Bytes";
+    const k = 1024;
+    const dm = decimals < 0 ? 0 : decimals;
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
+  }
+
+  // Load comments and attachments on task change
+  useEffect(() => {
+    if (!isOpen || !task) return;
+
+    const loadData = async () => {
+      setLoadingComments(true);
+      setLoadingAttachments(true);
+      try {
+        const [commentsRes, attachmentsRes] = await Promise.all([
+          getTaskComments(task.id, task.organization_id),
+          getTaskAttachments(task.id, task.organization_id)
+        ]);
+        if (commentsRes.success) setComments(commentsRes.data);
+        if (attachmentsRes.success) setAttachments(attachmentsRes.data);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoadingComments(false);
+        setLoadingAttachments(false);
+      }
+    };
+
+    loadData();
+  }, [task, isOpen]);
+
+  async function handlePostComment(e: React.FormEvent) {
+    e.preventDefault();
+    if (!newComment.trim() || !task) return;
+
+    setCommentError("");
+    setPostingComment(true);
+
+    try {
+      const res = await createComment(task.id, task.project_id, task.organization_id, newComment.trim());
+      if (res.success) {
+        setNewComment("");
+        const commentsRes = await getTaskComments(task.id, task.organization_id);
+        if (commentsRes.success) {
+          setComments(commentsRes.data);
+        }
+      } else {
+        setCommentError(res.error || "Failed to post comment");
+      }
+    } catch {
+      setCommentError("An unexpected error occurred");
+    } finally {
+      setPostingComment(false);
+    }
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !task) return;
+
+    setUploadError("");
+    setUploadingFile(true);
+    setUploadProgress(0);
+
+    try {
+      if (file.size > 20 * 1024 * 1024) {
+        setUploadError("File size exceeds 20MB limit");
+        setUploadingFile(false);
+        return;
+      }
+
+      const blockedExtensions = [".exe", ".bat", ".cmd", ".sh", ".js", ".vbs", ".scr", ".msi", ".com"];
+      const fileNameLower = file.name.toLowerCase();
+      const isBlocked = blockedExtensions.some(ext => fileNameLower.endsWith(ext));
+      if (isBlocked) {
+        setUploadError("Dangerous file types (scripts/executables) are blocked");
+        setUploadingFile(false);
+        return;
+      }
+
+      setUploadProgress(10);
+      const interval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(interval);
+            return 90;
+          }
+          return prev + 10;
+        });
+      }, 150);
+
+      const storagePath = `${task.organization_id}/${task.project_id}/${task.id}/${Date.now()}-${file.name}`;
+      const { data, error } = await insforge.storage
+        .from("attachments")
+        .upload(storagePath, file);
+
+      clearInterval(interval);
+
+      if (error || !data) {
+        setUploadError(error?.message || "Failed to upload file to storage");
+        setUploadingFile(false);
+        return;
+      }
+
+      setUploadProgress(100);
+
+      const res = await createAttachment(
+        task.id,
+        task.project_id,
+        task.organization_id,
+        file.name,
+        file.size,
+        data.url,
+        data.key
+      );
+
+      if (res.success) {
+        const attachmentsRes = await getTaskAttachments(task.id, task.organization_id);
+        if (attachmentsRes.success) {
+          setAttachments(attachmentsRes.data);
+        }
+      } else {
+        setUploadError(res.error || "Failed to save file metadata");
+      }
+    } catch {
+      setUploadError("An unexpected error occurred");
+    } finally {
+      setUploadingFile(false);
+      setTimeout(() => setUploadProgress(0), 1000);
+    }
+  }
+
+  async function handleFileDelete(attachmentId: string) {
+    if (!task || !confirm("Are you sure you want to delete this attachment?")) return;
+
+    setUploadError("");
+    try {
+      const res = await deleteAttachment(attachmentId, task.organization_id, task.project_id);
+      if (res.success) {
+        const attachmentsRes = await getTaskAttachments(task.id, task.organization_id);
+        if (attachmentsRes.success) {
+          setAttachments(attachmentsRes.data);
+        }
+      } else {
+        setUploadError(res.error || "Failed to delete attachment");
+      }
+    } catch {
+      setUploadError("An unexpected error occurred");
+    }
+  }
 
   // Sync state with selected task
   useEffect(() => {
@@ -141,150 +313,347 @@ export function TaskDetailsSheet({ task, isOpen, onClose, members, onUpdate, onD
         <div>
           <h2 className="font-cursive text-3xl font-bold mb-1">Task Specification</h2>
           <p className="font-sans text-xs text-secondary">
-            Modify task details or delete the task from the backlog scope.
+            Modify task details, manage attachments, or add comments.
           </p>
         </div>
 
-        {/* Overdue Warning Card */}
-        {isOverdue && (
-          <div className="bg-accent-pink border-2 border-black rounded-sketchy-sm p-4 text-center">
-            <p className="font-sans text-xs font-bold text-primary">
-              ⚠️ Warning: This task&apos;s due date has passed but status is not marked as DONE.
-            </p>
-          </div>
-        )}
+        {/* Tabs Switcher */}
+        <div className="flex border-b border-black">
+          <button
+            type="button"
+            onClick={() => setActiveTab("details")}
+            className={`px-4 py-2 font-cursive text-lg font-bold border-t-2 border-x-2 border-black rounded-t-lg -mb-[2px] transition-all cursor-pointer ${
+              activeTab === "details"
+                ? "bg-accent-yellow shadow-[0_-2px_0_rgba(0,0,0,1)]"
+                : "bg-transparent border-transparent hover:bg-neutral-bg/50"
+            }`}
+          >
+            Details
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("comments")}
+            className={`px-4 py-2 font-cursive text-lg font-bold border-t-2 border-x-2 border-black rounded-t-lg -mb-[2px] transition-all cursor-pointer ${
+              activeTab === "comments"
+                ? "bg-accent-yellow shadow-[0_-2px_0_rgba(0,0,0,1)]"
+                : "bg-transparent border-transparent hover:bg-neutral-bg/50"
+            }`}
+          >
+            Comments & Files ({comments.length + attachments.length})
+          </button>
+        </div>
 
-        {error && (
-          <div className="bg-accent-pink border-2 border-black rounded-sketchy-sm p-3 text-xs font-semibold">
-            {error}
-          </div>
-        )}
+        {/* Tab 1: Details */}
+        {activeTab === "details" && (
+          <form onSubmit={handleSave} className="flex flex-col gap-5 flex-1">
+            {/* Overdue Warning Card */}
+            {isOverdue && (
+              <div className="bg-accent-pink border-2 border-black rounded-sketchy-sm p-4 text-center">
+                <p className="font-sans text-xs font-bold text-primary">
+                  ⚠️ Warning: This task&apos;s due date has passed but status is not marked as DONE.
+                </p>
+              </div>
+            )}
 
-        {/* Form Body */}
-        <form onSubmit={handleSave} className="flex flex-col gap-5 flex-1">
-          <div>
-            <label className="font-sans text-xs font-semibold mb-1 block">
-              Title
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              required
-              minLength={3}
-              maxLength={100}
-              className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow"
-            />
-          </div>
+            {error && (
+              <div className="bg-accent-pink border-2 border-black rounded-sketchy-sm p-3 text-xs font-semibold">
+                {error}
+              </div>
+            )}
 
-          <div>
-            <label className="font-sans text-xs font-semibold mb-1 block">
-              Description (Optional)
-            </label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              maxLength={500}
-              rows={4}
-              className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow resize-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="font-sans text-xs font-semibold mb-1 block">
-                Status
+                Title
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                required
+                minLength={3}
+                maxLength={100}
+                className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow"
+              />
+            </div>
+
+            <div>
+              <label className="font-sans text-xs font-semibold mb-1 block">
+                Description (Optional)
+              </label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                maxLength={500}
+                rows={4}
+                className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow resize-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="font-sans text-xs font-semibold mb-1 block">
+                  Status
+                </label>
+                <select
+                  value={status}
+                  onChange={(e) => setStatus(e.target.value as TaskStatus)}
+                  className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer"
+                >
+                  <option value="TODO">TODO</option>
+                  <option value="IN_PROGRESS">IN PROGRESS</option>
+                  <option value="DONE">DONE</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-sans text-xs font-semibold mb-1 block">
+                  Priority
+                </label>
+                <select
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value as TaskPriority)}
+                  className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer"
+                >
+                  <option value="LOW">LOW</option>
+                  <option value="MEDIUM">MEDIUM</option>
+                  <option value="HIGH">HIGH</option>
+                  <option value="URGENT">URGENT</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="font-sans text-xs font-semibold mb-1 block">
+                Assignee (Optional)
               </label>
               <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as TaskStatus)}
+                value={assigneeId}
+                onChange={(e) => setAssigneeId(e.target.value)}
                 className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer"
               >
-                <option value="TODO">TODO</option>
-                <option value="IN_PROGRESS">IN PROGRESS</option>
-                <option value="DONE">DONE</option>
+                <option value="">Unassigned</option>
+                {members.map((member) => (
+                  <option key={member.id} value={member.userId}>
+                    {member.name}
+                  </option>
+                ))}
               </select>
             </div>
 
             <div>
               <label className="font-sans text-xs font-semibold mb-1 block">
-                Priority
+                Due Date (Optional)
               </label>
-              <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value as TaskPriority)}
-                className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer"
-              >
-                <option value="LOW">LOW</option>
-                <option value="MEDIUM">MEDIUM</option>
-                <option value="HIGH">HIGH</option>
-                <option value="URGENT">URGENT</option>
-              </select>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer"
+              />
             </div>
-          </div>
 
-          <div>
-            <label className="font-sans text-xs font-semibold mb-1 block">
-              Assignee (Optional)
-            </label>
-            <select
-              value={assigneeId}
-              onChange={(e) => setAssigneeId(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer"
-            >
-              <option value="">Unassigned</option>
-              {members.map((member) => (
-                <option key={member.id} value={member.userId}>
-                  {member.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="font-sans text-xs font-semibold mb-1 block">
-              Due Date (Optional)
-            </label>
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer"
-            />
-          </div>
-
-          {/* Action Buttons at Bottom */}
-          <div className="flex flex-col sm:flex-row gap-3 mt-auto pt-6 border-t border-black/10">
-            <button
-              type="button"
-              onClick={handleDeleteClick}
-              disabled={deleting || saving}
-              className="flex items-center justify-center gap-1.5 py-2.5 px-4 bg-accent-pink hover:bg-[#FFB2B2] text-primary border-2 border-black rounded-full font-sans text-sm font-bold shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
-            >
-              {deleting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
-              Delete Task
-            </button>
-
-            <button
-              type="submit"
-              disabled={saving || deleting || !title}
-              className="flex-1 py-2.5 bg-tertiary hover:bg-tertiary-hover text-white border-2 border-black rounded-full font-sans text-sm font-bold shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
-            >
-              {saving ? (
-                <span className="flex items-center justify-center gap-2">
+            {/* Action Buttons at Bottom */}
+            <div className="flex flex-col sm:flex-row gap-3 mt-auto pt-6 border-t border-black/10">
+              <button
+                type="button"
+                onClick={handleDeleteClick}
+                disabled={deleting || saving}
+                className="flex items-center justify-center gap-1.5 py-2.5 px-4 bg-accent-pink hover:bg-[#FFB2B2] text-primary border-2 border-black rounded-full font-sans text-sm font-bold shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+              >
+                {deleting ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Saving...
-                </span>
-              ) : (
-                "Save Changes"
+                ) : (
+                  <Trash2 className="h-4 w-4" />
+                )}
+                Delete Task
+              </button>
+
+              <button
+                type="submit"
+                disabled={saving || deleting || !title}
+                className="flex-1 py-2.5 bg-tertiary hover:bg-tertiary-hover text-white border-2 border-black rounded-full font-sans text-sm font-bold shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
+              >
+                {saving ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Saving...
+                  </span>
+                ) : (
+                  "Save Changes"
+                )}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* Tab 2: Comments & Files */}
+        {activeTab === "comments" && (
+          <div className="flex flex-col gap-6 flex-1 overflow-y-auto pr-1">
+            {/* Attachments Section */}
+            <div className="flex flex-col gap-4">
+              <h3 className="font-cursive text-xl font-bold">Attachments</h3>
+              
+              {/* Drag & Drop Zone */}
+              <label className="border-2 border-dashed border-black rounded-sketchy p-6 text-center hover:bg-neutral-bg/30 transition-all cursor-pointer block relative">
+                <input
+                  type="file"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  disabled={uploadingFile}
+                />
+                <div className="flex flex-col items-center gap-2">
+                  <Paperclip className="h-8 w-8 text-secondary" />
+                  <span className="font-sans text-sm font-bold">Click to attach file</span>
+                  <span className="font-sans text-xs text-secondary/70">Max size 20MB. Scripts are blocked.</span>
+                </div>
+              </label>
+
+              {/* Progress Bar */}
+              {uploadingFile && (
+                <div className="w-full bg-neutral-dot border-2 border-black rounded-full h-4 overflow-hidden relative">
+                  <div
+                    className="bg-tertiary h-full transition-all duration-300 border-r-2 border-black"
+                    style={{ width: `${uploadProgress}%` }}
+                  />
+                  <span className="absolute inset-0 flex items-center justify-center font-sans text-[10px] font-bold text-primary">
+                    Uploading... {uploadProgress}%
+                  </span>
+                </div>
               )}
-            </button>
+
+              {uploadError && (
+                <div className="bg-accent-pink border-2 border-black rounded-sketchy-sm p-3 text-xs font-semibold">
+                  {uploadError}
+                </div>
+              )}
+
+              {/* Attachments List */}
+              {loadingAttachments ? (
+                <div className="flex items-center justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-tertiary" />
+                </div>
+              ) : attachments.length === 0 ? (
+                <p className="font-sans text-xs text-secondary/60 italic">No attachments uploaded yet.</p>
+              ) : (
+                <div className="flex flex-col gap-2">
+                  {attachments.map((file) => (
+                    <div
+                      key={file.id}
+                      className="flex items-center justify-between p-3 border-2 border-black rounded-sketchy bg-white shadow-flat-offset-sm gap-2"
+                    >
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <FileIcon className="h-5 w-5 text-tertiary flex-shrink-0" />
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="font-sans text-xs font-bold truncate">{file.file_name}</span>
+                          <span className="font-sans text-[10px] text-secondary">
+                            {formatBytes(file.file_size)} • by {file.user?.full_name || "Member"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <a
+                          href={file.file_url}
+                          download={file.file_name}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1 border-2 border-black rounded-full hover:bg-neutral-bg flex items-center justify-center shadow-flat-offset-xs active:translate-y-0.5 transition-all"
+                          title="Download file"
+                        >
+                          <Download className="h-3 w-3" />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleFileDelete(file.id)}
+                          className="p-1 border-2 border-black rounded-full hover:bg-accent-pink flex items-center justify-center shadow-flat-offset-xs active:translate-y-0.5 transition-all text-secondary hover:text-primary cursor-pointer"
+                          title="Delete file"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Comments Section */}
+            <div className="flex flex-col gap-4 mt-4 pt-6 border-t border-black/10">
+              <h3 className="font-cursive text-xl font-bold">Comments</h3>
+
+              {/* Comments List */}
+              {loadingComments ? (
+                <div className="flex items-center justify-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-tertiary" />
+                </div>
+              ) : comments.length === 0 ? (
+                <p className="font-sans text-xs text-secondary/60 italic">No comments posted yet.</p>
+              ) : (
+                <div className="flex flex-col gap-4 max-h-[300px] overflow-y-auto pr-1">
+                  {comments.map((comment) => (
+                    <div
+                      key={comment.id}
+                      className="bg-white border-2 border-black rounded-sketchy p-4 shadow-flat-offset-sm relative"
+                    >
+                      <div className="flex items-center gap-2 mb-2">
+                        {comment.user?.avatar_url ? (
+                          <Image
+                            src={comment.user.avatar_url}
+                            alt={comment.user.full_name || "User"}
+                            width={24}
+                            height={24}
+                            className="rounded-full border border-black"
+                          />
+                        ) : (
+                          <div className="w-6 h-6 rounded-full bg-accent-blue border border-black flex items-center justify-center font-sans text-[10px] font-bold text-primary uppercase">
+                            {comment.user?.full_name?.substring(0, 2) || "ME"}
+                          </div>
+                        )}
+                        <span className="font-sans text-xs font-bold">
+                          {comment.user?.full_name || "Member"}
+                        </span>
+                        <span className="font-sans text-[10px] text-secondary ml-auto">
+                          {new Date(comment.created_at).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="font-sans text-xs text-primary whitespace-pre-wrap">
+                        {comment.content}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* New Comment Input */}
+              {commentError && (
+                <div className="bg-accent-pink border-2 border-black rounded-sketchy-sm p-3 text-xs font-semibold">
+                  {commentError}
+                </div>
+              )}
+              
+              <form onSubmit={handlePostComment} className="flex gap-2 items-start mt-2">
+                <textarea
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder="Type a comment..."
+                  maxLength={1000}
+                  rows={2}
+                  className="flex-1 px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-xs bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary resize-none"
+                />
+                <button
+                  type="submit"
+                  disabled={postingComment || !newComment.trim()}
+                  className="p-3 bg-tertiary hover:bg-tertiary-hover text-white border-2 border-black rounded-full font-sans text-xs font-bold shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:pointer-events-none cursor-pointer flex-shrink-0"
+                >
+                  {postingComment ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </button>
+              </form>
+            </div>
           </div>
-        </form>
+        )}
       </div>
     </div>
   );
