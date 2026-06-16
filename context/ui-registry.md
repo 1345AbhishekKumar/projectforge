@@ -153,3 +153,14 @@ After building any component — update this file with the component name, file 
 - **Container Classes:** `w-64 bg-white border-r-2 border-black flex flex-col h-screen sticky top-0 z-40 p-6 gap-6`
 - **Link Button Classes:** `w-full text-left flex items-center gap-3 px-4 py-2.5 border-2 border-black font-sans text-sm font-bold shadow-flat-offset-sm transition-all duration-200`
 
+### Kanban Board Components
+
+#### Kanban Board Page
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/projects/[id]/board/page.tsx)
+- **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
+- **Columns Grid Classes:** `grid grid-cols-1 lg:grid-cols-3 gap-8 mt-4 items-start min-h-[60vh]`
+- **Column Container Classes:** `bg-white border-2 border-black rounded-sketchy p-5 shadow-flat-offset-sm flex flex-col gap-4 min-h-[500px] transition-all duration-150 relative`
+- **Column Dropzone Dragover Classes:** `bg-accent-yellow/10 border-dashed border-tertiary translate-y-0.5 shadow-none`
+- **Sticky Note Card Classes:** `p-5 border-2 border-black rounded-sketchy-sm cursor-grab active:cursor-grabbing transition-all duration-150 select-none relative shadow-sm`
+- **Sticky Note Card Colors:** `LOW (Blue): bg-[#D0E1FD] hover:bg-[#C2D8FC]`, `MEDIUM (Green): bg-[#D4EDDA] hover:bg-[#C6E9CE]`, `HIGH (Yellow): bg-[#FFF2B2] hover:bg-[#FFEAA3]`, `URGENT (Pink): bg-[#FFD2D2] hover:bg-[#FFC4C4]`
+

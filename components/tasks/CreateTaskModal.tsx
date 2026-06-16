@@ -17,12 +17,13 @@ type Props = {
     assigneeId: string | null,
     dueDate: string | null
   ) => Promise<{ success: boolean; error?: string }>;
+  defaultStatus?: TaskStatus;
 };
 
-export function CreateTaskModal({ isOpen, onClose, members, onCreate }: Props) {
+export function CreateTaskModal({ isOpen, onClose, members, onCreate, defaultStatus }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<TaskStatus>("TODO");
+  const [status, setStatus] = useState<TaskStatus>(defaultStatus || "TODO");
   const [priority, setPriority] = useState<TaskPriority>("MEDIUM");
   const [assigneeId, setAssigneeId] = useState("");
   const [dueDate, setDueDate] = useState("");
@@ -53,7 +54,7 @@ export function CreateTaskModal({ isOpen, onClose, members, onCreate }: Props) {
       if (result.success) {
         setTitle("");
         setDescription("");
-        setStatus("TODO");
+        setStatus(defaultStatus || "TODO");
         setPriority("MEDIUM");
         setAssigneeId("");
         setDueDate("");

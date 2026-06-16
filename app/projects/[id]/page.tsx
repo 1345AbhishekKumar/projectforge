@@ -4,7 +4,7 @@ import React, { useState, useEffect, useCallback, use } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useUser, useAuth } from "@clerk/nextjs";
-import { ArrowLeft, User as UserIcon, Loader2, Archive, Calendar, Users, ClipboardList, LogOut, Plus } from "lucide-react";
+import { ArrowLeft, User as UserIcon, Loader2, Archive, Calendar, Users, ClipboardList, LogOut, Plus, FolderKanban } from "lucide-react";
 
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
@@ -79,6 +79,20 @@ export default function ProjectDetailsPage({ params }: Props) {
 
     loadProjectDetails();
   }, [projectId, activeOrgId]);
+
+  // Synchronize tab from URL search parameters on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab === "members" || tab === "backlog") {
+        const timer = setTimeout(() => {
+          setActiveTab(tab as "backlog" | "members");
+        }, 0);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, []);
 
   // Load tasks callback
   const loadTasks = useCallback(async () => {
@@ -404,6 +418,15 @@ export default function ProjectDetailsPage({ params }: Props) {
                   <span className="flex items-center gap-2">
                     <ClipboardList className="h-4 w-4" />
                     Backlog
+                  </span>
+                </button>
+                <button
+                  onClick={() => router.push(`/projects/${projectId}/board`)}
+                  className="px-6 py-2.5 text-sm font-bold font-cursive transition-all -mb-0.5 cursor-pointer border-b-2 border-transparent hover:bg-neutral-bg/50 text-secondary"
+                >
+                  <span className="flex items-center gap-2">
+                    <FolderKanban className="h-4 w-4" />
+                    Board
                   </span>
                 </button>
                 <button

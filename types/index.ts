@@ -68,6 +68,7 @@ export type Task = {
   assignee_id: string | null;
   due_date: string | null;
   sprint_id: string | null;
+  board_index: number;
   created_at: string;
   updated_at: string;
 };

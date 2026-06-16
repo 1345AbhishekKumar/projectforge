@@ -146,6 +146,7 @@ export async function getProjectTasks(
       `)
       .eq("project_id", projectId)
       .eq("organization_id", orgId)
+      .order("board_index", { ascending: true })
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -170,6 +171,7 @@ export async function updateTask(
     assignee_id?: string | null;
     due_date?: string | null;
     sprint_id?: string | null;
+    board_index?: number;
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -264,6 +266,9 @@ export async function updateTask(
     if (updates.sprint_id !== undefined) {
       updatePayload.sprint_id = updates.sprint_id;
     }
+    if (updates.board_index !== undefined) {
+      updatePayload.board_index = updates.board_index;
+    }
 
     const { error } = await insforge.database
       .from("tasks")
@@ -345,5 +350,48 @@ export async function getOrganizationTasks(
     return { success: true, data: data as unknown as TaskWithAssignee[] };
   } catch {
     return { success: false, error: "An unexpected error occurred", data: [] };
+  }
+}
+
+export async function reorderTasks(
+  projectId: string,
+  orgId: string,
+  taskUpdates: { id: string; status: TaskStatus; board_index: number }[]
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const insforge = createInsforgeServer();
+
+    const isMember = await verifyMembership(insforge, orgId, userId);
+    if (!isMember) {
+      return { success: false, error: "Not a member of this workspace" };
+    }
+
+    // Run updates in parallel
+    const promises = taskUpdates.map((update) =>
+      insforge.database
+        .from("tasks")
+        .update({
+          status: update.status,
+          board_index: update.board_index,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", update.id)
+        .eq("organization_id", orgId)
+    );
+
+    const results = await Promise.all(promises);
+    const hasError = results.some((r) => r.error);
+
+    if (hasError) {
+      return { success: false, error: "Failed to update some tasks ordering" };
+    }
+
+    revalidatePath(`/projects/${projectId}`);
+    return { success: true };
+  } catch {
+    return { success: false, error: "An unexpected error occurred" };
   }
 }

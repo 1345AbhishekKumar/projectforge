@@ -121,12 +121,12 @@ we are building version 2 (prd_versions/v2.md)
 - [x] **Role Permissions:** Login as `MEMBER`. Verify sprint creation/management controls are hidden. Login as `ADMIN`/`OWNER`. Verify full sprint management controls are visible.
 
 ### Feature 2.2: Kanban Board Verification
-- [ ] **Board Renders:** Navigate to a project's board view. Verify 3 columns (TODO, IN_PROGRESS, DONE) render with correct task cards.
-- [ ] **Card Contents:** Verify each card displays: title, label badge, assignee avatar, priority indicator, and due date.
-- [ ] **Drag & Drop:** Drag a task card from TODO to IN_PROGRESS. Verify `status` and `board_index` update correctly in the `tasks` table.
-- [ ] **Drag Indicator:** Verify dashed border/drag indicator appears on the target column during an active drag.
-- [ ] **Header Sync Spinner:** Verify a loading spinner appears in the board header during the status update action.
-- [ ] **Multi-Tenant Isolation:** Verify board only displays tasks scoped to the active `organization_id`.
+- [x] **Board Renders:** Navigate to a project's board view. Verify 3 columns (TODO, IN_PROGRESS, DONE) render with correct task cards.
+- [x] **Card Contents:** Verify each card displays: title, label badge, assignee avatar, priority indicator, and due date.
+- [x] **Drag & Drop:** Drag a task card from TODO to IN_PROGRESS. Verify `status` and `board_index` update correctly in the `tasks` table.
+- [x] **Drag Indicator:** Verify dashed border/drag indicator appears on the target column during an active drag.
+- [x] **Header Sync Spinner:** Verify a loading spinner appears in the board header during the status update action.
+- [x] **Multi-Tenant Isolation:** Verify board only displays tasks scoped to the active `organization_id`.
 
 ### Feature 2.3: Project Activity Feed Verification
 - [ ] **Event Logging — Task Created:** Create a task. Verify an `activities` record is inserted with `action_type = 'TASK_CREATED'`.
