@@ -146,12 +146,12 @@ we are building version 2 (prd_versions/v2.md)
 - [x] **Performance:** Verify dashboard analytics page loads in under 2 seconds.
 
 ### Feature 2.5: Task Labels & Saved Views Verification
-- [ ] **Label Creation:** Create a label `"Bug"` with a red color. Verify `labels` record inserted with correct `name`, `color`, and `organization_id`.
-- [ ] **Label Assignment:** Assign the `"Bug"` label to a task. Verify label badge renders on the task card and task detail view.
-- [ ] **Label Scoping:** Verify labels available in the dropdown are scoped to the active organization only.
-- [ ] **Save View:** Apply a filter (e.g., Priority = HIGH) and click "Save View". Verify a `saved_views` record is inserted with the correct `filters` JSON.
-- [ ] **Load Saved View:** Navigate away, then return and load the saved view. Verify the filter is restored and the task list is correctly filtered.
-- [ ] **Delete Saved View:** Delete a saved view. Verify the `saved_views` record is removed from the DB.
+- [x] **Label Creation:** Create a label `"Bug"` with a red color. Verify `labels` record inserted with correct `name`, `color`, and `organization_id`.
+- [x] **Label Assignment:** Assign the `"Bug"` label to a task. Verify label badge renders on the task card and task detail view.
+- [x] **Label Scoping:** Verify labels available in the dropdown are scoped to the active organization only.
+- [x] **Save View:** Apply a filter (e.g., Priority = HIGH) and click "Save View". Verify a `saved_views` record is inserted with the correct `filters` JSON.
+- [x] **Load Saved View:** Navigate away, then return and load the saved view. Verify the filter is restored and the task list is correctly filtered.
+- [x] **Delete Saved View:** Delete a saved view. Verify the `saved_views` record is removed from the DB.
 
 ### Feature 2.6: Search & Team Directory Verification
 - [ ] **Global Search — Projects:** Open the search modal and query a project name. Verify matching projects appear in results.

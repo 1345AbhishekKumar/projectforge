@@ -1,26 +1,38 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Loader2, Plus, X } from "lucide-react";
-import type { TaskStatus, TaskPriority } from "@/types";
+import type { TaskStatus, TaskPriority, Label } from "@/types";
 import type { MemberListItem } from "@/actions/membership";
+import { getLabels, createLabel } from "@/actions/label";
 
 type Props = {
   isOpen: boolean;
   onClose: () => void;
   members: MemberListItem[];
+  orgId: string;
   onCreate: (
     title: string,
     description: string | null,
     status: TaskStatus,
     priority: TaskPriority,
     assigneeId: string | null,
-    dueDate: string | null
+    dueDate: string | null,
+    labelIds: string[]
   ) => Promise<{ success: boolean; error?: string }>;
   defaultStatus?: TaskStatus;
 };
 
-export function CreateTaskModal({ isOpen, onClose, members, onCreate, defaultStatus }: Props) {
+const labelColors = [
+  "#FFF2B2", // Muted Yellow
+  "#FFD2D2", // Muted Pink
+  "#D0E1FD", // Muted Blue
+  "#D4EDDA", // Muted Green
+  "#EEF2FF", // Muted Purple
+  "#FF7F50", // Coral/Orange
+];
+
+export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, defaultStatus }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>(defaultStatus || "TODO");
@@ -29,6 +41,26 @@ export function CreateTaskModal({ isOpen, onClose, members, onCreate, defaultSta
   const [dueDate, setDueDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Label states
+  const [labels, setLabels] = useState<Label[]>([]);
+  const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
+  const [showLabelCreator, setShowLabelCreator] = useState(false);
+  const [newLabelName, setNewLabelName] = useState("");
+  const [newLabelColor, setNewLabelColor] = useState(labelColors[0]);
+  const [creatingLabel, setCreatingLabel] = useState(false);
+
+  // Fetch labels on open
+  useEffect(() => {
+    if (!isOpen || !orgId) return;
+    async function loadLabels() {
+      const res = await getLabels(orgId);
+      if (res.success) {
+        setLabels(res.data);
+      }
+    }
+    loadLabels();
+  }, [isOpen, orgId]);
 
   if (!isOpen) return null;
 
@@ -49,7 +81,8 @@ export function CreateTaskModal({ isOpen, onClose, members, onCreate, defaultSta
         status,
         priority,
         assigneeId || null,
-        dueDate || null
+        dueDate || null,
+        selectedLabelIds
       );
       if (result.success) {
         setTitle("");
@@ -58,6 +91,9 @@ export function CreateTaskModal({ isOpen, onClose, members, onCreate, defaultSta
         setPriority("MEDIUM");
         setAssigneeId("");
         setDueDate("");
+        setSelectedLabelIds([]);
+        setShowLabelCreator(false);
+        setNewLabelName("");
         onClose();
       } else {
         setError(result.error || "Failed to create task");
@@ -126,7 +162,7 @@ export function CreateTaskModal({ isOpen, onClose, members, onCreate, defaultSta
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Provide context or steps to complete this task"
               maxLength={500}
-              rows={3}
+              rows={2}
               className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow resize-none"
             />
           </div>
@@ -181,6 +217,123 @@ export function CreateTaskModal({ isOpen, onClose, members, onCreate, defaultSta
               ))}
             </select>
           </div>
+
+          {/* Labels Selection */}
+          <div>
+            <label className="font-sans text-xs font-semibold mb-1 block">
+              Labels
+            </label>
+            
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {selectedLabelIds.map(id => {
+                const label = labels.find(l => l.id === id);
+                if (!label) return null;
+                return (
+                  <span
+                    key={label.id}
+                    style={{ backgroundColor: label.color }}
+                    className="text-[9px] font-bold px-2 py-0.5 rounded-full border border-black/40 text-primary flex items-center gap-1 select-none"
+                  >
+                    {label.name}
+                    <button
+                      type="button"
+                      onClick={() => setSelectedLabelIds(prev => prev.filter(lid => lid !== label.id))}
+                      className="hover:text-red-500 font-bold"
+                    >
+                      ×
+                    </button>
+                  </span>
+                );
+              })}
+              {selectedLabelIds.length === 0 && (
+                <span className="text-[10px] text-secondary/60 italic">No labels selected</span>
+              )}
+            </div>
+
+            {/* List of selectables */}
+            <div className="border-2 border-black rounded-sketchy-sm p-2 bg-neutral-bg/25 max-h-32 overflow-y-auto flex flex-col gap-1">
+              {labels.map((label) => {
+                const isChecked = selectedLabelIds.includes(label.id);
+                return (
+                  <button
+                    type="button"
+                    key={label.id}
+                    onClick={() => {
+                      setSelectedLabelIds(prev =>
+                        isChecked ? prev.filter(id => id !== label.id) : [...prev, label.id]
+                      );
+                    }}
+                    className="flex items-center justify-between text-left px-2 py-1 hover:bg-neutral-bg/50 rounded text-xs font-sans font-semibold cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full border border-black/30" style={{ backgroundColor: label.color }} />
+                      <span>{label.name}</span>
+                    </div>
+                    {isChecked && <span className="text-tertiary font-bold">✓</span>}
+                  </button>
+                );
+              })}
+
+              <button
+                type="button"
+                onClick={() => setShowLabelCreator(!showLabelCreator)}
+                className="text-left px-2 py-1 text-[10px] font-bold text-tertiary hover:underline cursor-pointer border-t border-black/5 mt-1 pt-1.5"
+              >
+                {showLabelCreator ? "Cancel new label" : "+ Create new label"}
+              </button>
+            </div>
+          </div>
+
+          {/* Inline Label Creator */}
+          {showLabelCreator && (
+            <div className="border-2 border-black rounded-sketchy bg-[#FFF2B2]/10 p-3 flex flex-col gap-2.5">
+              <span className="font-cursive text-sm font-bold">New Workspace Label</span>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="Label name (e.g. Bug)"
+                  value={newLabelName}
+                  onChange={(e) => setNewLabelName(e.target.value)}
+                  className="flex-grow px-2 py-1 border-2 border-black rounded-sketchy-sm font-sans text-xs bg-white focus:outline-none focus:ring-2 focus:ring-tertiary"
+                />
+                <button
+                  type="button"
+                  disabled={creatingLabel || !newLabelName.trim()}
+                  onClick={async () => {
+                    if (!newLabelName.trim()) return;
+                    setCreatingLabel(true);
+                    const res = await createLabel(orgId, newLabelName.trim(), newLabelColor);
+                    setCreatingLabel(false);
+                    if (res.success && res.data) {
+                      setLabels(prev => [...prev, res.data!]);
+                      setSelectedLabelIds(prev => [...prev, res.data!.id]);
+                      setNewLabelName("");
+                      setShowLabelCreator(false);
+                    } else {
+                      alert(res.error || "Failed to create label");
+                    }
+                  }}
+                  className="px-3 py-1 bg-tertiary hover:bg-tertiary-hover text-white font-sans text-xs font-bold border-2 border-black rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-40"
+                >
+                  Create
+                </button>
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold font-sans text-secondary">Color:</span>
+                {labelColors.map((color) => (
+                  <button
+                    type="button"
+                    key={color}
+                    onClick={() => setNewLabelColor(color)}
+                    style={{ backgroundColor: color }}
+                    className={`w-4 h-4 rounded-full border border-black/40 cursor-pointer transition-all ${
+                      newLabelColor === color ? "ring-2 ring-black scale-110" : "hover:scale-105"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
 
           <div>
             <label className="font-sans text-xs font-semibold mb-1 block">

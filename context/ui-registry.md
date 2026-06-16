@@ -126,6 +126,16 @@ After building any component — update this file with the component name, file 
 - **Uploader Dropzone:** `border-2 border-dashed border-black rounded-sketchy p-6 text-center hover:bg-neutral-bg/30 transition-all cursor-pointer block relative`
 - **Upload Progress Bar:** `w-full bg-neutral-dot border-2 border-black rounded-full h-4 overflow-hidden relative`
 - **Timeline Comment Card:** `bg-white border-2 border-black rounded-sketchy p-4 shadow-flat-offset-sm relative`
+
+#### TaskFilters Component
+- **File Path:** [TaskFilters.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/TaskFilters.tsx)
+- **Container Classes:** `flex flex-wrap items-center gap-4 bg-white border-2 border-black rounded-sketchy p-4 shadow-flat-offset-sm`
+- **Filter Trigger Button:** `flex items-center gap-2 px-3 py-1.5 border-2 border-black rounded-full bg-white hover:bg-neutral-bg text-xs font-bold font-sans shadow-flat-offset-xs transition-all`
+- **Dropdown List Card:** `absolute left-0 mt-2 w-48 bg-white border-2 border-black rounded-sketchy-sm shadow-flat-offset p-2 z-50 flex flex-col gap-1`
+- **Clear Filters Button:** `px-3 py-1.5 bg-accent-pink border-2 border-black rounded-full text-xs font-bold font-sans hover:bg-opacity-80 active:translate-y-0.5 shadow-flat-offset-xs`
+- **Save View Form:** `flex items-center gap-2 border-2 border-black rounded-full px-3 py-1.5 bg-white text-xs font-bold shadow-flat-offset-xs`
+- **Input Box:** `border-0 p-0 focus:ring-0 w-24 text-xs font-bold font-sans placeholder:text-secondary/40`
+
 ### Notification Components
 
 #### NotificationBell Component

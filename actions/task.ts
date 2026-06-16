@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
-import type { Task, TaskStatus, TaskPriority } from "@/types";
+import type { Task, TaskStatus, TaskPriority, Label } from "@/types";
 import { logActivity } from "@/actions/activity";
 
 const taskSchema = z.object({
@@ -37,7 +37,8 @@ export async function createTask(
   priority: TaskPriority,
   assigneeId: string | null,
   dueDate: string | null,
-  sprintId: string | null = null
+  sprintId: string | null = null,
+  labelIds: string[] = []
 ): Promise<{ success: boolean; data?: { taskId: string }; error?: string }> {
   try {
     const { userId } = await auth();
@@ -108,6 +109,19 @@ export async function createTask(
       return { success: false, error: "Failed to create task" };
     }
 
+    if (labelIds && labelIds.length > 0) {
+      const mappings = labelIds.map((labelId) => ({
+        task_id: task.id,
+        label_id: labelId,
+      }));
+      const { error: mappingError } = await insforge.database
+        .from("task_label_mappings")
+        .insert(mappings);
+      if (mappingError) {
+        // Log mapping error but do not fail task creation
+      }
+    }
+
     await logActivity(orgId, projectId, userId, "TASK_CREATED", {
       taskId: task.id,
       taskTitle: validated.data.title,
@@ -144,6 +158,19 @@ export type TaskWithAssignee = Task & {
     email: string;
     avatar_url: string | null;
   } | null;
+  labels: Label[];
+};
+
+type DbTaskResult = Task & {
+  assignee: {
+    id: string;
+    full_name: string | null;
+    email: string;
+    avatar_url: string | null;
+  } | null;
+  task_label_mappings: {
+    label: Label | null;
+  }[] | null;
 };
 
 export async function getProjectTasks(
@@ -165,7 +192,8 @@ export async function getProjectTasks(
       .from("tasks")
       .select(`
         *,
-        assignee:profiles(id, full_name, email, avatar_url)
+        assignee:profiles(id, full_name, email, avatar_url),
+        task_label_mappings(label:labels(*))
       `)
       .eq("project_id", projectId)
       .eq("organization_id", orgId)
@@ -176,7 +204,14 @@ export async function getProjectTasks(
       return { success: false, error: "Failed to fetch tasks", data: [] };
     }
 
-    return { success: true, data: data as unknown as TaskWithAssignee[] };
+    const tasksData = (data || []) as unknown as DbTaskResult[];
+
+    const formattedTasks = tasksData.map((task) => ({
+      ...task,
+      labels: task.task_label_mappings?.map((m) => m.label).filter((l): l is Label => !!l) || [],
+    }));
+
+    return { success: true, data: formattedTasks as unknown as TaskWithAssignee[] };
   } catch {
     return { success: false, error: "An unexpected error occurred", data: [] };
   }
@@ -195,6 +230,7 @@ export async function updateTask(
     due_date?: string | null;
     sprint_id?: string | null;
     board_index?: number;
+    label_ids?: string[] | null;
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -254,6 +290,33 @@ export async function updateTask(
 
         if (newSprint && newSprint.status === "COMPLETED") {
           return { success: false, error: "Cannot assign task to a completed sprint." };
+        }
+      }
+    }
+
+    if (updates.label_ids !== undefined) {
+      // First delete existing mappings for this task
+      const { error: deleteError } = await insforge.database
+        .from("task_label_mappings")
+        .delete()
+        .eq("task_id", taskId);
+
+      if (deleteError) {
+        return { success: false, error: "Failed to update task labels" };
+      }
+
+      // Then insert new mappings if any
+      if (updates.label_ids && updates.label_ids.length > 0) {
+        const mappings = updates.label_ids.map((labelId) => ({
+          task_id: taskId,
+          label_id: labelId,
+        }));
+        const { error: insertError } = await insforge.database
+          .from("task_label_mappings")
+          .insert(mappings);
+
+        if (insertError) {
+          return { success: false, error: "Failed to update task labels" };
         }
       }
     }
@@ -393,7 +456,8 @@ export async function getOrganizationTasks(
       .from("tasks")
       .select(`
         *,
-        assignee:profiles(id, full_name, email, avatar_url)
+        assignee:profiles(id, full_name, email, avatar_url),
+        task_label_mappings(label:labels(*))
       `)
       .eq("organization_id", orgId)
       .order("created_at", { ascending: false });
@@ -402,7 +466,14 @@ export async function getOrganizationTasks(
       return { success: false, error: "Failed to fetch tasks", data: [] };
     }
 
-    return { success: true, data: data as unknown as TaskWithAssignee[] };
+    const tasksData = (data || []) as unknown as DbTaskResult[];
+
+    const formattedTasks = tasksData.map((task) => ({
+      ...task,
+      labels: task.task_label_mappings?.map((m) => m.label).filter((l): l is Label => !!l) || [],
+    }));
+
+    return { success: true, data: formattedTasks as unknown as TaskWithAssignee[] };
   } catch {
     return { success: false, error: "An unexpected error occurred", data: [] };
   }

@@ -119,5 +119,28 @@ export type Notification = {
   created_at: string;
 };
 
+export type Label = {
+  id: string;
+  organization_id: string;
+  name: string;
+  color: string;
+  created_at: string;
+};
+
+export type SavedView = {
+  id: string;
+  user_id: string;
+  organization_id: string;
+  name: string;
+  filters: {
+    priorities?: TaskPriority[];
+    statuses?: TaskStatus[];
+    assigneeIds?: (string | null)[];
+    labelIds?: string[];
+  };
+  created_at: string;
+};
+
+
 
 

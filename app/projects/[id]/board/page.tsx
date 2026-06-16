@@ -25,10 +25,13 @@ import { getProjectDetails, updateProject, archiveProject } from "@/actions/proj
 import { getOrganizationMembers, type MemberListItem } from "@/actions/membership";
 import { createTask, getProjectTasks, updateTask, deleteTask, reorderTasks, type TaskWithAssignee } from "@/actions/task";
 import { getSprints } from "@/actions/sprint";
+import { getLabels } from "@/actions/label";
+import { getSavedViews, createSavedView, deleteSavedView } from "@/actions/savedView";
+import { TaskFilters, type FiltersState, initialFilters } from "@/components/tasks/TaskFilters";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { TaskDetailsSheet } from "@/components/tasks/TaskDetailsSheet";
 import { Sidebar } from "@/components/layout/Sidebar";
-import type { Project, ProjectStatus, TaskStatus, TaskPriority, Sprint } from "@/types";
+import type { Project, ProjectStatus, TaskStatus, TaskPriority, Sprint, Label, SavedView } from "@/types";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -63,6 +66,12 @@ export default function KanbanBoardPage({ params }: Props) {
   const [preselectedStatus, setPreselectedStatus] = useState<TaskStatus>("TODO");
   const [selectedTask, setSelectedTask] = useState<TaskWithAssignee | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  // Filters & Saved Views states
+  const [labels, setLabels] = useState<Label[]>([]);
+  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
+  const [activeFilters, setActiveFilters] = useState<FiltersState>(initialFilters);
+  const [activeViewName, setActiveViewName] = useState("");
 
   // Drag and drop states
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -137,6 +146,26 @@ export default function KanbanBoardPage({ params }: Props) {
     loadSprints();
   }, [activeOrgId]);
 
+  // Fetch labels and saved views when active organization changes
+  useEffect(() => {
+    if (!activeOrgId) return;
+
+    async function loadFiltersData() {
+      const [labelsRes, viewsRes] = await Promise.all([
+        getLabels(activeOrgId!),
+        getSavedViews(activeOrgId!),
+      ]);
+      if (labelsRes.success) {
+        setLabels(labelsRes.data);
+      }
+      if (viewsRes.success) {
+        setSavedViews(viewsRes.data);
+      }
+    }
+
+    loadFiltersData();
+  }, [activeOrgId]);
+
   // Handle workspace switcher updates
   const handleRefreshState = useCallback(() => {
     const orgId = getActiveOrgId();
@@ -192,10 +221,11 @@ export default function KanbanBoardPage({ params }: Props) {
     status: TaskStatus,
     priority: TaskPriority,
     assigneeId: string | null,
-    dueDate: string | null
+    dueDate: string | null,
+    labelIds: string[] = []
   ) {
     if (!activeOrgId || !projectId) return { success: false, error: "Missing context" };
-    const res = await createTask(projectId, activeOrgId, title, description, status, priority, assigneeId, dueDate);
+    const res = await createTask(projectId, activeOrgId, title, description, status, priority, assigneeId, dueDate, null, labelIds);
     if (res.success) {
       loadTasks();
     }
@@ -212,6 +242,7 @@ export default function KanbanBoardPage({ params }: Props) {
       assignee_id?: string | null;
       due_date?: string | null;
       sprint_id?: string | null;
+      label_ids?: string[] | null;
     }
   ) {
     if (!activeOrgId || !projectId) return { success: false, error: "Missing context" };
@@ -221,6 +252,51 @@ export default function KanbanBoardPage({ params }: Props) {
     }
     return res;
   }
+
+  // Saved Views Actions
+  const handleSaveView = async (name: string) => {
+    if (!activeOrgId) return { success: false, error: "No active workspace" };
+    const res = await createSavedView(activeOrgId, name, activeFilters);
+    if (res.success && res.data) {
+      setSavedViews((prev) => [res.data!, ...prev]);
+      setActiveViewName(name);
+    }
+    return res;
+  };
+
+  const handleDeleteView = async (viewId: string) => {
+    if (!activeOrgId) return { success: false, error: "No active workspace" };
+    const res = await deleteSavedView(viewId, activeOrgId);
+    if (res.success) {
+      setSavedViews((prev) => prev.filter((v) => v.id !== viewId));
+      if (activeViewName && savedViews.find((v) => v.id === viewId)?.name === activeViewName) {
+        setActiveViewName("");
+      }
+    }
+    return res;
+  };
+
+  // Apply filters client-side
+  const filteredTasks = tasks.filter((task) => {
+    if (activeFilters.priorities.length > 0 && !activeFilters.priorities.includes(task.priority)) {
+      return false;
+    }
+    if (activeFilters.statuses.length > 0 && !activeFilters.statuses.includes(task.status)) {
+      return false;
+    }
+    if (activeFilters.assigneeIds.length > 0) {
+      if (!activeFilters.assigneeIds.includes(task.assignee_id)) {
+        return false;
+      }
+    }
+    if (activeFilters.labelIds.length > 0) {
+      if (!task.labels || task.labels.length === 0) return false;
+      const taskLabelIds = task.labels.map((l) => l.id);
+      const hasMatchingLabel = activeFilters.labelIds.some((id) => taskLabelIds.includes(id));
+      if (!hasMatchingLabel) return false;
+    }
+    return true;
+  });
 
   async function handleDeleteTask(taskId: string) {
     if (!activeOrgId || !projectId) return { success: false, error: "Missing context" };
@@ -413,22 +489,22 @@ export default function KanbanBoardPage({ params }: Props) {
 
   const statusBadgeColor = project ? statusColors[project.status] : "";
 
-  // Group columns
+  // Group columns using filtered tasks
   const columns: { title: string; status: TaskStatus; items: TaskWithAssignee[] }[] = [
     { 
       title: "To Do", 
       status: "TODO", 
-      items: tasks.filter((t) => t.status === "TODO").sort((a, b) => (a.board_index ?? 0) - (b.board_index ?? 0)) 
+      items: filteredTasks.filter((t) => t.status === "TODO").sort((a, b) => (a.board_index ?? 0) - (b.board_index ?? 0)) 
     },
     { 
       title: "In Progress", 
       status: "IN_PROGRESS", 
-      items: tasks.filter((t) => t.status === "IN_PROGRESS").sort((a, b) => (a.board_index ?? 0) - (b.board_index ?? 0)) 
+      items: filteredTasks.filter((t) => t.status === "IN_PROGRESS").sort((a, b) => (a.board_index ?? 0) - (b.board_index ?? 0)) 
     },
     { 
       title: "Done", 
       status: "DONE", 
-      items: tasks.filter((t) => t.status === "DONE").sort((a, b) => (a.board_index ?? 0) - (b.board_index ?? 0)) 
+      items: filteredTasks.filter((t) => t.status === "DONE").sort((a, b) => (a.board_index ?? 0) - (b.board_index ?? 0)) 
     },
   ];
 
@@ -623,6 +699,23 @@ export default function KanbanBoardPage({ params }: Props) {
                   </button>
                 </div>
 
+                {/* Filters */}
+                <TaskFilters
+                  members={members}
+                  labels={labels}
+                  savedViews={savedViews}
+                  activeFilters={activeFilters}
+                  onFiltersChange={(filters) => {
+                    setActiveFilters(filters);
+                    const matchedView = savedViews.find(v => JSON.stringify(v.filters) === JSON.stringify(filters));
+                    setActiveViewName(matchedView ? matchedView.name : "");
+                  }}
+                  onSaveView={handleSaveView}
+                  onDeleteView={handleDeleteView}
+                  activeViewName={activeViewName}
+                  onClearViewName={() => setActiveViewName("")}
+                />
+
                 {/* Board Columns Grid */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-4 items-start min-h-[60vh]">
                   {columns.map((col) => {
@@ -709,6 +802,22 @@ export default function KanbanBoardPage({ params }: Props) {
                                     </div>
                                   )}
 
+                                  {/* Label Badges */}
+                                  {task.labels && task.labels.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mb-2">
+                                      {task.labels.map((label) => (
+                                        <span
+                                          key={label.id}
+                                          style={{ backgroundColor: label.color }}
+                                          className="text-[8px] font-bold px-1.5 py-0.5 rounded-full border border-black/30 text-primary truncate max-w-[70px]"
+                                          title={label.name}
+                                        >
+                                          {label.name}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+
                                   {/* Task Title */}
                                   <h4 className={`font-sans font-bold text-sm leading-tight mb-2 tracking-tight ${
                                     task.status === "DONE" ? "line-through text-secondary/50" : ""
@@ -788,6 +897,7 @@ export default function KanbanBoardPage({ params }: Props) {
           isOpen={isCreateTaskModalOpen}
           onClose={() => setIsCreateTaskModalOpen(false)}
           members={members}
+          orgId={activeOrgId || ""}
           onCreate={handleCreateTask}
           defaultStatus={preselectedStatus}
         />

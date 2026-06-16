@@ -12,11 +12,14 @@ import { getProjectDetails, updateProject, archiveProject } from "@/actions/proj
 import { getOrganizationMembers, type MemberListItem } from "@/actions/membership";
 import { createTask, getProjectTasks, updateTask, deleteTask, type TaskWithAssignee } from "@/actions/task";
 import { getSprints } from "@/actions/sprint";
+import { getLabels } from "@/actions/label";
+import { getSavedViews, createSavedView, deleteSavedView } from "@/actions/savedView";
+import { TaskFilters, type FiltersState, initialFilters } from "@/components/tasks/TaskFilters";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { TaskList } from "@/components/tasks/TaskList";
 import { TaskDetailsSheet } from "@/components/tasks/TaskDetailsSheet";
 import { Sidebar } from "@/components/layout/Sidebar";
-import type { Project, ProjectStatus, TaskStatus, TaskPriority, Sprint } from "@/types";
+import type { Project, ProjectStatus, TaskStatus, TaskPriority, Sprint, Label, SavedView } from "@/types";
 
 
 type Props = {
@@ -53,6 +56,12 @@ export default function ProjectDetailsPage({ params }: Props) {
   const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<TaskWithAssignee | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+
+  // Filters & Saved Views states
+  const [labels, setLabels] = useState<Label[]>([]);
+  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
+  const [activeFilters, setActiveFilters] = useState<FiltersState>(initialFilters);
+  const [activeViewName, setActiveViewName] = useState("");
 
   const handleSignOut = async () => {
     await signOut();
@@ -137,6 +146,26 @@ export default function ProjectDetailsPage({ params }: Props) {
     loadSprints();
   }, [activeOrgId]);
 
+  // Fetch labels and saved views when active organization changes
+  useEffect(() => {
+    if (!activeOrgId) return;
+
+    async function loadFiltersData() {
+      const [labelsRes, viewsRes] = await Promise.all([
+        getLabels(activeOrgId!),
+        getSavedViews(activeOrgId!),
+      ]);
+      if (labelsRes.success) {
+        setLabels(labelsRes.data);
+      }
+      if (viewsRes.success) {
+        setSavedViews(viewsRes.data);
+      }
+    }
+
+    loadFiltersData();
+  }, [activeOrgId]);
+
   // Handle workspace switcher updates
   const handleRefreshState = useCallback(() => {
     const orgId = getActiveOrgId();
@@ -192,10 +221,11 @@ export default function ProjectDetailsPage({ params }: Props) {
     status: TaskStatus,
     priority: TaskPriority,
     assigneeId: string | null,
-    dueDate: string | null
+    dueDate: string | null,
+    labelIds: string[] = []
   ) {
     if (!activeOrgId || !projectId) return { success: false, error: "Missing context" };
-    const res = await createTask(projectId, activeOrgId, title, description, status, priority, assigneeId, dueDate);
+    const res = await createTask(projectId, activeOrgId, title, description, status, priority, assigneeId, dueDate, null, labelIds);
     if (res.success) {
       loadTasks();
     }
@@ -212,6 +242,7 @@ export default function ProjectDetailsPage({ params }: Props) {
       assignee_id?: string | null;
       due_date?: string | null;
       sprint_id?: string | null;
+      label_ids?: string[] | null;
     }
   ) {
     if (!activeOrgId || !projectId) return { success: false, error: "Missing context" };
@@ -221,6 +252,51 @@ export default function ProjectDetailsPage({ params }: Props) {
     }
     return res;
   }
+
+  // Saved Views Actions
+  const handleSaveView = async (name: string) => {
+    if (!activeOrgId) return { success: false, error: "No active workspace" };
+    const res = await createSavedView(activeOrgId, name, activeFilters);
+    if (res.success && res.data) {
+      setSavedViews((prev) => [res.data!, ...prev]);
+      setActiveViewName(name);
+    }
+    return res;
+  };
+
+  const handleDeleteView = async (viewId: string) => {
+    if (!activeOrgId) return { success: false, error: "No active workspace" };
+    const res = await deleteSavedView(viewId, activeOrgId);
+    if (res.success) {
+      setSavedViews((prev) => prev.filter((v) => v.id !== viewId));
+      if (activeViewName && savedViews.find((v) => v.id === viewId)?.name === activeViewName) {
+        setActiveViewName("");
+      }
+    }
+    return res;
+  };
+
+  // Apply filters client-side
+  const filteredTasks = tasks.filter((task) => {
+    if (activeFilters.priorities.length > 0 && !activeFilters.priorities.includes(task.priority)) {
+      return false;
+    }
+    if (activeFilters.statuses.length > 0 && !activeFilters.statuses.includes(task.status)) {
+      return false;
+    }
+    if (activeFilters.assigneeIds.length > 0) {
+      if (!activeFilters.assigneeIds.includes(task.assignee_id)) {
+        return false;
+      }
+    }
+    if (activeFilters.labelIds.length > 0) {
+      if (!task.labels || task.labels.length === 0) return false;
+      const taskLabelIds = task.labels.map((l) => l.id);
+      const hasMatchingLabel = activeFilters.labelIds.some((id) => taskLabelIds.includes(id));
+      if (!hasMatchingLabel) return false;
+    }
+    return true;
+  });
 
   async function handleDeleteTask(taskId: string) {
     if (!activeOrgId || !projectId) return { success: false, error: "Missing context" };
@@ -460,15 +536,33 @@ export default function ProjectDetailsPage({ params }: Props) {
                 {activeTab === "backlog" && (
                   <div className="flex flex-col gap-6">
                     {/* Toolbar */}
-                    <div className="flex items-center justify-between">
-                      <h2 className="font-cursive text-2xl font-bold">Project Backlog</h2>
-                      <button
-                        onClick={() => setIsCreateTaskModalOpen(true)}
-                        className="flex items-center justify-center gap-1.5 bg-accent-yellow hover:bg-[#FFE680] text-primary border-2 border-black font-sans text-xs font-bold px-4 py-2 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
-                      >
-                        <Plus className="h-4 w-4" />
-                        Create Task
-                      </button>
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-center justify-between">
+                        <h2 className="font-cursive text-2xl font-bold">Project Backlog</h2>
+                        <button
+                          onClick={() => setIsCreateTaskModalOpen(true)}
+                          className="flex items-center justify-center gap-1.5 bg-accent-yellow hover:bg-[#FFE680] text-primary border-2 border-black font-sans text-xs font-bold px-4 py-2 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
+                        >
+                          <Plus className="h-4 w-4" />
+                          Create Task
+                        </button>
+                      </div>
+
+                      <TaskFilters
+                        members={members}
+                        labels={labels}
+                        savedViews={savedViews}
+                        activeFilters={activeFilters}
+                        onFiltersChange={(filters) => {
+                          setActiveFilters(filters);
+                          const matchedView = savedViews.find(v => JSON.stringify(v.filters) === JSON.stringify(filters));
+                          setActiveViewName(matchedView ? matchedView.name : "");
+                        }}
+                        onSaveView={handleSaveView}
+                        onDeleteView={handleDeleteView}
+                        activeViewName={activeViewName}
+                        onClearViewName={() => setActiveViewName("")}
+                      />
                     </div>
 
                     {loadingTasks ? (
@@ -476,25 +570,28 @@ export default function ProjectDetailsPage({ params }: Props) {
                         <Loader2 className="h-8 w-8 animate-spin text-tertiary mr-3" />
                         <span className="font-cursive text-xl">Loading backlog...</span>
                       </div>
-                    ) : tasks.length === 0 ? (
+                    ) : filteredTasks.length === 0 ? (
                       <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8 md:p-12 text-center max-w-lg mx-auto">
                         <div className="w-16 h-16 rounded-full bg-accent-yellow border-2 border-black flex items-center justify-center mx-auto mb-4 rotate-[1.5deg] shadow-flat-offset-sm">
                           <ClipboardList className="h-8 w-8 text-primary" />
                         </div>
-                        <h3 className="font-cursive text-2xl font-bold mb-2">Backlog Empty</h3>
+                        <h3 className="font-cursive text-2xl font-bold mb-2">No Tasks Match Filters</h3>
                         <p className="font-sans text-sm text-secondary mb-6 leading-relaxed">
-                          No tasks have been mapped to this project scope yet. Let&apos;s map the first task!
+                          We couldn&apos;t find any tasks mapping to your current filter specification. Try clearing filters or creating a task.
                         </p>
                         <button
-                          onClick={() => setIsCreateTaskModalOpen(true)}
+                          onClick={() => {
+                            setActiveFilters(initialFilters);
+                            setActiveViewName("");
+                          }}
                           className="bg-accent-yellow hover:bg-[#FFE680] text-primary border-2 border-black font-sans text-xs font-bold px-5 py-2 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
                         >
-                          Create First Task
+                          Clear Filters
                         </button>
                       </div>
                     ) : (
                       <TaskList
-                        tasks={tasks}
+                        tasks={filteredTasks}
                         onTaskClick={(task) => {
                           setSelectedTask(task);
                           setIsDetailsOpen(true);
@@ -571,6 +668,7 @@ export default function ProjectDetailsPage({ params }: Props) {
         isOpen={isCreateTaskModalOpen}
         onClose={() => setIsCreateTaskModalOpen(false)}
         members={members}
+        orgId={activeOrgId || ""}
         onCreate={handleCreateTask}
       />
 

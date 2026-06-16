@@ -59,6 +59,18 @@ export function TaskRow({ task, onClick, onStatusToggle }: Props) {
       </div>
 
       <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
+        {/* Label Badges */}
+        {task.labels && task.labels.map((label) => (
+          <span
+            key={label.id}
+            style={{ backgroundColor: label.color }}
+            className="text-[9px] font-bold px-2 py-0.5 rounded-full border border-black/40 text-primary truncate max-w-[80px]"
+            title={label.name}
+          >
+            {label.name}
+          </span>
+        ))}
+
         {/* Priority Badge */}
         <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase ${priorityColors[task.priority]}`}>
           {task.priority}
