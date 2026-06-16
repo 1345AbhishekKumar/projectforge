@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lesson 0021: Bridging Clerk & RLS</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #334155;
+        }
+        body { 
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            line-height: 1.7; 
+            max-width: 720px; 
+            margin: 40px auto; 
+            padding: 0 24px; 
+            color: var(--text);
+            background-color: var(--bg);
+        }
+        .container {
+            background-color: var(--surface);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        h1, h2, h3 { color: var(--primary); margin-top: 1.5em; font-weight: 600; letter-spacing: -0.025em; }
+        h1 { font-size: 2.25rem; margin-top: 0; }
+        h2 { font-size: 1.5rem; padding-bottom: 0.5em; border-bottom: 1px solid var(--border); }
+        pre { background: #1e293b; color: #f8fafc; padding: 20px; border-radius: 8px; overflow-x: auto; font-size: 0.9rem; }
+        code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 0.9em; padding: 0.2em 0.4em; background-color: var(--bg); border-radius: 4px; color: var(--accent); }
+        pre code { background-color: transparent; padding: 0; color: inherit; }
+        
+        .quiz { 
+            background: #fdf2f8; 
+            padding: 30px; 
+            border-radius: 12px; 
+            margin-top: 40px; 
+            border: 1px solid #fbcfe8;
+        }
+        .quiz h3 { margin-top: 0; color: #9d174d; }
+        .options label { display: block; margin: 12px 0; padding: 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; background: var(--surface); transition: all 0.2s; }
+        .options label:hover { border-color: #db2777; }
+        input[type="radio"] { margin-right: 12px; }
+        
+        button { 
+            background: #db2777; 
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 6px; 
+            font-weight: 500;
+            cursor: pointer; 
+            font-size: 1rem;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+        button:hover { background: #be185d; }
+        
+        #quiz-result { margin-top: 20px; font-weight: 500; display: none; padding: 12px; border-radius: 6px; }
+        .success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        
+        .next-steps { margin-top: 50px; padding-top: 20px; border-top: 2px dashed var(--border); }
+        .warning { background: #fffbeb; border-left: 4px solid #f59e0b; padding: 15px; margin: 20px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Lesson 0021: Bridging Clerk & RLS</h1>
+        
+        <p>In Lesson 20, we learned that RLS acts as a "silent filter" in the database. But the database is isolated. It doesn't know who is currently logged into your Next.js app. It doesn't know about Clerk.</p>
+        
+        <p>To make RLS work, we must securely pass the <strong>User ID</strong> from your Backend (Next.js) to the Database (PostgreSQL) for every single request.</p>
+        
+        <h2>The Mechanism: <code>SET LOCAL</code></h2>
+        <p>PostgreSQL has a feature called "Config Settings" (GUCs). You can set custom variables that exist only for the duration of a single <strong>Transaction</strong>.</p>
+        
+        <p>In your Next.js Server Action or API Route, you perform these steps:</p>
+        
+        <ol>
+            <li>Get the <code>userId</code> from Clerk using <code>auth()</code>.</li>
+            <li>Open a database transaction.</li>
+            <li>Run a <code>SET LOCAL</code> command to store that ID.</li>
+            <li>Execute your actual query.</li>
+        </ol>
+
+        <pre><code>// Inside your Next.js Server Action
+import { auth } from "@clerk/nextjs/server";
+
+export async function getProjects() {
+  const { userId } = await auth();
+  
+  return await db.transaction(async (tx) => {
+    // 1. Tell Postgres who the user is
+    await tx.execute(
+      sql`SELECT set_config('app.current_user_id', ${userId}, true)`
+    );
+
+    // 2. Run the query - RLS will now use 'app.current_user_id'
+    return await tx.select().from(projects);
+  });
+}</code></pre>
+        
+        <p>The <code>true</code> in <code>set_config(..., true)</code> means the setting is <strong>local</strong> to the transaction. Once the transaction finishes, the setting is wiped clean. This prevents "Identity Leakage" between different web requests using the same database connection pool.</p>
+
+        <h2>The RLS Policy Update</h2>
+        <p>Now that the variable <code>app.current_user_id</code> is set, your RLS policy needs to read it:</p>
+
+        <pre><code>CREATE POLICY "User Project Access" 
+ON projects 
+USING (
+  user_id = current_setting('app.current_user_id')
+);</code></pre>
+
+        <div class="warning">
+            <strong>Security Note:</strong> We use a transaction because if we set it globally on the connection, another user's request might "inherit" the previous identity before it's overwritten!
+        </div>
+
+        <div class="quiz">
+            <h3>Knowledge Check</h3>
+            <p>Why is it critical to use <code>SET LOCAL</code> or <code>set_config(..., true)</code> instead of a global configuration change when passing the user ID?</p>
+            
+            <form id="quiz-form">
+                <div class="options">
+                    <label><input type="radio" name="answer" value="a"> A) Because global settings are too slow for high-performance SaaS apps.</label>
+                    <label><input type="radio" name="answer" value="b"> B) To prevent identity bleeding where one user's request sees data from a previous request on the same connection.</label>
+                    <label><input type="radio" name="answer" value="c"> C) Because Clerk explicitly forbids using global variables for user IDs.</label>
+                </div>
+                
+                <button type="button" onclick="checkAnswer()">Check Answer</button>
+                <div id="quiz-result"></div>
+            </form>
+        </div>
+
+        <div class="next-steps">
+            <h3>Next Steps</h3>
+            <p><strong>Your Action Item:</strong> Setting this manually for every query is tedious. Ask your teacher: <em>"How can we use Middleware or a Database Wrapper to automatically inject the Clerk ID into every query transaction?"</em></p>
+            <p><small><strong>Primary Source:</strong> <a href="https://www.postgresql.org/docs/current/functions-admin.html#FUNCTIONS-ADMIN-SETCONFIG" target="_blank">PostgreSQL GUC Functions</a></small></p>
+        </div>
+    </div>
+
+    <script>
+        function checkAnswer() {
+            const selected = document.querySelector('input[name="answer"]:checked');
+            const resultDiv = document.getElementById('quiz-result');
+            
+            if (!selected) {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'error';
+                resultDiv.innerText = 'Please select an answer first.';
+                return;
+            }
+
+            if (selected.value === 'b') {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'success';
+                resultDiv.innerText = 'Spot on! In a pooled environment, multiple requests share connections. Transaction-local settings ensure perfect isolation.';
+            } else {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'error';
+                resultDiv.innerText = 'Think about "Connection Pooling". If Request A sets a global variable and Request B starts immediately after on the same wire, Request B might see Request A\'s data. Try again!';
+            }
+        }
+    </script>
+</body>
+</html>

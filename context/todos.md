@@ -138,12 +138,12 @@ we are building version 2 (prd_versions/v2.md)
 - [x] **Infinite Scroll:** Verify that scrolling past 20 entries loads the next page of activity records.
 
 ### Feature 2.4: Dashboard Analytics Verification
-- [ ] **Stats Cards:** Verify the analytics page renders cards for: Total Projects, Active Projects, Completed Projects, Total Tasks, Completed Tasks, Overdue Tasks, Team Members.
-- [ ] **Overdue Count Accuracy:** Create tasks with past due dates. Verify the Overdue Tasks count increments correctly.
-- [ ] **Workload Breakdown:** Verify a workload chart/section renders per-member task counts.
-- [ ] **Trend Chart:** Verify a line or bar chart renders task completion trend over time (grouped by day).
-- [ ] **Data Scoping:** Verify all analytics are scoped to the active `organization_id` only — no cross-tenant data leakage.
-- [ ] **Performance:** Verify dashboard analytics page loads in under 2 seconds.
+- [x] **Stats Cards:** Verify the analytics page renders cards for: Total Projects, Active Projects, Completed Projects, Total Tasks, Completed Tasks, Overdue Tasks, Team Members.
+- [x] **Overdue Count Accuracy:** Create tasks with past due dates. Verify the Overdue Tasks count increments correctly.
+- [x] **Workload Breakdown:** Verify a workload chart/section renders per-member task counts.
+- [x] **Trend Chart:** Verify a line or bar chart renders task completion trend over time (grouped by day).
+- [x] **Data Scoping:** Verify all analytics are scoped to the active `organization_id` only — no cross-tenant data leakage.
+- [x] **Performance:** Verify dashboard analytics page loads in under 2 seconds.
 
 ### Feature 2.5: Task Labels & Saved Views Verification
 - [ ] **Label Creation:** Create a label `"Bug"` with a red color. Verify `labels` record inserted with correct `name`, `color`, and `organization_id`.

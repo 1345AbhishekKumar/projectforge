@@ -179,4 +179,27 @@ After building any component — update this file with the component name, file 
 - **Comment Quote Bubble:** `bg-[#FFF2B2] border-2 border-black rounded-sketchy-sm p-3 relative shadow-flat-offset-sm max-w-lg italic font-sans text-xs text-secondary/90 rotate-[0.5deg]`
 - **Load More Button:** `flex items-center gap-2 bg-white hover:bg-neutral-bg text-primary border-2 border-black font-sans text-xs font-bold px-6 py-2.5 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all`
 
+### Analytics Page & Components
+
+#### Analytics Page
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/analytics/page.tsx)
+- **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
+
+#### StatsGrid & StatsCard Component
+- **File Path:** [StatsGrid.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/analytics/StatsGrid.tsx)
+- **Card Wrapper:** `border-2 border-black rounded-sketchy p-6 shadow-flat-offset-sm hover:-translate-y-0.5 hover:shadow-flat-offset transition-all duration-200`
+
+#### WorkloadBreakdown Component
+- **File Path:** [WorkloadBreakdown.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/analytics/WorkloadBreakdown.tsx)
+- **Card Wrapper:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset flex flex-col gap-6 rotate-[0.5deg]`
+- **Segmented Bar:** `w-full h-5 border-2 border-black rounded-full overflow-hidden bg-white flex relative shadow-sm`
+
+#### CompletionTrend Component
+- **File Path:** [CompletionTrend.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/analytics/CompletionTrend.tsx)
+- **Card Wrapper:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset flex flex-col gap-6 rotate-[-0.5deg]`
+- **SVG Axis Lines:** `stroke="#000000" strokeWidth="3"`
+- **SVG Bar Shadows:** `fill="#000000" rx="4"`
+- **SVG Bars:** `fill="#D4EDDA" stroke="#000000" strokeWidth="2.5" rx="4"`
+
+
 
