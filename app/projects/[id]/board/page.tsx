@@ -27,7 +27,7 @@ import { createTask, getProjectTasks, updateTask, deleteTask, reorderTasks, type
 import { getSprints } from "@/actions/sprint";
 import { getLabels } from "@/actions/label";
 import { getSavedViews, createSavedView, deleteSavedView } from "@/actions/savedView";
-import { TaskFilters, type FiltersState, initialFilters } from "@/components/tasks/TaskFilters";
+import { TaskFilters, initialFilters } from "@/components/tasks/TaskFilters";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { TaskDetailsSheet } from "@/components/tasks/TaskDetailsSheet";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -37,11 +37,9 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
-function getActiveOrgId(): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(/active_org_id=([^;]+)/);
-  return match ? match[1] : null;
-}
+import { useOrgStore } from "@/store/orgStore";
+import { useTaskStore } from "@/store/taskStore";
+import { useTaskFilterStore } from "@/store/taskFilterStore";
 
 export default function KanbanBoardPage({ params }: Props) {
   const router = useRouter();
@@ -49,8 +47,22 @@ export default function KanbanBoardPage({ params }: Props) {
   const { user, isLoaded } = useUser();
   const { signOut } = useAuth();
 
-  const initialOrgId = getActiveOrgId();
-  const [activeOrgId, setActiveOrgId] = useState<string | null>(initialOrgId);
+  const { activeOrgId } = useOrgStore();
+  const {
+    selectedTask,
+    isDetailsOpen,
+    isCreateModalOpen: isCreateTaskModalOpen,
+    preselectedStatus,
+    openDetails,
+    closeDetails,
+    openCreateModal,
+    closeCreateModal
+  } = useTaskStore();
+
+  const { filtersByProject, activeViewByProject, setFilters, setActiveView } = useTaskFilterStore();
+  const activeFilters = filtersByProject[projectId] || initialFilters;
+  const activeViewName = activeViewByProject[projectId] || "";
+
   const [project, setProject] = useState<Project | null>(null);
   const [members, setMembers] = useState<MemberListItem[]>([]);
   const [sprints, setSprints] = useState<Sprint[]>([]);
@@ -62,16 +74,10 @@ export default function KanbanBoardPage({ params }: Props) {
   // Task & Board states
   const [tasks, setTasks] = useState<TaskWithAssignee[]>([]);
   const [syncing, setSyncing] = useState(false);
-  const [isCreateTaskModalOpen, setIsCreateTaskModalOpen] = useState(false);
-  const [preselectedStatus, setPreselectedStatus] = useState<TaskStatus>("TODO");
-  const [selectedTask, setSelectedTask] = useState<TaskWithAssignee | null>(null);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   // Filters & Saved Views states
   const [labels, setLabels] = useState<Label[]>([]);
   const [savedViews, setSavedViews] = useState<SavedView[]>([]);
-  const [activeFilters, setActiveFilters] = useState<FiltersState>(initialFilters);
-  const [activeViewName, setActiveViewName] = useState("");
 
   // Drag and drop states
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
@@ -166,20 +172,13 @@ export default function KanbanBoardPage({ params }: Props) {
     loadFiltersData();
   }, [activeOrgId]);
 
-  // Handle workspace switcher updates
-  const handleRefreshState = useCallback(() => {
-    const orgId = getActiveOrgId();
-    if (orgId !== activeOrgId) {
-      setActiveOrgId(orgId);
-      router.push("/projects"); // Force redirect to list on switcher switch
+  // Redirect to projects directory if activeOrgId changes
+  const initialOrgIdRef = React.useRef(activeOrgId);
+  useEffect(() => {
+    if (activeOrgId !== initialOrgIdRef.current) {
+      router.push("/projects");
     }
   }, [activeOrgId, router]);
-
-  // Listen for cookie updates from switcher
-  useEffect(() => {
-    const interval = setInterval(handleRefreshState, 1000);
-    return () => clearInterval(interval);
-  }, [handleRefreshState]);
 
   // Handle project status update dropdown
   async function handleStatusChange(newStatus: ProjectStatus) {
@@ -259,7 +258,7 @@ export default function KanbanBoardPage({ params }: Props) {
     const res = await createSavedView(activeOrgId, name, activeFilters);
     if (res.success && res.data) {
       setSavedViews((prev) => [res.data!, ...prev]);
-      setActiveViewName(name);
+      setActiveView(projectId, name);
     }
     return res;
   };
@@ -270,7 +269,7 @@ export default function KanbanBoardPage({ params }: Props) {
     if (res.success) {
       setSavedViews((prev) => prev.filter((v) => v.id !== viewId));
       if (activeViewName && savedViews.find((v) => v.id === viewId)?.name === activeViewName) {
-        setActiveViewName("");
+        setActiveView(projectId, "");
       }
     }
     return res;
@@ -442,8 +441,7 @@ export default function KanbanBoardPage({ params }: Props) {
   };
 
   const openCreateTaskAtStatus = (status: TaskStatus) => {
-    setPreselectedStatus(status);
-    setIsCreateTaskModalOpen(true);
+    openCreateModal(status);
   };
 
   // Deterministic rotation hash for physical sticky-note aesthetic
@@ -706,14 +704,14 @@ export default function KanbanBoardPage({ params }: Props) {
                   savedViews={savedViews}
                   activeFilters={activeFilters}
                   onFiltersChange={(filters) => {
-                    setActiveFilters(filters);
+                    setFilters(projectId, filters);
                     const matchedView = savedViews.find(v => JSON.stringify(v.filters) === JSON.stringify(filters));
-                    setActiveViewName(matchedView ? matchedView.name : "");
+                    setActiveView(projectId, matchedView ? matchedView.name : "");
                   }}
                   onSaveView={handleSaveView}
                   onDeleteView={handleDeleteView}
                   activeViewName={activeViewName}
-                  onClearViewName={() => setActiveViewName("")}
+                  onClearViewName={() => setActiveView(projectId, "")}
                 />
 
                 {/* Board Columns Grid */}
@@ -787,8 +785,7 @@ export default function KanbanBoardPage({ params }: Props) {
                                   onDragOver={(e) => handleDragOverCard(e)}
                                   onDrop={(e) => handleDrop(e, col.status, task.id)}
                                   onClick={() => {
-                                    setSelectedTask(task);
-                                    setIsDetailsOpen(true);
+                                    openDetails(task);
                                   }}
                                   style={{ transform: getRotation(task.id) }}
                                   className={`p-5 border-2 border-black rounded-sketchy-sm cursor-grab active:cursor-grabbing transition-all duration-150 select-none relative ${
@@ -895,7 +892,7 @@ export default function KanbanBoardPage({ params }: Props) {
         {/* Create Task Modal */}
         <CreateTaskModal
           isOpen={isCreateTaskModalOpen}
-          onClose={() => setIsCreateTaskModalOpen(false)}
+          onClose={closeCreateModal}
           members={members}
           orgId={activeOrgId || ""}
           onCreate={handleCreateTask}
@@ -906,10 +903,7 @@ export default function KanbanBoardPage({ params }: Props) {
         <TaskDetailsSheet
           task={selectedTask}
           isOpen={isDetailsOpen}
-          onClose={() => {
-            setIsDetailsOpen(false);
-            setSelectedTask(null);
-          }}
+          onClose={closeDetails}
           members={members}
           sprints={sprints}
           onUpdate={handleUpdateTask}

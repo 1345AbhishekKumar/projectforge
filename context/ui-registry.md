@@ -52,6 +52,7 @@ After building any component — update this file with the component name, file 
 
 #### OrgSwitcher Component
 - **File Path:** [OrgSwitcher.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/orgs/OrgSwitcher.tsx)
+- **State Consumer:** Consumes `useOrgStore` to set and react to the active organization.
 - **Trigger Classes:** `flex items-center gap-2 bg-white border-2 border-black rounded-full px-3 py-1.5 font-sans text-xs font-bold shadow-flat-offset-sm`
 - **Dropdown Classes:** `bg-white border-2 border-black rounded-sketchy-sm shadow-flat-offset z-50`
 - **Role Badge Colors:** `OWNER: bg-accent-purple text-white`, `ADMIN: bg-accent-blue text-primary`, `MEMBER: bg-accent-green text-primary`
@@ -140,6 +141,7 @@ After building any component — update this file with the component name, file 
 
 #### NotificationBell Component
 - **File Path:** [NotificationBell.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/notifications/NotificationBell.tsx)
+- **State Consumer:** Consumes `useNotificationStore` for notification items, count, dropdown toggle, and marking read.
 - **Bell Button Classes:** `relative p-2 rounded-full border-2 border-black bg-white hover:bg-neutral-bg shadow-flat-offset-sm transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0`
 - **Unread Badge Classes:** `absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-accent-pink border-2 border-black rounded-full flex items-center justify-center font-sans text-[10px] font-bold text-primary leading-none px-0.5`
 - **Dropdown Panel Classes:** `absolute right-0 top-full mt-2 w-80 bg-white border-2 border-black rounded-sketchy shadow-flat-offset z-[100] overflow-hidden`
@@ -149,6 +151,13 @@ After building any component — update this file with the component name, file 
 - **Notification Row (Read):** `w-full text-left flex items-start gap-3 px-4 py-3 border-b border-black/10 hover:bg-neutral-bg/50`
 - **Unread Dot:** `block w-2 h-2 rounded-full bg-tertiary`
 - **Empty State Classes:** `px-4 py-8 text-center`
+
+### Search Components
+
+#### GlobalSearchModal Component
+- **File Path:** [GlobalSearchModal.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/search/GlobalSearchModal.tsx)
+- **State Consumer:** Consumes `useSearchStore` for modal open/close toggle state.
+- **Description:** Search overlay that debounces input, performs organization-scoped searches for tasks, projects, and members, and provides hotkey accessibility (Cmd/Ctrl + K).
 
 ### Sprint Management Components
 

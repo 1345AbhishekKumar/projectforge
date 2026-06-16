@@ -12,23 +12,14 @@ import { TeamDirectory } from "@/components/team/TeamDirectory";
 import { getTeamDirectory } from "@/actions/team";
 import type { TeamMember } from "@/types";
 
-function getActiveOrgId(): string | null {
-  if (typeof document === "undefined") return null;
-  const cookies = document.cookie.split(";");
-  for (const cookie of cookies) {
-    const [name, val] = cookie.trim().split("=");
-    if (name === "active_org_id") return decodeURIComponent(val);
-  }
-  return null;
-}
+import { useOrgStore } from "@/store/orgStore";
 
 export default function TeamPage() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const { signOut } = useAuth();
 
-  const initialOrgId = getActiveOrgId();
-  const [activeOrgId, setActiveOrgId] = useState<string | null>(initialOrgId);
+  const { activeOrgId } = useOrgStore();
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -63,18 +54,7 @@ export default function TeamPage() {
     return () => clearTimeout(timer);
   }, [loadTeam]);
 
-  // Poll for org switcher cookie changes
-  const handleRefreshState = useCallback(() => {
-    const orgId = getActiveOrgId();
-    if (orgId !== activeOrgId) {
-      setActiveOrgId(orgId);
-    }
-  }, [activeOrgId]);
 
-  useEffect(() => {
-    const interval = setInterval(handleRefreshState, 1000);
-    return () => clearInterval(interval);
-  }, [handleRefreshState]);
 
   if (!isLoaded) {
     return (

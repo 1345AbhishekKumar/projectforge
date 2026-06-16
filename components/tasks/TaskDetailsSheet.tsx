@@ -34,7 +34,8 @@ type Props = {
   onDelete: (taskId: string) => Promise<{ success: boolean; error?: string }>;
 };
 
-export function TaskDetailsSheet({ task, isOpen, onClose, members, sprints = [], onUpdate, onDelete }: Props) {
+export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, sprints = [], onUpdate, onDelete }: Props) {
+  const task = propTask;
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>("TODO");
@@ -105,8 +106,9 @@ export function TaskDetailsSheet({ task, isOpen, onClose, members, sprints = [],
   // Fetch labels
   useEffect(() => {
     if (!isOpen || !task) return;
+    const orgId = task.organization_id;
     async function loadLabels() {
-      const res = await getLabels(task.organization_id);
+      const res = await getLabels(orgId);
       if (res.success) {
         setLabels(res.data);
       }
@@ -268,6 +270,7 @@ export function TaskDetailsSheet({ task, isOpen, onClose, members, sprints = [],
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    if (!task) return;
     if (!title || title.length < 3) {
       setError("Title must be at least 3 characters");
       return;
@@ -301,6 +304,7 @@ export function TaskDetailsSheet({ task, isOpen, onClose, members, sprints = [],
   }
 
   async function handleDeleteClick() {
+    if (!task) return;
     if (!confirm("Are you sure you want to delete this task from the board backlog?")) return;
 
     setError("");

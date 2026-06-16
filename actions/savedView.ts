@@ -7,7 +7,7 @@ import type { SavedView } from "@/types";
 
 const savedViewSchema = z.object({
   name: z.string().min(3, "Saved view name must be at least 3 characters").max(50),
-  filters: z.record(z.any()),
+  filters: z.record(z.string(), z.any()),
 });
 
 async function verifyMembership(insforge: ReturnType<typeof createInsforgeServer>, orgId: string, userId: string): Promise<boolean> {

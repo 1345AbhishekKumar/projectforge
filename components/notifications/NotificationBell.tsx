@@ -3,19 +3,12 @@
 import { useState, useEffect, useRef } from "react";
 import { Bell, Loader2, RefreshCw } from "lucide-react";
 import {
-  getNotifications,
-  markNotificationRead,
-  markAllNotificationsRead,
   deleteOldNotifications,
   checkOverdueTasks,
 } from "@/actions/notification";
 import type { Notification, NotificationType } from "@/types";
-
-function getActiveOrgId(): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(/active_org_id=([^;]+)/);
-  return match ? decodeURIComponent(match[1]) : null;
-}
+import { useOrgStore } from "@/store/orgStore";
+import { useNotificationStore } from "@/store/notificationStore";
 
 function formatRelativeTime(dateStr: string): string {
   const now = new Date();
@@ -77,9 +70,17 @@ const TYPE_BADGE: Record<
 };
 
 export function NotificationBell() {
-  const [open, setOpen] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { activeOrgId } = useOrgStore();
+  const {
+    notifications,
+    isOpen: open,
+    isLoading: loading,
+    setIsOpen: setOpen,
+    fetchNotifications,
+    markRead,
+    markAllRead,
+  } = useNotificationStore();
+
   const [markingAll, setMarkingAll] = useState(false);
   const [checkingOverdue, setCheckingOverdue] = useState(false);
   const [overdueMsg, setOverdueMsg] = useState("");
@@ -87,28 +88,10 @@ export function NotificationBell() {
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
 
-  async function fetchNotifications() {
-    setLoading(true);
-    const result = await getNotifications();
-    if (result.success) setNotifications(result.data);
-    setLoading(false);
-  }
-
   // Initial fetch
   useEffect(() => {
-    let active = true;
-    (async () => {
-      setLoading(true);
-      const result = await getNotifications();
-      if (active) {
-        if (result.success) setNotifications(result.data);
-        setLoading(false);
-      }
-    })();
-    return () => {
-      active = false;
-    };
-  }, []);
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   // Close on outside click
   useEffect(() => {
@@ -119,7 +102,7 @@ export function NotificationBell() {
     }
     if (open) document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [open]);
+  }, [open, setOpen]);
 
   const handleToggleOpen = async () => {
     const next = !open;
@@ -131,33 +114,25 @@ export function NotificationBell() {
   };
 
   const handleMarkRead = async (id: string) => {
-    const notification = notifications.find((n) => n.id === id);
-    if (!notification || notification.is_read) return;
-
-    setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
-    );
-    await markNotificationRead(id);
+    await markRead(id);
   };
 
   const handleMarkAllRead = async () => {
     if (unreadCount === 0) return;
     setMarkingAll(true);
-    setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
-    await markAllNotificationsRead();
+    await markAllRead();
     setMarkingAll(false);
   };
 
   const handleCheckOverdue = async () => {
-    const orgId = getActiveOrgId();
-    if (!orgId) {
+    if (!activeOrgId) {
       setOverdueMsg("No active workspace selected.");
       return;
     }
 
     setCheckingOverdue(true);
     setOverdueMsg("");
-    const result = await checkOverdueTasks(orgId);
+    const result = await checkOverdueTasks(activeOrgId);
 
     if (result.success) {
       const count = result.count ?? 0;

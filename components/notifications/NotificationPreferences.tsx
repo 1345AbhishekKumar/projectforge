@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Bell, Loader2, Check } from "lucide-react";
 import {
   getNotificationPreferences,
@@ -73,21 +73,23 @@ export function NotificationPreferences() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadPrefs = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    const result = await getNotificationPreferences();
-    if (result.success && result.data) {
-      setPrefs(result.data);
-    } else {
-      setError(result.error || "Failed to load preferences");
-    }
-    setLoading(false);
-  }, []);
-
   useEffect(() => {
-    loadPrefs();
-  }, [loadPrefs]);
+    let active = true;
+    async function fetchPrefs() {
+      const result = await getNotificationPreferences();
+      if (!active) return;
+      if (result.success && result.data) {
+        setPrefs(result.data);
+      } else {
+        setError(result.error || "Failed to load preferences");
+      }
+      setLoading(false);
+    }
+    fetchPrefs();
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleToggle = async (
     type: NotificationType,

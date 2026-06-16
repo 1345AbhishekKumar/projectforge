@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { LogOut, User as UserIcon, Calendar, Loader2, Plus, Play, CheckCircle2 } from "lucide-react";
@@ -10,49 +10,37 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TaskDetailsSheet } from "@/components/tasks/TaskDetailsSheet";
 import { getOrganizationMembers, type MemberListItem } from "@/actions/membership";
-import { getUserOrganizations } from "@/actions/org";
 import { getSprints, createSprint, updateSprintStatus } from "@/actions/sprint";
 import { getOrganizationTasks, updateTask, deleteTask, type TaskWithAssignee } from "@/actions/task";
 import type { Sprint, SprintStatus, TaskStatus, TaskPriority } from "@/types";
 
-function getActiveOrgId(): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(/active_org_id=([^;]+)/);
-  return match ? match[1] : null;
-}
+import { useOrgStore } from "@/store/orgStore";
+import { useTaskStore } from "@/store/taskStore";
+import { useSprintStore } from "@/store/sprintStore";
 
 export default function SprintsPage() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const { signOut } = useAuth();
 
-  const initialOrgId = getActiveOrgId();
-  const [activeOrgId, setActiveOrgId] = useState<string | null>(initialOrgId);
-  const [activeOrgName, setActiveOrgName] = useState<string>("");
-  const [userRole, setUserRole] = useState<string>("MEMBER");
+  const { activeOrgId, activeOrgName, userRole } = useOrgStore();
+  const { selectedTask, isDetailsOpen, openDetails, closeDetails } = useTaskStore();
+  const { isCreateModalOpen: isModalOpen, openCreateModal, closeCreateModal, actionLoadingId, setActionLoadingId } = useSprintStore();
   
   const [sprints, setSprints] = useState<Sprint[]>([]);
   const [tasks, setTasks] = useState<TaskWithAssignee[]>([]);
   const [members, setMembers] = useState<MemberListItem[]>([]);
   
-  const [loading, setLoading] = useState(!!initialOrgId);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
   // Modal states
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [newSprintName, setNewSprintName] = useState("");
   const [newSprintGoal, setNewSprintGoal] = useState("");
   const [newSprintStart, setNewSprintStart] = useState("");
   const [newSprintEnd, setNewSprintEnd] = useState("");
   const [modalError, setModalError] = useState("");
   const [creating, setCreating] = useState(false);
-  
-  // Status action loaders
-  const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
-
-  // Selected task drawer
-  const [selectedTask, setSelectedTask] = useState<TaskWithAssignee | null>(null);
-  const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
@@ -66,8 +54,6 @@ export default function SprintsPage() {
         setSprints([]);
         setTasks([]);
         setMembers([]);
-        setActiveOrgName("");
-        setUserRole("MEMBER");
         setLoading(false);
       }, 0);
       return () => clearTimeout(timer);
@@ -78,24 +64,15 @@ export default function SprintsPage() {
       setError("");
 
       try {
-        const [sprintsRes, tasksRes, membersRes, orgsRes] = await Promise.all([
+        const [sprintsRes, tasksRes, membersRes] = await Promise.all([
           getSprints(activeOrgId!),
           getOrganizationTasks(activeOrgId!),
-          getOrganizationMembers(activeOrgId!),
-          getUserOrganizations()
+          getOrganizationMembers(activeOrgId!)
         ]);
 
-        if (sprintsRes.success) setSprints(sprintsRes.data);
-        if (tasksRes.success) setTasks(tasksRes.data);
-        if (membersRes.success) setMembers(membersRes.data);
-
-        if (orgsRes.success) {
-          const currentOrg = orgsRes.data.find((o) => o.id === activeOrgId);
-          if (currentOrg) {
-            setActiveOrgName(currentOrg.name);
-            setUserRole(currentOrg.role);
-          }
-        }
+        if (sprintsRes.success && sprintsRes.data) setSprints(sprintsRes.data);
+        if (tasksRes.success && tasksRes.data) setTasks(tasksRes.data);
+        if (membersRes.success && membersRes.data) setMembers(membersRes.data);
 
         if (!sprintsRes.success || !tasksRes.success || !membersRes.success) {
           setError("Failed to load workspace sprint data");
@@ -109,20 +86,6 @@ export default function SprintsPage() {
 
     loadWorkspaceData();
   }, [activeOrgId]);
-
-  // Handle workspace switcher updates
-  const handleRefreshState = useCallback(() => {
-    const orgId = getActiveOrgId();
-    if (orgId !== activeOrgId) {
-      setActiveOrgId(orgId);
-    }
-  }, [activeOrgId]);
-
-  // Listen for cookie updates from switcher
-  useEffect(() => {
-    const interval = setInterval(handleRefreshState, 1000);
-    return () => clearInterval(interval);
-  }, [handleRefreshState]);
 
   // Create sprint action handler
   async function handleCreateSprint(e: React.FormEvent) {
@@ -154,7 +117,7 @@ export default function SprintsPage() {
       );
 
       if (res.success) {
-        setIsModalOpen(false);
+        closeCreateModal();
         setNewSprintName("");
         setNewSprintGoal("");
         setNewSprintStart("");
@@ -347,7 +310,7 @@ export default function SprintsPage() {
                 </div>
                 {isAuthorized && (
                   <button
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={openCreateModal}
                     className="flex items-center justify-center gap-1.5 self-start md:self-center bg-tertiary hover:bg-tertiary-hover text-white border-2 border-black font-sans text-xs font-bold px-4 py-2.5 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
                   >
                     <Plus className="h-4 w-4" />
@@ -444,8 +407,7 @@ export default function SprintsPage() {
                                         <div
                                           key={task.id}
                                           onClick={() => {
-                                            setSelectedTask(task);
-                                            setIsDetailsOpen(true);
+                                            openDetails(task);
                                           }}
                                           className="flex items-center justify-between p-2.5 border border-black/20 rounded-sketchy-sm bg-white hover:bg-neutral-bg/30 transition-all cursor-pointer shadow-flat-offset-xs hover:-translate-y-0.5 active:translate-y-0"
                                         >
@@ -536,8 +498,7 @@ export default function SprintsPage() {
                                       <div
                                         key={task.id}
                                         onClick={() => {
-                                          setSelectedTask(task);
-                                          setIsDetailsOpen(true);
+                                          openDetails(task);
                                         }}
                                         className="flex items-center justify-between p-2 border border-black/10 bg-white hover:bg-neutral-bg/30 text-secondary hover:text-primary rounded cursor-pointer transition-all gap-2 truncate"
                                       >
@@ -620,8 +581,7 @@ export default function SprintsPage() {
                           <div
                             key={task.id}
                             onClick={() => {
-                              setSelectedTask(task);
-                              setIsDetailsOpen(true);
+                              openDetails(task);
                             }}
                             className="bg-accent-yellow/15 hover:bg-accent-yellow/25 border-2 border-black rounded-sketchy-sm p-3 shadow-flat-offset-xs hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer flex flex-col gap-2"
                           >
@@ -744,7 +704,7 @@ export default function SprintsPage() {
               <div className="flex gap-3 mt-4">
                 <button
                   type="button"
-                  onClick={() => setIsModalOpen(false)}
+                  onClick={closeCreateModal}
                   disabled={creating}
                   className="w-1/2 py-2 border-2 border-black rounded-full font-sans text-xs font-bold hover:bg-neutral-bg shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-40"
                 >
@@ -768,10 +728,7 @@ export default function SprintsPage() {
       <TaskDetailsSheet
         task={selectedTask}
         isOpen={isDetailsOpen}
-        onClose={() => {
-          setIsDetailsOpen(false);
-          setSelectedTask(null);
-        }}
+        onClose={closeDetails}
         members={members}
         sprints={sprints}
         onUpdate={handleUpdateTask}

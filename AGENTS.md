@@ -4,7 +4,12 @@
 do not read the lessons and learning-records folders. 
 do not read what i do not tell  you to read, read only what i specify in the prompt or message.
 always add ui related code to the 'projectforge\components' folder inside their ui related folder , their folder is not exit , create that folder and add in it.
-Always add input validation
+Always add input validation using zod
+use zustand for state management
+do not create more than 200 to 300 lines of code in one files because we follow clean code principles
+add Proper error handling
+always read the next-best-practices for better nextjs coding and performance , fast.
+
 
 Read in this exact order before any implementation:
 

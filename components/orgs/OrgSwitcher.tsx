@@ -4,31 +4,27 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { getUserOrganizations, setActiveOrganization } from "@/actions/org";
 import { ChevronDown, Plus, Building2 } from "lucide-react";
-import type { OrganizationWithRole } from "@/types";
 
-function getActiveOrgId(): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(/active_org_id=([^;]+)/);
-  return match ? match[1] : null;
-}
+
+import { useOrgStore } from "@/store/orgStore";
 
 export function OrgSwitcher() {
   const router = useRouter();
-  const [orgs, setOrgs] = useState<OrganizationWithRole[]>([]);
-  const [activeOrgId, setActiveOrgId] = useState<string | null>(null);
+  const { activeOrgId, orgs, setActiveOrg, setOrgs } = useOrgStore();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     async function load() {
-      setActiveOrgId(getActiveOrgId());
       const result = await getUserOrganizations();
-      if (result.success) setOrgs(result.data);
+      if (result.success && result.data) {
+        setOrgs(result.data);
+      }
       setLoading(false);
     }
     load();
-  }, []);
+  }, [setOrgs]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -44,8 +40,10 @@ export function OrgSwitcher() {
     setOpen(false);
     const result = await setActiveOrganization(orgId);
     if (result.success) {
-      setActiveOrgId(orgId);
-      router.refresh();
+      const targetOrg = orgs.find((o) => o.id === orgId);
+      if (targetOrg) {
+        setActiveOrg(orgId, targetOrg.name, targetOrg.role);
+      }
     }
   }
 

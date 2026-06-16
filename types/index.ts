@@ -124,6 +124,7 @@ export type Notification = {
   user_id: string;
   content: string;
   type: NotificationType;
+  task_id: string | null;
   is_read: boolean;
   created_at: string;
 };

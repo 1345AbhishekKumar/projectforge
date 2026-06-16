@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useAuth } from "@clerk/nextjs";
 import { LogOut, User as UserIcon, Plus, FolderKanban, Loader2, Info } from "lucide-react";
@@ -10,52 +10,27 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
 import { ProjectCard } from "@/components/projects/ProjectCard";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { getUserOrganizations } from "@/actions/org";
 import { getUserProjects, createProject } from "@/actions/project";
 import type { Project, ProjectStatus } from "@/types";
 
-function getActiveOrgId(): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(/active_org_id=([^;]+)/);
-  return match ? match[1] : null;
-}
+import { useOrgStore } from "@/store/orgStore";
+import { useProjectStore } from "@/store/projectStore";
 
 export default function ProjectsDirectoryPage() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const { signOut } = useAuth();
 
-  const initialOrgId = getActiveOrgId();
-  const [activeOrgId, setActiveOrgId] = useState<string | null>(initialOrgId);
-  const [activeOrgName, setActiveOrgName] = useState<string>("");
+  const { activeOrgId, activeOrgName } = useOrgStore();
+  const { isCreateModalOpen: isModalOpen, openCreateModal, closeCreateModal } = useProjectStore();
   const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(!!initialOrgId);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleSignOut = async () => {
     await signOut();
     router.push("/sign-in");
   };
-
-  // Sync active organization ID and name on load
-  useEffect(() => {
-    async function loadOrgInfo() {
-      const orgId = getActiveOrgId();
-      setActiveOrgId(orgId);
-
-      if (orgId) {
-        const result = await getUserOrganizations();
-        if (result.success) {
-          const currentOrg = result.data.find((o) => o.id === orgId);
-          if (currentOrg) {
-            setActiveOrgName(currentOrg.name);
-          }
-        }
-      }
-    }
-    loadOrgInfo();
-  }, []);
 
   // Fetch projects when activeOrgId changes
   useEffect(() => {
@@ -71,7 +46,7 @@ export default function ProjectsDirectoryPage() {
       setLoading(true);
       setError("");
       const result = await getUserProjects(activeOrgId!);
-      if (result.success) {
+      if (result.success && result.data) {
         setProjects(result.data);
       } else {
         setError(result.error || "Failed to load projects");
@@ -82,34 +57,6 @@ export default function ProjectsDirectoryPage() {
     loadProjects();
   }, [activeOrgId]);
 
-  // Handle workspace switcher updates
-  const handleRefreshState = useCallback(() => {
-    const orgId = getActiveOrgId();
-    if (orgId !== activeOrgId) {
-      setActiveOrgId(orgId);
-      if (!orgId) {
-        setProjects([]);
-        setLoading(false);
-        setActiveOrgName("");
-      } else {
-        getUserOrganizations().then((result) => {
-          if (result.success) {
-            const currentOrg = result.data.find((o) => o.id === orgId);
-            if (currentOrg) {
-              setActiveOrgName(currentOrg.name);
-            }
-          }
-        });
-      }
-    }
-  }, [activeOrgId]);
-
-  // Listen for cookie updates from switcher
-  useEffect(() => {
-    const interval = setInterval(handleRefreshState, 1000);
-    return () => clearInterval(interval);
-  }, [handleRefreshState]);
-
   // Create project callback passed to modal
   async function handleCreateProject(name: string, description: string | null, status: ProjectStatus) {
     if (!activeOrgId) return { success: false, error: "No active workspace selected" };
@@ -117,7 +64,7 @@ export default function ProjectsDirectoryPage() {
     if (res.success) {
       // Reload projects list
       const projectsRes = await getUserProjects(activeOrgId);
-      if (projectsRes.success) setProjects(projectsRes.data);
+      if (projectsRes.success && projectsRes.data) setProjects(projectsRes.data);
     }
     return res;
   }
@@ -217,7 +164,7 @@ export default function ProjectsDirectoryPage() {
                 </p>
               </div>
               <button
-                onClick={() => setIsModalOpen(true)}
+                onClick={openCreateModal}
                 className="flex items-center justify-center gap-1.5 self-start md:self-center bg-tertiary hover:bg-tertiary-hover text-white border-2 border-black font-sans text-xs font-bold px-4 py-2.5 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
               >
                 <Plus className="h-4 w-4" />
@@ -246,7 +193,7 @@ export default function ProjectsDirectoryPage() {
                   No projects have been deployed to this workspace yet. Let&apos;s outline the first project scope!
                 </p>
                 <button
-                  onClick={() => setIsModalOpen(true)}
+                  onClick={openCreateModal}
                   className="bg-accent-yellow hover:bg-[#FFE680] text-primary border-2 border-black font-sans text-xs font-bold px-5 py-2 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
                 >
                   Create First Project
@@ -340,7 +287,7 @@ export default function ProjectsDirectoryPage() {
       {/* Project Creation Overlay Modal */}
       <CreateProjectModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={closeCreateModal}
         onCreate={handleCreateProject}
       />
       </div>

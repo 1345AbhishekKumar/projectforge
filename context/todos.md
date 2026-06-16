@@ -164,11 +164,11 @@ we are building version 2 (prd_versions/v2.md)
 - [x] **Workload Stats:** Verify assigned task counts on the team directory are accurate for each member.
 
 ### Feature 2.7: Advanced Notifications Verification
-- [ ] **Overdue Task Notification:** Let a task pass its due date. Verify a `task overdue` notification is triggered for the assignee.
-- [ ] **Sprint Started Notification:** Start a sprint. Verify a `sprint started` notification is triggered for all org members.
-- [ ] **Sprint Ended Notification:** Complete a sprint. Verify a `sprint ended` notification is triggered for all org members.
-- [ ] **Member Invited Notification:** Invite a new member. Verify a `member invited` notification is triggered.
-- [ ] **Project Completed Notification:** Set a project status to COMPLETED. Verify a `project completed` notification is triggered.
-- [ ] **Notification Preferences:** Verify notification preferences (In App, Email) can be toggled per user and are respected by the notification system.
+- [x] **Overdue Task Notification:** Let a task pass its due date. Verify a `task overdue` notification is triggered for the assignee.
+- [x] **Sprint Started Notification:** Start a sprint. Verify a `sprint started` notification is triggered for all org members.
+- [x] **Sprint Ended Notification:** Complete a sprint. Verify a `sprint ended` notification is triggered for all org members.
+- [x] **Member Invited Notification:** Invite a new member. Verify a `member invited` notification is triggered.
+- [x] **Project Completed Notification:** Set a project status to COMPLETED. Verify a `project completed` notification is triggered.
+- [x] **Notification Preferences:** Verify notification preferences (In App, Email) can be toggled per user and are respected by the notification system.
 
 

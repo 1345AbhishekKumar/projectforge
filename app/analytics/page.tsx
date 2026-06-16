@@ -13,23 +13,14 @@ import { StatsGrid } from "@/components/analytics/StatsGrid";
 import { WorkloadBreakdown } from "@/components/analytics/WorkloadBreakdown";
 import { CompletionTrend } from "@/components/analytics/CompletionTrend";
 
-function getActiveOrgId(): string | null {
-  if (typeof document === "undefined") return null;
-  const cookies = document.cookie.split(";");
-  for (const cookie of cookies) {
-    const [name, val] = cookie.trim().split("=");
-    if (name === "active_org_id") return val;
-  }
-  return null;
-}
+import { useOrgStore } from "@/store/orgStore";
 
 export default function AnalyticsPage() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const { signOut } = useAuth();
 
-  const initialOrgId = getActiveOrgId();
-  const [activeOrgId, setActiveOrgId] = useState<string | null>(initialOrgId);
+  const { activeOrgId } = useOrgStore();
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -66,19 +57,7 @@ export default function AnalyticsPage() {
     return () => clearTimeout(timer);
   }, [loadAnalytics]);
 
-  // Handle workspace switcher updates
-  const handleRefreshState = useCallback(() => {
-    const orgId = getActiveOrgId();
-    if (orgId !== activeOrgId) {
-      setActiveOrgId(orgId);
-    }
-  }, [activeOrgId]);
 
-  // Listen for cookie updates from switcher
-  useEffect(() => {
-    const interval = setInterval(handleRefreshState, 1000);
-    return () => clearInterval(interval);
-  }, [handleRefreshState]);
 
   if (!isLoaded) {
     return (

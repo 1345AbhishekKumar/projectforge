@@ -7,15 +7,7 @@ import { globalSearch } from "@/actions/search";
 import { useSearchStore } from "@/store/searchStore";
 import type { SearchResult, SearchResultProject, SearchResultTask, SearchResultMember } from "@/types";
 
-function getActiveOrgId(): string | null {
-  if (typeof document === "undefined") return null;
-  const cookies = document.cookie.split(";");
-  for (const cookie of cookies) {
-    const [name, val] = cookie.trim().split("=");
-    if (name === "active_org_id") return decodeURIComponent(val);
-  }
-  return null;
-}
+import { useOrgStore } from "@/store/orgStore";
 
 function AvatarFallback({ name, avatarUrl }: { name: string | null; avatarUrl: string | null }) {
   const initials = name
@@ -90,10 +82,13 @@ export function GlobalSearchModal() {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 50);
     } else {
-      setQuery("");
-      setResults(null);
-      setError("");
-      setSelectedIndex(0);
+      const timer = setTimeout(() => {
+        setQuery("");
+        setResults(null);
+        setError("");
+        setSelectedIndex(0);
+      }, 0);
+      return () => clearTimeout(timer);
     }
   }, [isOpen]);
 
@@ -111,7 +106,7 @@ export function GlobalSearchModal() {
   }, [isOpen, close]);
 
   const runSearch = useCallback(async (q: string) => {
-    const orgId = getActiveOrgId();
+    const orgId = useOrgStore.getState().activeOrgId;
     if (!orgId || !q.trim()) {
       setResults(null);
       return;

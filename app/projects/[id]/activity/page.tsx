@@ -27,15 +27,7 @@ type Props = {
   params: Promise<{ id: string }>;
 };
 
-function getActiveOrgId(): string | null {
-  if (typeof document === "undefined") return null;
-  const cookies = document.cookie.split(";");
-  for (const cookie of cookies) {
-    const [name, val] = cookie.trim().split("=");
-    if (name === "active_org_id") return val;
-  }
-  return null;
-}
+import { useOrgStore } from "@/store/orgStore";
 
 export default function ProjectActivityPage({ params }: Props) {
   const router = useRouter();
@@ -43,8 +35,7 @@ export default function ProjectActivityPage({ params }: Props) {
   const { user, isLoaded } = useUser();
   const { signOut } = useAuth();
 
-  const initialOrgId = getActiveOrgId();
-  const [activeOrgId, setActiveOrgId] = useState<string | null>(initialOrgId);
+  const { activeOrgId } = useOrgStore();
   const [project, setProject] = useState<Project | null>(null);
   const [activities, setActivities] = useState<ActivityWithActor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,20 +87,13 @@ export default function ProjectActivityPage({ params }: Props) {
     return () => clearTimeout(timer);
   }, [loadActivities]);
 
-  // Handle workspace switcher updates
-  const handleRefreshState = useCallback(() => {
-    const orgId = getActiveOrgId();
-    if (orgId !== activeOrgId) {
-      setActiveOrgId(orgId);
-      router.push("/projects"); // Force redirect to list on switcher switch
+  // Redirect to projects directory if activeOrgId changes
+  const initialOrgIdRef = React.useRef(activeOrgId);
+  useEffect(() => {
+    if (activeOrgId !== initialOrgIdRef.current) {
+      router.push("/projects");
     }
   }, [activeOrgId, router]);
-
-  // Listen for cookie updates from switcher
-  useEffect(() => {
-    const interval = setInterval(handleRefreshState, 1000);
-    return () => clearInterval(interval);
-  }, [handleRefreshState]);
 
   if (!isLoaded) {
     return (
