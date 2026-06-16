@@ -8,6 +8,8 @@ import type { MembershipRole } from "@/types";
 import { logActivity } from "@/actions/activity";
 import { createNotification } from "@/actions/notification";
 import { orgIdSchema, membershipIdSchema } from "@/lib/utils";
+import { verifyAdminOrOwnerRole } from "@/lib/auth-helpers";
+
 
 const inviteSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -126,14 +128,8 @@ export async function inviteMember(
     const insforge = createInsforgeServer();
 
     // Check requester role (must be OWNER or ADMIN)
-    const { data: requester } = await insforge.database
-      .from("memberships")
-      .select("role")
-      .eq("organization_id", validated.data.orgId)
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (!requester || (requester.role !== "OWNER" && requester.role !== "ADMIN")) {
+    const isAdminOrOwner = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
+    if (!isAdminOrOwner) {
       return { success: false, error: "Only owners and admins can invite members." };
     }
 
@@ -223,14 +219,8 @@ export async function updateMemberRole(
     const insforge = createInsforgeServer();
 
     // Check requester role
-    const { data: requester } = await insforge.database
-      .from("memberships")
-      .select("role")
-      .eq("organization_id", validated.data.orgId)
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (!requester || (requester.role !== "OWNER" && requester.role !== "ADMIN")) {
+    const isAdminOrOwner = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
+    if (!isAdminOrOwner) {
       return { success: false, error: "Only owners and admins can update roles." };
     }
 
@@ -290,14 +280,8 @@ export async function removeMember(
     const insforge = createInsforgeServer();
 
     // Check requester role
-    const { data: requester } = await insforge.database
-      .from("memberships")
-      .select("role")
-      .eq("organization_id", validated.data.orgId)
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (!requester || (requester.role !== "OWNER" && requester.role !== "ADMIN")) {
+    const isAdminOrOwner = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
+    if (!isAdminOrOwner) {
       return { success: false, error: "Only owners and admins can remove members." };
     }
 

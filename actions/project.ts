@@ -8,6 +8,7 @@ import type { Project, ProjectStatus } from "@/types";
 import { logActivity } from "@/actions/activity";
 import { createNotification } from "@/actions/notification";
 import { orgIdSchema, projectIdSchema } from "@/lib/utils";
+import { verifyMembership } from "@/lib/auth-helpers";
 
 const projectSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(50),
@@ -37,17 +38,6 @@ const archiveProjectInputSchema = z.object({
   projectId: projectIdSchema,
   orgId: orgIdSchema,
 });
-
-// Helper to verify if user is member of organization
-async function verifyMembership(insforge: ReturnType<typeof createInsforgeServer>, orgId: string, userId: string): Promise<boolean> {
-  const { data } = await insforge.database
-    .from("memberships")
-    .select("id")
-    .eq("organization_id", orgId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  return !!data;
-}
 
 export async function createProject(
   name: string,

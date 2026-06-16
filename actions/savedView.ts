@@ -5,6 +5,7 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { SavedView } from "@/types";
 import { orgIdSchema, viewIdSchema } from "@/lib/utils";
+import { verifyMembership } from "@/lib/auth-helpers";
 
 const savedViewSchema = z.object({
   name: z.string().min(3, "Saved view name must be at least 3 characters").max(50),
@@ -24,15 +25,6 @@ const deleteSavedViewInputSchema = z.object({
   orgId: orgIdSchema,
 });
 
-async function verifyMembership(insforge: ReturnType<typeof createInsforgeServer>, orgId: string, userId: string): Promise<boolean> {
-  const { data } = await (await insforge).database
-    .from("memberships")
-    .select("id")
-    .eq("organization_id", orgId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  return !!data;
-}
 
 export async function getSavedViews(orgId: string): Promise<{ success: boolean; data: SavedView[]; error?: string }> {
   const validated = getSavedViewsInputSchema.safeParse({ orgId });

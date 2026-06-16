@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import { orgIdSchema, projectIdSchema } from "@/lib/utils";
+import { verifyMembership } from "@/lib/auth-helpers";
 
 const logActivityInputSchema = z.object({
   orgId: orgIdSchema,
@@ -14,16 +15,6 @@ const logActivityInputSchema = z.object({
   metadata: z.record(z.any()),
 });
 
-// Helper to verify if user is member of organization
-async function verifyMembership(insforge: ReturnType<typeof createInsforgeServer>, orgId: string, userId: string): Promise<boolean> {
-  const { data } = await insforge.database
-    .from("memberships")
-    .select("id")
-    .eq("organization_id", orgId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  return !!data;
-}
 
 export async function logActivity(
   orgId: string,

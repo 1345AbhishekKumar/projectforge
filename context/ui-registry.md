@@ -128,6 +128,23 @@ After building any component — update this file with the component name, file 
 - **Upload Progress Bar:** `w-full bg-neutral-dot border-2 border-black rounded-full h-4 overflow-hidden relative`
 - **Timeline Comment Card:** `bg-white border-2 border-black rounded-sketchy p-4 shadow-flat-offset-sm relative`
 
+#### TaskComments Component
+- **File Path:** [TaskComments.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/details/TaskComments.tsx)
+- **Timeline Comment Card:** `bg-white border-2 border-black rounded-sketchy p-4 shadow-flat-offset-sm relative`
+- **Form Input Classes:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary`
+- **Submit Button Classes:** `p-2 bg-tertiary hover:bg-tertiary-hover text-white rounded-full border-2 border-black shadow-flat-offset-sm transition-all duration-200`
+
+#### TaskAttachments Component
+- **File Path:** [TaskAttachments.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/details/TaskAttachments.tsx)
+- **Uploader Dropzone:** `border-2 border-dashed border-black rounded-sketchy p-6 text-center hover:bg-neutral-bg/30 transition-all cursor-pointer block relative`
+- **Upload Progress Bar:** `w-full bg-neutral-dot border-2 border-black rounded-full h-4 overflow-hidden relative`
+- **Attachment Card:** `flex items-center justify-between p-3 border-2 border-black rounded-sketchy bg-white hover:bg-neutral-bg/10 transition-all shadow-flat-offset-sm`
+
+#### TaskLabelSelector Component
+- **File Path:** [TaskLabelSelector.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/details/TaskLabelSelector.tsx)
+- **Dropdown List Card:** `border-2 border-black rounded-sketchy-sm p-2 bg-neutral-bg/25 max-h-32 overflow-y-auto flex flex-col gap-1`
+- **Label Creator Box:** `border-2 border-black rounded-sketchy bg-[#FFF2B2]/10 p-3 mt-2 flex flex-col gap-2.5`
+
 #### TaskFilters Component
 - **File Path:** [TaskFilters.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/TaskFilters.tsx)
 - **Container Classes:** `flex flex-wrap items-center gap-4 bg-white border-2 border-black rounded-sketchy p-4 shadow-flat-offset-sm`
@@ -167,6 +184,12 @@ After building any component — update this file with the component name, file 
 - **Panel Classes:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset-sm flex flex-col gap-4`
 - **Sprint Card Classes:** `border-2 border-black rounded-sketchy-sm p-4 bg-accent-blue/10 flex flex-col gap-3`
 
+#### SprintColumn Component
+- **File Path:** [SprintColumn.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/sprints/SprintColumn.tsx)
+- **Container Classes:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset-sm flex flex-col gap-4`
+- **Completed Sprint Classes:** `bg-white/40 border-dashed`
+- **Sprint Card Classes:** `border-2 border-black rounded-sketchy-sm p-4 bg-accent-blue/10 flex flex-col gap-3`
+
 #### Sidebar Component
 - **File Path:** [Sidebar.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/layout/Sidebar.tsx)
 - **Container Classes:** `w-64 bg-white border-r-2 border-black flex flex-col h-screen sticky top-0 z-40 p-6 gap-6`
@@ -182,6 +205,16 @@ After building any component — update this file with the component name, file 
 - **Column Dropzone Dragover Classes:** `bg-accent-yellow/10 border-dashed border-tertiary translate-y-0.5 shadow-none`
 - **Sticky Note Card Classes:** `p-5 border-2 border-black rounded-sketchy-sm cursor-grab active:cursor-grabbing transition-all duration-150 select-none relative shadow-sm`
 - **Sticky Note Card Colors:** `LOW (Blue): bg-[#D0E1FD] hover:bg-[#C2D8FC]`, `MEDIUM (Green): bg-[#D4EDDA] hover:bg-[#C6E9CE]`, `HIGH (Yellow): bg-[#FFF2B2] hover:bg-[#FFEAA3]`, `URGENT (Pink): bg-[#FFD2D2] hover:bg-[#FFC4C4]`
+
+#### KanbanColumn Component
+- **File Path:** [KanbanColumn.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/board/KanbanColumn.tsx)
+- **Container Classes:** `bg-white border-2 border-black rounded-sketchy p-5 shadow-flat-offset-sm flex flex-col gap-4 min-h-[500px] transition-all duration-150 relative`
+- **Dragover Classes:** `bg-accent-yellow/10 border-dashed border-tertiary translate-y-0.5 shadow-none`
+
+#### KanbanCard Component
+- **File Path:** [KanbanCard.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/board/KanbanCard.tsx)
+- **Sticky Note Classes:** `p-5 border-2 border-black rounded-sketchy-sm cursor-grab active:cursor-grabbing transition-all duration-150 select-none relative shadow-sm`
+- **Sticky Note Colors:** `LOW (Blue): bg-[#D0E1FD] hover:bg-[#C2D8FC]`, `MEDIUM (Green): bg-[#D4EDDA] hover:bg-[#C6E9CE]`, `HIGH (Yellow): bg-[#FFF2B2] hover:bg-[#FFEAA3]`, `URGENT (Pink): bg-[#FFD2D2] hover:bg-[#FFC4C4]`
 
 ### Activity Feed Components
 

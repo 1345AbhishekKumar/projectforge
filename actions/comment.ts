@@ -7,6 +7,7 @@ import { z } from "zod";
 import type { CommentWithUser } from "@/types";
 import { logActivity } from "@/actions/activity";
 import { orgIdSchema, projectIdSchema, taskIdSchema } from "@/lib/utils";
+import { verifyMembership } from "@/lib/auth-helpers";
 
 const createCommentInputSchema = z.object({
   taskId: taskIdSchema,
@@ -20,16 +21,6 @@ const getTaskCommentsInputSchema = z.object({
   orgId: orgIdSchema,
 });
 
-// Helper to verify if user is member of organization
-async function verifyMembership(insforge: ReturnType<typeof createInsforgeServer>, orgId: string, userId: string): Promise<boolean> {
-  const { data } = await insforge.database
-    .from("memberships")
-    .select("id")
-    .eq("organization_id", orgId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  return !!data;
-}
 
 export async function createComment(
   taskId: string,

@@ -7,6 +7,7 @@ import { z } from "zod";
 import type { Sprint, SprintStatus } from "@/types";
 import { createNotification } from "@/actions/notification";
 import { orgIdSchema, sprintIdSchema } from "@/lib/utils";
+import { verifyMembership, verifyAdminOrOwnerRole } from "@/lib/auth-helpers";
 
 const sprintSchema = z.object({
   name: z.string().min(3, "Sprint name must be at least 3 characters").max(100),
@@ -35,22 +36,6 @@ const updateSprintStatusInputSchema = z.object({
   status: z.enum(["PLANNED", "ACTIVE", "COMPLETED", "CANCELLED"]),
 });
 
-// Helper to verify if user is Owner/Admin in organization
-async function verifyAdminOrOwnerRole(
-  insforge: ReturnType<typeof createInsforgeServer>,
-  orgId: string,
-  userId: string
-): Promise<boolean> {
-  const { data } = await insforge.database
-    .from("memberships")
-    .select("role")
-    .eq("organization_id", orgId)
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (!data) return false;
-  return data.role === "OWNER" || data.role === "ADMIN";
-}
 
 // Helper to check for overlap
 async function checkSprintOverlap(
@@ -157,14 +142,8 @@ export async function getSprints(
     const insforge = createInsforgeServer();
 
     // Check membership
-    const { data: membership } = await insforge.database
-      .from("memberships")
-      .select("id")
-      .eq("organization_id", validated.data.orgId)
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (!membership) {
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
+    if (!isMember) {
       return { success: false, error: "Not a member of this workspace", data: [] };
     }
 

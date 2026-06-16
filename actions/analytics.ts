@@ -3,17 +3,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { orgIdSchema } from "@/lib/utils";
+import { verifyMembership } from "@/lib/auth-helpers";
 
-// Helper to verify if user is member of organization
-async function verifyMembership(insforge: ReturnType<typeof createInsforgeServer>, orgId: string, userId: string): Promise<boolean> {
-  const { data } = await insforge.database
-    .from("memberships")
-    .select("id")
-    .eq("organization_id", orgId)
-    .eq("user_id", userId)
-    .maybeSingle();
-  return !!data;
-}
 
 export type MemberWorkload = {
   userId: string | null;
