@@ -90,28 +90,18 @@ export async function getOrganizationMembers(
       return { success: false, error: "Failed to fetch members", data: [] };
     }
 
-    const members: MemberListItem[] = (data || []).map(
-      (m: {
-        id: string;
-        role: string;
-        created_at: string;
-        user_id: string;
-        profiles: {
-          id: string;
-          full_name: string | null;
-          email: string;
-          avatar_url: string | null;
-        } | null;
-      }) => ({
+    const members: MemberListItem[] = (data || []).map((m) => {
+      const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
+      return {
         id: m.id,
         userId: m.user_id,
         role: m.role as MembershipRole,
         createdAt: m.created_at,
-        name: m.profiles?.full_name || "Unknown Member",
-        email: m.profiles?.email || "",
-        avatarUrl: m.profiles?.avatar_url || null,
-      })
-    );
+        name: profile?.full_name || "Unknown Member",
+        email: profile?.email || "",
+        avatarUrl: profile?.avatar_url || null,
+      };
+    });
 
     return { success: true, data: members };
   } catch {
