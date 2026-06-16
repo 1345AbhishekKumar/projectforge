@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { Project, ProjectStatus } from "@/types";
+import { logActivity } from "@/actions/activity";
 
 const projectSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(50),
@@ -61,6 +62,10 @@ export async function createProject(
     if (error) {
       return { success: false, error: "Failed to create project" };
     }
+
+    await logActivity(orgId, project.id, userId, "PROJECT_CREATED", {
+      projectName: validated.data.name,
+    });
 
     revalidatePath("/projects");
     return { success: true, data: { projectId: project.id } };
@@ -192,6 +197,13 @@ export async function archiveProject(
       return { success: false, error: "Not a member of this workspace" };
     }
 
+    const { data: projData } = await insforge.database
+      .from("projects")
+      .select("name")
+      .eq("id", projectId)
+      .single();
+    const projectName = projData?.name || "Unknown Project";
+
     const { error } = await insforge.database
       .from("projects")
       .update({
@@ -204,6 +216,10 @@ export async function archiveProject(
     if (error) {
       return { success: false, error: "Failed to archive project" };
     }
+
+    await logActivity(orgId, projectId, userId, "PROJECT_ARCHIVED", {
+      projectName,
+    });
 
     revalidatePath("/projects");
     revalidatePath(`/projects/${projectId}`);

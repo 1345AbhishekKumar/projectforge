@@ -129,13 +129,13 @@ we are building version 2 (prd_versions/v2.md)
 - [x] **Multi-Tenant Isolation:** Verify board only displays tasks scoped to the active `organization_id`.
 
 ### Feature 2.3: Project Activity Feed Verification
-- [ ] **Event Logging — Task Created:** Create a task. Verify an `activities` record is inserted with `action_type = 'TASK_CREATED'`.
-- [ ] **Event Logging — Task Assigned:** Assign a task to a member. Verify an `activities` record with `action_type = 'TASK_ASSIGNED'` is logged.
-- [ ] **Event Logging — Task Completed:** Set task status to DONE. Verify `action_type = 'TASK_COMPLETED'` activity is logged.
-- [ ] **Event Logging — Comment Added:** Post a comment. Verify `action_type = 'COMMENT_ADDED'` activity is logged.
-- [ ] **Event Logging — Member Joined:** Invite and accept a member. Verify `action_type = 'MEMBER_JOINED'` is logged.
-- [ ] **Timeline Display:** Navigate to project Activity tab. Verify feed renders actor name, action text, and relative timestamp for each event.
-- [ ] **Infinite Scroll:** Verify that scrolling past 20 entries loads the next page of activity records.
+- [x] **Event Logging — Task Created:** Create a task. Verify an `activities` record is inserted with `action_type = 'TASK_CREATED'`.
+- [x] **Event Logging — Task Assigned:** Assign a task to a member. Verify an `activities` record with `action_type = 'TASK_ASSIGNED'` is logged.
+- [x] **Event Logging — Task Completed:** Set task status to DONE. Verify `action_type = 'TASK_COMPLETED'` activity is logged.
+- [x] **Event Logging — Comment Added:** Post a comment. Verify `action_type = 'COMMENT_ADDED'` activity is logged.
+- [x] **Event Logging — Member Joined:** Invite and accept a member. Verify `action_type = 'MEMBER_JOINED'` is logged.
+- [x] **Timeline Display:** Navigate to project Activity tab. Verify feed renders actor name, action text, and relative timestamp for each event.
+- [x] **Infinite Scroll:** Verify that scrolling past 20 entries loads the next page of activity records.
 
 ### Feature 2.4: Dashboard Analytics Verification
 - [ ] **Stats Cards:** Verify the analytics page renders cards for: Total Projects, Active Projects, Completed Projects, Total Tasks, Completed Tasks, Overdue Tasks, Team Members.

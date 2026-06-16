@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lesson 0020: Row Level Security (RLS)</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --bg: #f8fafc;
+            --surface: #ffffff;
+            --border: #e2e8f0;
+            --text: #334155;
+        }
+        body { 
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; 
+            line-height: 1.7; 
+            max-width: 720px; 
+            margin: 40px auto; 
+            padding: 0 24px; 
+            color: var(--text);
+            background-color: var(--bg);
+        }
+        .container {
+            background-color: var(--surface);
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        h1, h2, h3 { color: var(--primary); margin-top: 1.5em; font-weight: 600; letter-spacing: -0.025em; }
+        h1 { font-size: 2.25rem; margin-top: 0; }
+        h2 { font-size: 1.5rem; padding-bottom: 0.5em; border-bottom: 1px solid var(--border); }
+        pre { background: #1e293b; color: #f8fafc; padding: 20px; border-radius: 8px; overflow-x: auto; font-size: 0.9rem; }
+        code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 0.9em; padding: 0.2em 0.4em; background-color: var(--bg); border-radius: 4px; color: var(--accent); }
+        pre code { background-color: transparent; padding: 0; color: inherit; }
+        
+        .quiz { 
+            background: #eff6ff; 
+            padding: 30px; 
+            border-radius: 12px; 
+            margin-top: 40px; 
+            border: 1px solid #bfdbfe;
+        }
+        .quiz h3 { margin-top: 0; color: #1e3a8a; }
+        .options label { display: block; margin: 12px 0; padding: 12px; border: 1px solid var(--border); border-radius: 6px; cursor: pointer; background: var(--surface); transition: all 0.2s; }
+        .options label:hover { border-color: var(--accent); }
+        input[type="radio"] { margin-right: 12px; }
+        
+        button { 
+            background: var(--accent); 
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 6px; 
+            font-weight: 500;
+            cursor: pointer; 
+            font-size: 1rem;
+            transition: background 0.2s;
+            margin-top: 10px;
+        }
+        button:hover { background: #1d4ed8; }
+        
+        #quiz-result { margin-top: 20px; font-weight: 500; display: none; padding: 12px; border-radius: 6px; }
+        .success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+        
+        .next-steps { margin-top: 50px; padding-top: 20px; border-top: 2px dashed var(--border); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Lesson 0020: Row Level Security (RLS)</h1>
+        
+        <p>In previous lessons, we successfully established identity using Clerk, securely synced user data to our database via Webhooks, and routed it locally with Ngrok. But once a user is in your database, how do you prevent them from accessing another user's data?</p>
+        
+        <h2>The Old Way: Application-Level Authorization</h2>
+        <p>Traditionally, developers handle data ownership entirely within the application backend (e.g., Node.js, Python). When querying the database, you explicitly tell it to filter by the current user's ID:</p>
+        
+        <pre><code>// Application-level authorization check
+const currentUserId = req.user.id;
+const userProjects = await db.query(
+  'SELECT * FROM projects WHERE user_id = $1', 
+  [currentUserId]
+);</code></pre>
+        
+        <p><strong>The problem:</strong> If you forget to add that <code>WHERE user_id = $1</code> clause anywhere in your application, you have instantly created a catastrophic data leak. Your API endpoint might return <em>every project from every user</em>.</p>
+
+        <h2>The New Way: Row Level Security (RLS)</h2>
+        <p><strong>Row Level Security (RLS)</strong> is a database feature (popularized by PostgreSQL) that pushes the authorization logic down to the database itself. Instead of trusting your application code, the database inspects every query and automatically filters out rows the user isn't allowed to see.</p>
+
+        <p>Implementing RLS usually involves two simple steps:</p>
+        
+        <ol>
+            <li><strong>Enable RLS on your table:</strong> <br><code>ALTER TABLE projects ENABLE ROW LEVEL SECURITY;</code></li>
+            <li><strong>Create a Policy (The Rule):</strong> <br>You write an expression that evaluates to true or false for each row.</li>
+        </ol>
+
+        <pre><code>CREATE POLICY "Users can view their own projects" 
+ON projects 
+FOR SELECT 
+USING (user_id = auth.uid());</code></pre>
+
+        <p>In this PostgreSQL example, <code>auth.uid()</code> extracts the user ID from the database session. Now, even if a junior developer writes <code>SELECT * FROM projects</code> in the backend, the database intercepts it, applies the policy, and <strong>only returns that user's projects.</strong></p>
+
+        <div class="quiz">
+            <h3>Knowledge Check</h3>
+            <p>If you execute <code>SELECT * FROM projects</code> on a table that has RLS enabled and a policy restricting reads to <code>user_id = auth.uid()</code>, what will happen if an authenticated user runs this query?</p>
+            
+            <form id="quiz-form">
+                <div class="options">
+                    <label><input type="radio" name="answer" value="a"> A) The database will throw an Authorization Error and fail the query.</label>
+                    <label><input type="radio" name="answer" value="b"> B) The database will silently rewrite the query to only return the rows belonging to that user.</label>
+                    <label><input type="radio" name="answer" value="c"> C) The database will return all rows because no WHERE clause was explicitly provided in the query.</label>
+                </div>
+                
+                <button type="button" onclick="checkAnswer()">Check Answer</button>
+                <div id="quiz-result"></div>
+            </form>
+        </div>
+
+        <div class="next-steps">
+            <h3>Next Steps</h3>
+            <p><strong>Your Action Item:</strong> How does the database know who <code>auth.uid()</code> is? Ask your AI teacher: <em>"How do we pass the Clerk JWT into the database so it knows the current user's identity?"</em></p>
+            <p><small><strong>Primary Source:</strong> <a href="https://www.postgresql.org/docs/current/ddl-rowsecurity.html" target="_blank">PostgreSQL Official Documentation on RLS</a></small></p>
+        </div>
+    </div>
+
+    <script>
+        function checkAnswer() {
+            const selected = document.querySelector('input[name="answer"]:checked');
+            const resultDiv = document.getElementById('quiz-result');
+            
+            if (!selected) {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'error';
+                resultDiv.innerText = 'Please select an answer first.';
+                return;
+            }
+
+            if (selected.value === 'b') {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'success';
+                resultDiv.innerText = 'Correct! The database silently filters the results behind the scenes, making it a powerful safety net.';
+            } else {
+                resultDiv.style.display = 'block';
+                resultDiv.className = 'error';
+                resultDiv.innerText = 'Not quite. The query doesn\'t error out, nor does it ignore the policy. It applies the policy transparently. Try again!';
+            }
+        }
+    </script>
+</body>
+</html>

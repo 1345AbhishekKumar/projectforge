@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { MembershipRole } from "@/types";
+import { logActivity } from "@/actions/activity";
 
 const inviteSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -123,7 +124,7 @@ export async function inviteMember(
     // Check if invitee profile exists
     const { data: inviteeProfile } = await insforge.database
       .from("profiles")
-      .select("id")
+      .select("id, full_name")
       .eq("email", validated.data.email)
       .maybeSingle();
 
@@ -160,6 +161,12 @@ export async function inviteMember(
     if (insertError) {
       return { success: false, error: "Failed to add member." };
     }
+
+    await logActivity(orgId, null, userId, "MEMBER_JOINED", {
+      joinedUserId: inviteeProfile.id,
+      joinedUserName: inviteeProfile.full_name || "Unknown Member",
+      joinedUserEmail: validated.data.email,
+    });
 
     revalidatePath("/organizations/settings");
     revalidatePath("/dashboard");

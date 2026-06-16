@@ -15,7 +15,8 @@ import {
   LogOut, 
   Plus,
   FolderKanban,
-  CheckCircle2
+  CheckCircle2,
+  Activity
 } from "lucide-react";
 
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
@@ -609,6 +610,15 @@ export default function KanbanBoardPage({ params }: Props) {
                     <span className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
                       Members
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => router.push(`/projects/${projectId}/activity`)}
+                    className="px-6 py-2.5 text-sm font-bold font-cursive transition-all -mb-0.5 cursor-pointer border-b-2 border-transparent hover:bg-neutral-bg/50 text-secondary"
+                  >
+                    <span className="flex items-center gap-2">
+                      <Activity className="h-4 w-4" />
+                      Activity
                     </span>
                   </button>
                 </div>

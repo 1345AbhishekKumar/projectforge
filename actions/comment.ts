@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { CommentWithUser } from "@/types";
+import { logActivity } from "@/actions/activity";
 
 const commentSchema = z.object({
   content: z.string().min(1, "Comment content cannot be empty").max(1000, "Comment must not exceed 1000 characters"),
@@ -85,6 +86,14 @@ export async function createComment(
           },
         ]);
     }
+
+    await logActivity(orgId, projectId, userId, "COMMENT_ADDED", {
+      taskId,
+      taskTitle: task?.title || "Unknown Task",
+      snippet: validated.data.content.length > 60 
+        ? validated.data.content.substring(0, 60) + "..." 
+        : validated.data.content,
+    });
 
     revalidatePath(`/projects/${projectId}`);
     return { success: true };

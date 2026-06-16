@@ -164,3 +164,19 @@ After building any component — update this file with the component name, file 
 - **Sticky Note Card Classes:** `p-5 border-2 border-black rounded-sketchy-sm cursor-grab active:cursor-grabbing transition-all duration-150 select-none relative shadow-sm`
 - **Sticky Note Card Colors:** `LOW (Blue): bg-[#D0E1FD] hover:bg-[#C2D8FC]`, `MEDIUM (Green): bg-[#D4EDDA] hover:bg-[#C6E9CE]`, `HIGH (Yellow): bg-[#FFF2B2] hover:bg-[#FFEAA3]`, `URGENT (Pink): bg-[#FFD2D2] hover:bg-[#FFC4C4]`
 
+### Activity Feed Components
+
+#### Activity Feed Page
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/projects/[id]/activity/page.tsx)
+- **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
+- **Tab Button (Active):** `bg-accent-yellow border-2 border-black border-b-0 rounded-t-lg shadow-[0_-2px_0_rgba(0,0,0,1)] px-6 py-2.5 text-sm font-bold font-cursive`
+
+#### ActivityFeed Component
+- **File Path:** [ActivityFeed.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/activities/ActivityFeed.tsx)
+- **Timeline Line:** `absolute left-8 top-0 bottom-0 w-0.5 border-l-2 border-dashed border-black/20 z-0`
+- **Timeline Icon Badge:** `absolute left-4 top-2.5 w-9 h-9 rounded-full border-2 border-black flex items-center justify-center shadow-flat-offset-sm transition-all hover:scale-105`
+- **Detail Card:** `bg-white border-2 border-black rounded-sketchy p-4 shadow-flat-offset-sm hover:-translate-y-0.5 hover:shadow-flat-offset transition-all duration-200`
+- **Comment Quote Bubble:** `bg-[#FFF2B2] border-2 border-black rounded-sketchy-sm p-3 relative shadow-flat-offset-sm max-w-lg italic font-sans text-xs text-secondary/90 rotate-[0.5deg]`
+- **Load More Button:** `flex items-center gap-2 bg-white hover:bg-neutral-bg text-primary border-2 border-black font-sans text-xs font-bold px-6 py-2.5 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all`
+
+

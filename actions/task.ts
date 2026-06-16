@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { Task, TaskStatus, TaskPriority } from "@/types";
+import { logActivity } from "@/actions/activity";
 
 const taskSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(100),
@@ -107,6 +108,28 @@ export async function createTask(
       return { success: false, error: "Failed to create task" };
     }
 
+    await logActivity(orgId, projectId, userId, "TASK_CREATED", {
+      taskId: task.id,
+      taskTitle: validated.data.title,
+      priority: validated.data.priority,
+    });
+
+    if (validated.data.assigneeId) {
+      const { data: profile } = await insforge.database
+        .from("profiles")
+        .select("full_name")
+        .eq("id", validated.data.assigneeId)
+        .single();
+      const assigneeName = profile?.full_name || "Unknown User";
+
+      await logActivity(orgId, projectId, userId, "TASK_ASSIGNED", {
+        taskId: task.id,
+        taskTitle: validated.data.title,
+        assigneeId: validated.data.assigneeId,
+        assigneeName,
+      });
+    }
+
     revalidatePath(`/projects/${projectId}`);
     return { success: true, data: { taskId: task.id } };
   } catch {
@@ -195,7 +218,7 @@ export async function updateTask(
     // Retrieve existing task details to check for sprint locking
     const { data: currentTask, error: fetchError } = await insforge.database
       .from("tasks")
-      .select("sprint_id")
+      .select("title, assignee_id, status, sprint_id")
       .eq("id", taskId)
       .eq("organization_id", orgId)
       .single();
@@ -278,6 +301,38 @@ export async function updateTask(
 
     if (error) {
       return { success: false, error: "Failed to update task" };
+    }
+
+    const taskTitle = updates.title || currentTask.title;
+
+    if (updates.status === "DONE" && currentTask.status !== "DONE") {
+      await logActivity(orgId, projectId, userId, "TASK_COMPLETED", {
+        taskId,
+        taskTitle,
+      });
+    }
+
+    if (updates.assignee_id !== undefined && updates.assignee_id !== currentTask.assignee_id) {
+      if (updates.assignee_id) {
+        const { data: profile } = await insforge.database
+          .from("profiles")
+          .select("full_name")
+          .eq("id", updates.assignee_id)
+          .single();
+        const assigneeName = profile?.full_name || "Unknown User";
+
+        await logActivity(orgId, projectId, userId, "TASK_ASSIGNED", {
+          taskId,
+          taskTitle,
+          assigneeId: updates.assignee_id,
+          assigneeName,
+        });
+      } else {
+        await logActivity(orgId, projectId, userId, "TASK_UNASSIGNED", {
+          taskId,
+          taskTitle,
+        });
+      }
     }
 
     revalidatePath(`/projects/${projectId}`);
@@ -369,6 +424,13 @@ export async function reorderTasks(
       return { success: false, error: "Not a member of this workspace" };
     }
 
+    // Fetch previous task states to log status transitions
+    const taskIds = taskUpdates.map((u) => u.id);
+    const { data: prevTasks } = await insforge.database
+      .from("tasks")
+      .select("id, title, status")
+      .in("id", taskIds);
+
     // Run updates in parallel
     const promises = taskUpdates.map((update) =>
       insforge.database
@@ -387,6 +449,28 @@ export async function reorderTasks(
 
     if (hasError) {
       return { success: false, error: "Failed to update some tasks ordering" };
+    }
+
+    // Log status transitions after successful updates
+    if (prevTasks) {
+      for (const update of taskUpdates) {
+        const prev = prevTasks.find((t) => t.id === update.id);
+        if (prev && prev.status !== update.status) {
+          if (update.status === "DONE") {
+            await logActivity(orgId, projectId, userId, "TASK_COMPLETED", {
+              taskId: update.id,
+              taskTitle: prev.title,
+            });
+          } else {
+            await logActivity(orgId, projectId, userId, "TASK_STATUS_UPDATED", {
+              taskId: update.id,
+              taskTitle: prev.title,
+              fromStatus: prev.status,
+              toStatus: update.status,
+            });
+          }
+        }
+      }
     }
 
     revalidatePath(`/projects/${projectId}`);
