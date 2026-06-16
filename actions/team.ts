@@ -1,0 +1,123 @@
+"use server";
+
+import { auth } from "@clerk/nextjs/server";
+import { createInsforgeServer } from "@/lib/insforge-server";
+import { z } from "zod";
+import type { TeamMember } from "@/types";
+
+const teamSchema = z.object({
+  orgId: z.string().uuid("Invalid organization ID"),
+});
+
+// Verify user is a member of the organization
+async function verifyMembership(
+  insforge: ReturnType<typeof createInsforgeServer>,
+  orgId: string,
+  userId: string
+): Promise<boolean> {
+  const { data } = await insforge.database
+    .from("memberships")
+    .select("id")
+    .eq("organization_id", orgId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return !!data;
+}
+
+export async function getTeamDirectory(
+  orgId: string
+): Promise<{ success: boolean; data?: TeamMember[]; error?: string }> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const validated = teamSchema.safeParse({ orgId });
+    if (!validated.success) {
+      return { success: false, error: validated.error.issues[0].message };
+    }
+
+    const insforge = createInsforgeServer();
+
+    const isMember = await verifyMembership(insforge, orgId, userId);
+    if (!isMember) {
+      return { success: false, error: "Not a member of this workspace" };
+    }
+
+    // Fetch all memberships with profile data
+    const { data: memberships, error: membershipsError } = await insforge.database
+      .from("memberships")
+      .select(
+        `
+        user_id,
+        role,
+        profiles (
+          full_name,
+          avatar_url,
+          email
+        )
+      `
+      )
+      .eq("organization_id", orgId);
+
+    if (membershipsError) {
+      console.error("Failed to fetch team memberships:", membershipsError);
+      return { success: false, error: "Failed to fetch team members" };
+    }
+
+    // Fetch all non-done tasks scoped to this org for workload computation
+    const { data: tasks, error: tasksError } = await insforge.database
+      .from("tasks")
+      .select("id, assignee_id, project_id, status")
+      .eq("organization_id", orgId)
+      .neq("status", "DONE");
+
+    if (tasksError) {
+      console.error("Failed to fetch tasks for team directory:", tasksError);
+      return { success: false, error: "Failed to fetch task workloads" };
+    }
+
+    type RawMembership = {
+      user_id: string;
+      role: string;
+      profiles: { full_name: string | null; avatar_url: string | null; email: string } | null;
+    };
+
+    type RawTask = {
+      id: string;
+      assignee_id: string | null;
+      project_id: string;
+      status: string;
+    };
+
+    const taskList = (tasks as RawTask[]) || [];
+
+    // Build per-member workload stats
+    const teamMembers: TeamMember[] = (memberships as RawMembership[] || []).map((m) => {
+      const memberTasks = taskList.filter((t) => t.assignee_id === m.user_id);
+      const activeProjectIds = new Set(memberTasks.map((t) => t.project_id));
+
+      return {
+        user_id: m.user_id,
+        full_name: m.profiles?.full_name ?? null,
+        avatar_url: m.profiles?.avatar_url ?? null,
+        email: m.profiles?.email ?? "",
+        role: m.role as "OWNER" | "ADMIN" | "MEMBER",
+        assigned_task_count: memberTasks.length,
+        active_project_count: activeProjectIds.size,
+      };
+    });
+
+    // Sort: OWNER first, then ADMIN, then MEMBER — then by assigned tasks desc
+    const roleOrder: Record<string, number> = { OWNER: 0, ADMIN: 1, MEMBER: 2 };
+    teamMembers.sort((a, b) => {
+      const roleDiff = (roleOrder[a.role] ?? 3) - (roleOrder[b.role] ?? 3);
+      if (roleDiff !== 0) return roleDiff;
+      return b.assigned_task_count - a.assigned_task_count;
+    });
+
+    return { success: true, data: teamMembers };
+  } catch (err) {
+    console.error("Unexpected error in getTeamDirectory:", err);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}

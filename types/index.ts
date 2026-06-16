@@ -141,6 +141,33 @@ export type SavedView = {
   created_at: string;
 };
 
+export type SearchResultProject = Pick<Project, "id" | "name" | "status" | "description">;
+
+export type SearchResultTask = Pick<Task, "id" | "title" | "status" | "priority" | "project_id">;
+
+export type SearchResultMember = {
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  role: MembershipRole;
+};
+
+export type SearchResult = {
+  projects: SearchResultProject[];
+  tasks: SearchResultTask[];
+  members: SearchResultMember[];
+};
+
+export type TeamMember = {
+  user_id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  email: string;
+  role: MembershipRole;
+  assigned_task_count: number;
+  active_project_count: number;
+};
+
 
 
 

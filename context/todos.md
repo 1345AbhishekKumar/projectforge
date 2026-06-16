@@ -100,13 +100,13 @@ we are building version 2 (prd_versions/v2.md)
 - [ ] **Full-Text Search Index:** Verify `to_tsvector` index on `tasks(title, description)` for search performance.
 
 ### Page Routing & Directory Scaffolding
-- [ ] **Sprints Page (`/sprints`):** Verify page routing and sprint list layout renders (Planned, Active, Completed groups).
-- [ ] **Kanban Board (`/projects/[id]/board`):** Verify dynamic board page routing and 3-column grid layout renders.
-- [ ] **Activity Feed (`/projects/[id]/activity`):** Verify dynamic activity page routing and timeline layout renders.
-- [ ] **Analytics Dashboard (`/analytics`):** Verify page routing and stats card placeholders render.
-- [ ] **Team Directory (`/team`):** Verify page routing and member grid layout renders.
-- [ ] **Global Search Modal:** Verify search modal is accessible from the header and opens correctly.
-- [ ] **Updated Navigation:** Verify sidebar navigation includes all new V2 links: Team, Boards, Sprints, Activity, Analytics.
+- [x] **Sprints Page (`/sprints`):** Verify page routing and sprint list layout renders (Planned, Active, Completed groups).
+- [x] **Kanban Board (`/projects/[id]/board`):** Verify dynamic board page routing and 3-column grid layout renders.
+- [x] **Activity Feed (`/projects/[id]/activity`):** Verify dynamic activity page routing and timeline layout renders.
+- [x] **Analytics Dashboard (`/analytics`):** Verify page routing and stats card placeholders render.
+- [] **Team Directory (`/team`):** Verify page routing and member grid layout renders.
+- [] **Global Search Modal:** Verify search modal is accessible from the header and opens correctly.
+- [] **Updated Navigation:** Verify sidebar navigation includes all new V2 links: Team, Boards, Sprints, Activity, Analytics.
 
 ---
 
@@ -154,14 +154,14 @@ we are building version 2 (prd_versions/v2.md)
 - [x] **Delete Saved View:** Delete a saved view. Verify the `saved_views` record is removed from the DB.
 
 ### Feature 2.6: Search & Team Directory Verification
-- [ ] **Global Search — Projects:** Open the search modal and query a project name. Verify matching projects appear in results.
-- [ ] **Global Search — Tasks:** Search for a task title. Verify matching tasks appear under the Tasks category.
-- [ ] **Global Search — Members:** Search for a member name. Verify matching members appear under the Members category.
-- [ ] **Full-Text Search:** Search using a keyword from a task description. Verify results are returned using the `tsvector` index.
-- [ ] **Search Scoping:** Verify search results are scoped to the active `organization_id` — no cross-tenant results.
-- [ ] **Search Performance:** Verify search results return in under 1 second.
-- [ ] **Team Directory Renders:** Navigate to the Team page. Verify all organization members are listed in a grid with Name, Role, Assigned Tasks count, and Active Projects count.
-- [ ] **Workload Stats:** Verify assigned task counts on the team directory are accurate for each member.
+- [x] **Global Search — Projects:** Open the search modal and query a project name. Verify matching projects appear in results.
+- [x] **Global Search — Tasks:** Search for a task title. Verify matching tasks appear under the Tasks category.
+- [x] **Global Search — Members:** Search for a member name. Verify matching members appear under the Members category.
+- [x] **Full-Text Search:** Search using a keyword from a task description. Verify results are returned using the `tsvector` index.
+- [x] **Search Scoping:** Verify search results are scoped to the active `organization_id` — no cross-tenant results.
+- [x] **Search Performance:** Verify search results return in under 1 second.
+- [x] **Team Directory Renders:** Navigate to the Team page. Verify all organization members are listed in a grid with Name, Role, Assigned Tasks count, and Active Projects count.
+- [x] **Workload Stats:** Verify assigned task counts on the team directory are accurate for each member.
 
 ### Feature 2.7: Advanced Notifications Verification
 - [ ] **Overdue Task Notification:** Let a task pass its due date. Verify a `task overdue` notification is triggered for the assignee.
