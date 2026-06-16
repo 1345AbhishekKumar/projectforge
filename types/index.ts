@@ -44,6 +44,19 @@ export type Project = {
 export type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
 export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 
+export type SprintStatus = "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+
+export type Sprint = {
+  id: string;
+  organization_id: string;
+  name: string;
+  goal: string | null;
+  start_date: string;
+  end_date: string;
+  status: SprintStatus;
+  created_at: string;
+};
+
 export type Task = {
   id: string;
   project_id: string;
@@ -54,6 +67,7 @@ export type Task = {
   priority: TaskPriority;
   assignee_id: string | null;
   due_date: string | null;
+  sprint_id: string | null;
   created_at: string;
   updated_at: string;
 };

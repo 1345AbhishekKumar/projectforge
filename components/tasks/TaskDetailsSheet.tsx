@@ -9,13 +9,14 @@ import type { MemberListItem } from "@/actions/membership";
 import { createComment, getTaskComments } from "@/actions/comment";
 import { createAttachment, getTaskAttachments, deleteAttachment } from "@/actions/attachment";
 import { insforge } from "@/lib/insforge-client";
-import type { CommentWithUser, AttachmentWithUser } from "@/types";
+import type { CommentWithUser, AttachmentWithUser, Sprint } from "@/types";
 
 type Props = {
   task: TaskWithAssignee | null;
   isOpen: boolean;
   onClose: () => void;
   members: MemberListItem[];
+  sprints: Sprint[];
   onUpdate: (
     taskId: string,
     updates: {
@@ -25,18 +26,20 @@ type Props = {
       priority?: TaskPriority;
       assignee_id?: string | null;
       due_date?: string | null;
+      sprint_id?: string | null;
     }
   ) => Promise<{ success: boolean; error?: string }>;
   onDelete: (taskId: string) => Promise<{ success: boolean; error?: string }>;
 };
 
-export function TaskDetailsSheet({ task, isOpen, onClose, members, onUpdate, onDelete }: Props) {
+export function TaskDetailsSheet({ task, isOpen, onClose, members, sprints = [], onUpdate, onDelete }: Props) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [status, setStatus] = useState<TaskStatus>("TODO");
   const [priority, setPriority] = useState<TaskPriority>("MEDIUM");
   const [assigneeId, setAssigneeId] = useState("");
   const [dueDate, setDueDate] = useState("");
+  const [sprintId, setSprintId] = useState("");
   
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -219,6 +222,7 @@ export function TaskDetailsSheet({ task, isOpen, onClose, members, onUpdate, onD
       setStatus(task.status || "TODO");
       setPriority(task.priority || "MEDIUM");
       setAssigneeId(task.assignee_id || "");
+      setSprintId(task.sprint_id || "");
       
       if (task.due_date) {
         const date = new Date(task.due_date);
@@ -257,6 +261,7 @@ export function TaskDetailsSheet({ task, isOpen, onClose, members, onUpdate, onD
         priority,
         assignee_id: assigneeId || null,
         due_date: dueDate || null,
+        sprint_id: sprintId || null,
       });
 
       if (result.success) {
@@ -442,13 +447,47 @@ export function TaskDetailsSheet({ task, isOpen, onClose, members, onUpdate, onD
 
             <div>
               <label className="font-sans text-xs font-semibold mb-1 block">
+                Sprint (Optional)
+              </label>
+              {(() => {
+                const currentSprint = sprints.find(s => s.id === task.sprint_id);
+                const isSprintCompleted = currentSprint?.status === "COMPLETED";
+                if (isSprintCompleted) {
+                  return (
+                    <div className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-neutral-bg flex items-center justify-between shadow-flat-offset-sm">
+                      <span className="font-bold text-primary">{currentSprint?.name}</span>
+                      <span className="bg-accent-green border-2 border-black text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">Locked (Completed)</span>
+                    </div>
+                  );
+                }
+                return (
+                  <select
+                    value={sprintId}
+                    onChange={(e) => setSprintId(e.target.value)}
+                    className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer shadow-flat-offset-sm"
+                  >
+                    <option value="">No Sprint</option>
+                    {sprints
+                      .filter(s => s.status !== "COMPLETED" && s.status !== "CANCELLED")
+                      .map((sprint) => (
+                        <option key={sprint.id} value={sprint.id}>
+                          {sprint.name} ({sprint.status.toLowerCase()})
+                        </option>
+                      ))}
+                  </select>
+                );
+              })()}
+            </div>
+
+            <div>
+              <label className="font-sans text-xs font-semibold mb-1 block">
                 Due Date (Optional)
               </label>
               <input
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer"
+                className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer shadow-flat-offset-sm"
               />
             </div>
 

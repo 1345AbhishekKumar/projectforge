@@ -8,9 +8,9 @@ We are building Version 1
 ---
 
 ## Current Status
-- **Status:** **Feature 1.8 (Notification Center) Implemented**. Created `NotificationBell` client component with unread badge, date-grouped dropdown tray, per-item and bulk mark-read, 30-day cleanup, and empty state. Fixed missing `await` on `createInsforgeServer()` in notification actions. Wired bell into all 4 authenticated page navbars.
-- **Active Sprint:** MVP project and task setup.
-- **Target Milestones:** V1 MVP complete — all 8 features shipped.
+- **Status:** **Feature 2.1 (Sprint Management) Implemented**. Created database schemas for sprints and updated tasks. Created `actions/sprint.ts` and updated `actions/task.ts` for lifecycle (planned, active, completed, cancelled), date-overlap verification, completed sprint locking, and role permission checks. Created reusable `components/layout/Sidebar.tsx` navigation sidebar. Created top-level `app/sprints/page.tsx` sprint planning page with backlog assignment drawer. Integrated Sidebar into all 4 authenticated views.
+- **Active Sprint:** Version 2 Work Management Platform features.
+- **Target Milestones:** Version 2 complete.
 
 ## Progress
 - [x] Align project overview and description to ProjectForge (`context/project-overview.md`).
@@ -25,6 +25,7 @@ We are building Version 1
 - [x] Implement Feature 1.6: Tasks Engine — database table (`tasks`), Server Actions (`createTask`, `getProjectTasks`, `updateTask`, `deleteTask`), backlog columns, `TaskRow`, `TaskList`, `CreateTaskModal`, and `TaskDetailsSheet` components with overdue warnings and member scoping.
 - [x] Implement Feature 1.7: Comments & Attachments — database tables (`comments`, `attachments`), storage bucket (`attachments`), Server Actions (`createComment`, `getTaskComments`, `createAttachment`, `getTaskAttachments`, `deleteAttachment`), chronological timeline feed, sketchy file dropzone, size checking (<20MB), file blocklist, progress bar simulation, download/delete controls in `TaskDetailsSheet`.
 - [x] Implement Feature 1.8: Notification Center — `NotificationBell` component (bell icon + unread badge + date-grouped dropdown tray + mark-read per item + mark-all-read + 30-day cleanup + empty state), fixed `await` bug in notification actions, integrated into all 4 authenticated page navbars.
+- [x] Implement Feature 2.1: Sprint Management — database table (`sprints`), `sprint_id` on `tasks` table, Server Actions (`createSprint`, `getSprints`, `updateSprint`, `updateSprintStatus`, `getOrganizationTasks`), reusable `Sidebar` layout navigation component, top-level `/sprints` planner page with planned/active/completed sections, backlog quick-assign dropdowns, and completed sprint lock guards.
 
 ## Decisions Made During Build
 - **Tech Stack Enforced:** Next.js 16 (React 19) App Router, Tailwind CSS v4, InsForge private PostgreSQL and storage client layers.

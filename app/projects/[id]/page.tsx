@@ -11,10 +11,12 @@ import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { getProjectDetails, updateProject, archiveProject } from "@/actions/project";
 import { getOrganizationMembers, type MemberListItem } from "@/actions/membership";
 import { createTask, getProjectTasks, updateTask, deleteTask, type TaskWithAssignee } from "@/actions/task";
+import { getSprints } from "@/actions/sprint";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { TaskList } from "@/components/tasks/TaskList";
 import { TaskDetailsSheet } from "@/components/tasks/TaskDetailsSheet";
-import type { Project, ProjectStatus, TaskStatus, TaskPriority } from "@/types";
+import { Sidebar } from "@/components/layout/Sidebar";
+import type { Project, ProjectStatus, TaskStatus, TaskPriority, Sprint } from "@/types";
 
 
 type Props = {
@@ -37,6 +39,7 @@ export default function ProjectDetailsPage({ params }: Props) {
   const [activeOrgId, setActiveOrgId] = useState<string | null>(initialOrgId);
   const [project, setProject] = useState<Project | null>(null);
   const [members, setMembers] = useState<MemberListItem[]>([]);
+  const [sprints, setSprints] = useState<Sprint[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMembers, setLoadingMembers] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
@@ -109,7 +112,15 @@ export default function ProjectDetailsPage({ params }: Props) {
       setLoadingMembers(false);
     }
 
+    async function loadSprints() {
+      const result = await getSprints(activeOrgId!);
+      if (result.success) {
+        setSprints(result.data);
+      }
+    }
+
     loadMembers();
+    loadSprints();
   }, [activeOrgId]);
 
   // Handle workspace switcher updates
@@ -186,6 +197,7 @@ export default function ProjectDetailsPage({ params }: Props) {
       priority?: TaskPriority;
       assignee_id?: string | null;
       due_date?: string | null;
+      sprint_id?: string | null;
     }
   ) {
     if (!activeOrgId || !projectId) return { success: false, error: "Missing context" };
@@ -234,47 +246,54 @@ export default function ProjectDetailsPage({ params }: Props) {
   const statusBadgeColor = project ? statusColors[project.status] : "";
 
   return (
-    <main className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex flex-col">
-      {/* Navbar */}
-      <header className="w-full bg-white border-b-2 border-black px-6 py-3 flex items-center justify-between sticky top-0 z-50">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/dashboard")}>
-            <div className="w-8 h-8 rounded-full bg-tertiary border-2 border-primary flex items-center justify-center font-cursive text-white text-lg font-bold shadow-flat-offset-sm">
-              P
-            </div>
-            <span className="font-cursive text-2xl font-bold tracking-tight">ProjectForge</span>
-          </div>
-
-          <div className="hidden md:block border-l-2 border-black h-6 mx-1" />
-          <div className="hidden md:block">
-            <OrgSwitcher />
-          </div>
-        </div>
-
-        <div className="flex items-center gap-4">
-          <NotificationBell />
-
-          <div className="hidden sm:flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-neutral-bg">
-            <UserIcon className="h-4 w-4 text-secondary" />
-            <span className="font-sans text-xs font-semibold text-secondary">
-              {user?.primaryEmailAddress?.emailAddress}
-            </span>
-          </div>
-
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-2 bg-accent-pink hover:bg-[#FFB2B2] text-primary border-2 border-black font-sans text-xs font-bold px-4 py-2 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
-          >
-            <LogOut className="h-3.5 w-3.5" />
-            Sign Out
-          </button>
-        </div>
-      </header>
-
-      {/* Mobile Org Switcher */}
-      <div className="md:hidden px-6 pt-4">
-        <OrgSwitcher />
+    <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
+      {/* Sidebar - Desktop only */}
+      <div className="hidden md:block">
+        <Sidebar />
       </div>
+
+      <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
+        {/* Navbar */}
+        <header className="w-full bg-white border-b-2 border-black px-6 py-3 flex items-center justify-between sticky top-0 z-50">
+          <div className="flex items-center gap-4">
+            {/* Brand Logo - Mobile only */}
+            <div className="flex md:hidden items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-tertiary border-2 border-primary flex items-center justify-center font-cursive text-white text-lg font-bold shadow-flat-offset-sm">
+                P
+              </div>
+              <span className="font-cursive text-2xl font-bold tracking-tight">ProjectForge</span>
+            </div>
+
+            {/* Org Switcher - Mobile only */}
+            <div className="md:hidden">
+              <OrgSwitcher />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <NotificationBell />
+
+            <div className="hidden sm:flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-neutral-bg">
+              <UserIcon className="h-4 w-4 text-secondary" />
+              <span className="font-sans text-xs font-semibold text-secondary">
+                {user?.primaryEmailAddress?.emailAddress}
+              </span>
+            </div>
+
+            <button
+              onClick={handleSignOut}
+              className="flex items-center gap-2 bg-accent-pink hover:bg-[#FFB2B2] text-primary border-2 border-black font-sans text-xs font-bold px-4 py-2 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+              Sign Out
+            </button>
+          </div>
+        </header>
+
+        {/* Mobile Org Switcher */}
+        <div className="md:hidden px-6 pt-4">
+          <OrgSwitcher />
+        </div>
 
       {/* Main Details Body */}
       <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-6">
@@ -532,9 +551,11 @@ export default function ProjectDetailsPage({ params }: Props) {
           setSelectedTask(null);
         }}
         members={members}
+        sprints={sprints}
         onUpdate={handleUpdateTask}
         onDelete={handleDeleteTask}
       />
-    </main>
+      </div>
+    </div>
   );
 }

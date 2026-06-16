@@ -63,6 +63,20 @@ The AI agent on this project operates as a senior engineer. This means:
 - Index files only in `components/ui/` — never barrel export from other folders
 
 ---
+use for image optimization:
+
+import Image from 'next/image'
+ 
+export default function Page() {
+  return (
+    <Image
+      src="/profile.png"
+      width={500}
+      height={500}
+      alt="Picture of the author"
+    />
+  )
+}
 
 ## Component Structure
 

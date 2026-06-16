@@ -126,7 +126,6 @@ After building any component — update this file with the component name, file 
 - **Uploader Dropzone:** `border-2 border-dashed border-black rounded-sketchy p-6 text-center hover:bg-neutral-bg/30 transition-all cursor-pointer block relative`
 - **Upload Progress Bar:** `w-full bg-neutral-dot border-2 border-black rounded-full h-4 overflow-hidden relative`
 - **Timeline Comment Card:** `bg-white border-2 border-black rounded-sketchy p-4 shadow-flat-offset-sm relative`
-
 ### Notification Components
 
 #### NotificationBell Component
@@ -140,3 +139,17 @@ After building any component — update this file with the component name, file 
 - **Notification Row (Read):** `w-full text-left flex items-start gap-3 px-4 py-3 border-b border-black/10 hover:bg-neutral-bg/50`
 - **Unread Dot:** `block w-2 h-2 rounded-full bg-tertiary`
 - **Empty State Classes:** `px-4 py-8 text-center`
+
+### Sprint Management Components
+
+#### Sprints Page
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/sprints/page.tsx)
+- **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
+- **Panel Classes:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset-sm flex flex-col gap-4`
+- **Sprint Card Classes:** `border-2 border-black rounded-sketchy-sm p-4 bg-accent-blue/10 flex flex-col gap-3`
+
+#### Sidebar Component
+- **File Path:** [Sidebar.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/layout/Sidebar.tsx)
+- **Container Classes:** `w-64 bg-white border-r-2 border-black flex flex-col h-screen sticky top-0 z-40 p-6 gap-6`
+- **Link Button Classes:** `w-full text-left flex items-center gap-3 px-4 py-2.5 border-2 border-black font-sans text-sm font-bold shadow-flat-offset-sm transition-all duration-200`
+

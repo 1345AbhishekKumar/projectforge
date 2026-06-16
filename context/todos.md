@@ -81,10 +81,94 @@ we are building version 1(prd_versions/v1.md)
 
 ---
 
-## E-2-E Smoke Test Verification Flow
-- [ ] **Step 1: Org Setup:** Register User A (`alice@devops.com`) -> Create organization `"DevOps Pioneers"` (slug `"devops-pioneers"`) -> Verify OWNER role in database.
-- [ ] **Step 2: Team Invites:** Register User B (`bob@devops.com`) -> Alice invites Bob as `MEMBER` -> Bob switches to workspace -> Verify role in DB.
-- [ ] **Step 3: Project & Tasks:** Alice creates project `"Frontend Redesign"` -> Creates high-priority task `"Implement Navbar Component"` assigned to Bob.
-- [ ] **Step 4: Real-time Collaboration:** Bob receives notification -> Changes task status to `IN_PROGRESS` -> Comments: *"Beginning implementation"* -> Alice receives notifications.
-- [ ] **Step 5: File Upload:** Bob uploads `navbar_draft.png` (250KB) -> Alice reviews and downloads from task details successfully.
-- [ ] **Step 6: Completion:** Bob sets task to `DONE` -> Verify dashboard completion counter increments.
+# ProjectForge: Version 2 (Work Management Platform) Verification Guidelines & Todos
+
+This document lists the technical verification checklists and manual E2E test steps for **Version 2**, organized by database setup, page routing, and individual feature components.
+
+---
+
+we are building version 2 (prd_versions/v2.md)
+
+## Phase 2 Database & Schema Setup Checklist
+
+### New Database Tables & Schema Verification
+- [ ] **`sprints` Table:** Verify fields: `id`, `organization_id`, `name`, `goal`, `start_date`, `end_date`, `status` (PLANNED, ACTIVE, COMPLETED, CANCELLED), `created_at`. Enforce FK to `organizations.id`.
+- [ ] **`activities` Table:** Verify fields: `id`, `organization_id`, `project_id`, `user_id` (actor), `action_type`, `metadata` (jsonb), `created_at`. Enforce FK to `organizations.id`.
+- [ ] **`labels` Table:** Verify fields: `id`, `organization_id`, `name`, `color`. Enforce FK to `organizations.id` and unique constraint on `(organization_id, name)`.
+- [ ] **`saved_views` Table:** Verify fields: `id`, `user_id`, `organization_id`, `name`, `filters` (jsonb). Enforce FK to `profiles.id`.
+- [ ] **`tasks` Table (migration):** Verify new `sprint_id` (nullable FK to `sprints.id`), `board_index` (int), and `label_ids` (array or junction) columns added correctly.
+- [ ] **Full-Text Search Index:** Verify `to_tsvector` index on `tasks(title, description)` for search performance.
+
+### Page Routing & Directory Scaffolding
+- [ ] **Sprints Page (`/sprints`):** Verify page routing and sprint list layout renders (Planned, Active, Completed groups).
+- [ ] **Kanban Board (`/projects/[id]/board`):** Verify dynamic board page routing and 3-column grid layout renders.
+- [ ] **Activity Feed (`/projects/[id]/activity`):** Verify dynamic activity page routing and timeline layout renders.
+- [ ] **Analytics Dashboard (`/analytics`):** Verify page routing and stats card placeholders render.
+- [ ] **Team Directory (`/team`):** Verify page routing and member grid layout renders.
+- [ ] **Global Search Modal:** Verify search modal is accessible from the header and opens correctly.
+- [ ] **Updated Navigation:** Verify sidebar navigation includes all new V2 links: Team, Boards, Sprints, Activity, Analytics.
+
+---
+
+## Component-by-Component Checklists
+
+### Feature 2.1: Sprint Management Verification
+- [x] **Sprint Creation:** Create a sprint named `"Q3 Sprint 1"` with goal, start date, and end date. Verify matching record inserted in `sprints` with status `PLANNED`.
+- [x] **Sprint Activation:** Start the sprint. Verify status updates to `ACTIVE` in DB and sprint card moves to the Active section.
+- [x] **Sprint Completion:** Complete the sprint. Verify status updates to `COMPLETED` and sprint is locked (no further edits allowed).
+- [x] **Task Assignment to Sprint:** Drag or assign a task to an active sprint. Verify `sprint_id` FK is updated on the `tasks` record.
+- [x] **Sprint Overlap Guard:** Attempt to create a sprint whose date range overlaps an existing sprint. Verify the overlap warning highlights and submission is blocked.
+- [x] **Role Permissions:** Login as `MEMBER`. Verify sprint creation/management controls are hidden. Login as `ADMIN`/`OWNER`. Verify full sprint management controls are visible.
+
+### Feature 2.2: Kanban Board Verification
+- [ ] **Board Renders:** Navigate to a project's board view. Verify 3 columns (TODO, IN_PROGRESS, DONE) render with correct task cards.
+- [ ] **Card Contents:** Verify each card displays: title, label badge, assignee avatar, priority indicator, and due date.
+- [ ] **Drag & Drop:** Drag a task card from TODO to IN_PROGRESS. Verify `status` and `board_index` update correctly in the `tasks` table.
+- [ ] **Drag Indicator:** Verify dashed border/drag indicator appears on the target column during an active drag.
+- [ ] **Header Sync Spinner:** Verify a loading spinner appears in the board header during the status update action.
+- [ ] **Multi-Tenant Isolation:** Verify board only displays tasks scoped to the active `organization_id`.
+
+### Feature 2.3: Project Activity Feed Verification
+- [ ] **Event Logging — Task Created:** Create a task. Verify an `activities` record is inserted with `action_type = 'TASK_CREATED'`.
+- [ ] **Event Logging — Task Assigned:** Assign a task to a member. Verify an `activities` record with `action_type = 'TASK_ASSIGNED'` is logged.
+- [ ] **Event Logging — Task Completed:** Set task status to DONE. Verify `action_type = 'TASK_COMPLETED'` activity is logged.
+- [ ] **Event Logging — Comment Added:** Post a comment. Verify `action_type = 'COMMENT_ADDED'` activity is logged.
+- [ ] **Event Logging — Member Joined:** Invite and accept a member. Verify `action_type = 'MEMBER_JOINED'` is logged.
+- [ ] **Timeline Display:** Navigate to project Activity tab. Verify feed renders actor name, action text, and relative timestamp for each event.
+- [ ] **Infinite Scroll:** Verify that scrolling past 20 entries loads the next page of activity records.
+
+### Feature 2.4: Dashboard Analytics Verification
+- [ ] **Stats Cards:** Verify the analytics page renders cards for: Total Projects, Active Projects, Completed Projects, Total Tasks, Completed Tasks, Overdue Tasks, Team Members.
+- [ ] **Overdue Count Accuracy:** Create tasks with past due dates. Verify the Overdue Tasks count increments correctly.
+- [ ] **Workload Breakdown:** Verify a workload chart/section renders per-member task counts.
+- [ ] **Trend Chart:** Verify a line or bar chart renders task completion trend over time (grouped by day).
+- [ ] **Data Scoping:** Verify all analytics are scoped to the active `organization_id` only — no cross-tenant data leakage.
+- [ ] **Performance:** Verify dashboard analytics page loads in under 2 seconds.
+
+### Feature 2.5: Task Labels & Saved Views Verification
+- [ ] **Label Creation:** Create a label `"Bug"` with a red color. Verify `labels` record inserted with correct `name`, `color`, and `organization_id`.
+- [ ] **Label Assignment:** Assign the `"Bug"` label to a task. Verify label badge renders on the task card and task detail view.
+- [ ] **Label Scoping:** Verify labels available in the dropdown are scoped to the active organization only.
+- [ ] **Save View:** Apply a filter (e.g., Priority = HIGH) and click "Save View". Verify a `saved_views` record is inserted with the correct `filters` JSON.
+- [ ] **Load Saved View:** Navigate away, then return and load the saved view. Verify the filter is restored and the task list is correctly filtered.
+- [ ] **Delete Saved View:** Delete a saved view. Verify the `saved_views` record is removed from the DB.
+
+### Feature 2.6: Search & Team Directory Verification
+- [ ] **Global Search — Projects:** Open the search modal and query a project name. Verify matching projects appear in results.
+- [ ] **Global Search — Tasks:** Search for a task title. Verify matching tasks appear under the Tasks category.
+- [ ] **Global Search — Members:** Search for a member name. Verify matching members appear under the Members category.
+- [ ] **Full-Text Search:** Search using a keyword from a task description. Verify results are returned using the `tsvector` index.
+- [ ] **Search Scoping:** Verify search results are scoped to the active `organization_id` — no cross-tenant results.
+- [ ] **Search Performance:** Verify search results return in under 1 second.
+- [ ] **Team Directory Renders:** Navigate to the Team page. Verify all organization members are listed in a grid with Name, Role, Assigned Tasks count, and Active Projects count.
+- [ ] **Workload Stats:** Verify assigned task counts on the team directory are accurate for each member.
+
+### Feature 2.7: Advanced Notifications Verification
+- [ ] **Overdue Task Notification:** Let a task pass its due date. Verify a `task overdue` notification is triggered for the assignee.
+- [ ] **Sprint Started Notification:** Start a sprint. Verify a `sprint started` notification is triggered for all org members.
+- [ ] **Sprint Ended Notification:** Complete a sprint. Verify a `sprint ended` notification is triggered for all org members.
+- [ ] **Member Invited Notification:** Invite a new member. Verify a `member invited` notification is triggered.
+- [ ] **Project Completed Notification:** Set a project status to COMPLETED. Verify a `project completed` notification is triggered.
+- [ ] **Notification Preferences:** Verify notification preferences (In App, Email) can be toggled per user and are respected by the notification system.
+
+

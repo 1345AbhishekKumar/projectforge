@@ -13,6 +13,7 @@ const taskSchema = z.object({
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
   assigneeId: z.string().nullable().optional(),
   dueDate: z.string().nullable().optional(),
+  sprintId: z.string().uuid().nullable().optional(),
 });
 
 // Helper to verify if user is member of organization
@@ -34,7 +35,8 @@ export async function createTask(
   status: TaskStatus,
   priority: TaskPriority,
   assigneeId: string | null,
-  dueDate: string | null
+  dueDate: string | null,
+  sprintId: string | null = null
 ): Promise<{ success: boolean; data?: { taskId: string }; error?: string }> {
   try {
     const { userId } = await auth();
@@ -47,6 +49,7 @@ export async function createTask(
       priority,
       assigneeId,
       dueDate,
+      sprintId,
     });
     if (!validated.success) {
       return { success: false, error: validated.error.issues[0].message };
@@ -66,6 +69,22 @@ export async function createTask(
       }
     }
 
+    if (sprintId) {
+      const { data: targetSprint } = await insforge.database
+        .from("sprints")
+        .select("status")
+        .eq("id", sprintId)
+        .eq("organization_id", orgId)
+        .single();
+      
+      if (!targetSprint) {
+        return { success: false, error: "Sprint not found in this organization" };
+      }
+      if (targetSprint.status === "COMPLETED" || targetSprint.status === "CANCELLED") {
+        return { success: false, error: "Cannot assign task to a completed or cancelled sprint" };
+      }
+    }
+
     const { data: task, error } = await insforge.database
       .from("tasks")
       .insert([
@@ -78,6 +97,7 @@ export async function createTask(
           priority: validated.data.priority,
           assignee_id: validated.data.assigneeId || null,
           due_date: validated.data.dueDate || null,
+          sprint_id: validated.data.sprintId || null,
         },
       ])
       .select("id")
@@ -149,6 +169,7 @@ export async function updateTask(
     priority?: TaskPriority;
     assignee_id?: string | null;
     due_date?: string | null;
+    sprint_id?: string | null;
   }
 ): Promise<{ success: boolean; error?: string }> {
   try {
@@ -166,6 +187,49 @@ export async function updateTask(
       const isAssigneeMember = await verifyMembership(insforge, orgId, updates.assignee_id);
       if (!isAssigneeMember) {
         return { success: false, error: "Assignee is not a member of this workspace" };
+      }
+    }
+
+    // Retrieve existing task details to check for sprint locking
+    const { data: currentTask, error: fetchError } = await insforge.database
+      .from("tasks")
+      .select("sprint_id")
+      .eq("id", taskId)
+      .eq("organization_id", orgId)
+      .single();
+
+    if (fetchError || !currentTask) {
+      return { success: false, error: "Task not found" };
+    }
+
+    // Enforce Completed Sprint Lock constraints on sprint_id changes
+    if (updates.sprint_id !== undefined && updates.sprint_id !== currentTask.sprint_id) {
+      // 1. Verify that the task is not currently inside a completed sprint
+      if (currentTask.sprint_id) {
+        const { data: oldSprint } = await insforge.database
+          .from("sprints")
+          .select("status")
+          .eq("id", currentTask.sprint_id)
+          .eq("organization_id", orgId)
+          .single();
+
+        if (oldSprint && oldSprint.status === "COMPLETED") {
+          return { success: false, error: "Cannot move task out of a completed sprint." };
+        }
+      }
+
+      // 2. Verify that the target sprint is not completed
+      if (updates.sprint_id) {
+        const { data: newSprint } = await insforge.database
+          .from("sprints")
+          .select("status")
+          .eq("id", updates.sprint_id)
+          .eq("organization_id", orgId)
+          .single();
+
+        if (newSprint && newSprint.status === "COMPLETED") {
+          return { success: false, error: "Cannot assign task to a completed sprint." };
+        }
       }
     }
 
@@ -196,6 +260,9 @@ export async function updateTask(
     }
     if (updates.due_date !== undefined) {
       updatePayload.due_date = updates.due_date;
+    }
+    if (updates.sprint_id !== undefined) {
+      updatePayload.sprint_id = updates.sprint_id;
     }
 
     const { error } = await insforge.database
@@ -245,5 +312,38 @@ export async function deleteTask(
     return { success: true };
   } catch {
     return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function getOrganizationTasks(
+  orgId: string
+): Promise<{ success: boolean; data: TaskWithAssignee[]; error?: string }> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized", data: [] };
+
+    const insforge = createInsforgeServer();
+
+    const isMember = await verifyMembership(insforge, orgId, userId);
+    if (!isMember) {
+      return { success: false, error: "Not a member of this workspace", data: [] };
+    }
+
+    const { data, error } = await insforge.database
+      .from("tasks")
+      .select(`
+        *,
+        assignee:profiles(id, full_name, email, avatar_url)
+      `)
+      .eq("organization_id", orgId)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      return { success: false, error: "Failed to fetch tasks", data: [] };
+    }
+
+    return { success: true, data: data as unknown as TaskWithAssignee[] };
+  } catch {
+    return { success: false, error: "An unexpected error occurred", data: [] };
   }
 }
