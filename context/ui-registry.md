@@ -141,7 +141,7 @@ After building any component — update this file with the component name, file 
 
 #### NotificationBell Component
 - **File Path:** [NotificationBell.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/notifications/NotificationBell.tsx)
-- **State Consumer:** Consumes `useNotificationStore` for notification items, count, dropdown toggle, and marking read.
+- **State Consumer:** Consumes `useNotificationStore` for dropdown toggle state, and `useQuery` / `useMutation` (TanStack Query) for fetching, optimistic reading, and cache invalidation.
 - **Bell Button Classes:** `relative p-2 rounded-full border-2 border-black bg-white hover:bg-neutral-bg shadow-flat-offset-sm transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0`
 - **Unread Badge Classes:** `absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-accent-pink border-2 border-black rounded-full flex items-center justify-center font-sans text-[10px] font-bold text-primary leading-none px-0.5`
 - **Dropdown Panel Classes:** `absolute right-0 top-full mt-2 w-80 bg-white border-2 border-black rounded-sketchy shadow-flat-offset z-[100] overflow-hidden`

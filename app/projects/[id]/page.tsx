@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, use } from "react";
+import React, { useState, useEffect, use } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useUser, useAuth } from "@clerk/nextjs";
@@ -51,49 +52,184 @@ export default function ProjectDetailsPage({ params }: Props) {
   const activeFilters = filtersByProject[projectId] || initialFilters;
   const activeViewName = activeViewByProject[projectId] || "";
 
-  const [project, setProject] = useState<Project | null>(null);
-  const [members, setMembers] = useState<MemberListItem[]>([]);
-  const [sprints, setSprints] = useState<Sprint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMembers, setLoadingMembers] = useState(false);
-  const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [archiving, setArchiving] = useState(false);
-  const [error, setError] = useState("");
-  const [activeTab, setActiveTab] = useState<"backlog" | "members">("backlog");
-
-  // Task states
-  const [tasks, setTasks] = useState<TaskWithAssignee[]>([]);
-  const [loadingTasks, setLoadingTasks] = useState(false);
-
-  // Filters & Saved Views states
-  const [labels, setLabels] = useState<Label[]>([]);
-  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
+  const queryClient = useQueryClient();
 
   const handleSignOut = async () => {
     await signOut();
     router.push("/sign-in");
   };
 
-  // Fetch project details
-  useEffect(() => {
-    if (!activeOrgId || !projectId) return;
+  // Queries
+  const { data: project = null, isLoading: isProjectLoading, error: projectError } = useQuery<Project | null>({
+    queryKey: ["project", projectId, activeOrgId],
+    queryFn: async () => {
+      if (!activeOrgId || !projectId) return null;
+      const result = await getProjectDetails(projectId, activeOrgId);
+      if (!result.success) throw new Error(result.error || "Project not found");
+      return result.data || null;
+    },
+    enabled: !!activeOrgId && !!projectId,
+  });
 
-    async function loadProjectDetails() {
-      setLoading(true);
-      setError("");
-      
-      const result = await getProjectDetails(projectId, activeOrgId!);
-      if (result.success && result.data) {
-        setProject(result.data);
-      } else {
-        setError(result.error || "Project not found or unauthorized access.");
+  const { data: tasks = [], isLoading: isTasksLoading } = useQuery<TaskWithAssignee[]>({
+    queryKey: ["tasks", projectId, activeOrgId],
+    queryFn: async () => {
+      if (!activeOrgId || !projectId) return [];
+      const result = await getProjectTasks(projectId, activeOrgId);
+      if (!result.success) throw new Error(result.error || "Failed to load tasks");
+      return result.data || [];
+    },
+    enabled: !!activeOrgId && !!projectId,
+  });
+
+  const { data: members = [], isLoading: isMembersLoading } = useQuery<MemberListItem[]>({
+    queryKey: ["members", activeOrgId],
+    queryFn: async () => {
+      if (!activeOrgId) return [];
+      const result = await getOrganizationMembers(activeOrgId);
+      if (!result.success) throw new Error(result.error || "Failed to load members");
+      return result.data || [];
+    },
+    enabled: !!activeOrgId,
+  });
+
+  const { data: sprints = [] } = useQuery<Sprint[]>({
+    queryKey: ["sprints", activeOrgId],
+    queryFn: async () => {
+      if (!activeOrgId) return [];
+      const result = await getSprints(activeOrgId);
+      if (!result.success) throw new Error(result.error || "Failed to load sprints");
+      return result.data || [];
+    },
+    enabled: !!activeOrgId,
+  });
+
+  const { data: labels = [] } = useQuery<Label[]>({
+    queryKey: ["labels", activeOrgId],
+    queryFn: async () => {
+      if (!activeOrgId) return [];
+      const result = await getLabels(activeOrgId);
+      if (!result.success) throw new Error(result.error || "Failed to load labels");
+      return result.data || [];
+    },
+    enabled: !!activeOrgId,
+  });
+
+  const { data: savedViews = [] } = useQuery<SavedView[]>({
+    queryKey: ["savedViews", activeOrgId],
+    queryFn: async () => {
+      if (!activeOrgId) return [];
+      const result = await getSavedViews(activeOrgId);
+      if (!result.success) throw new Error(result.error || "Failed to load saved views");
+      return result.data || [];
+    },
+    enabled: !!activeOrgId,
+  });
+
+  // Mutations
+  const updateProjectMutation = useMutation({
+    mutationFn: async (newStatus: ProjectStatus) => {
+      if (!project) throw new Error("No active project");
+      const result = await updateProject(project.id, project.name, project.description, newStatus, activeOrgId!);
+      if (!result.success) throw new Error(result.error || "Failed to update project status");
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId, activeOrgId] });
+    },
+  });
+
+  const archiveProjectMutation = useMutation({
+    mutationFn: async () => {
+      if (!project) throw new Error("No active project");
+      const result = await archiveProject(project.id, activeOrgId!);
+      if (!result.success) throw new Error(result.error || "Failed to archive project");
+      return result;
+    },
+    onSuccess: () => {
+      router.push("/projects");
+    },
+  });
+
+  const createTaskMutation = useMutation({
+    mutationFn: async ({ title, description, status, priority, assigneeId, dueDate, labelIds }: {
+      title: string;
+      description: string | null;
+      status: TaskStatus;
+      priority: TaskPriority;
+      assigneeId: string | null;
+      dueDate: string | null;
+      labelIds: string[];
+    }) => {
+      const result = await createTask(projectId, activeOrgId!, title, description, status, priority, assigneeId, dueDate, null, labelIds);
+      if (!result.success) throw new Error(result.error || "Failed to create task");
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", projectId, activeOrgId] });
+    },
+  });
+
+  const updateTaskMutation = useMutation({
+    mutationFn: async ({ taskId, updates }: {
+      taskId: string;
+      updates: Parameters<typeof updateTask>[3];
+    }) => {
+      const result = await updateTask(taskId, projectId, activeOrgId!, updates);
+      if (!result.success) throw new Error(result.error || "Failed to update task");
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", projectId, activeOrgId] });
+    },
+  });
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const result = await deleteTask(taskId, projectId, activeOrgId!);
+      if (!result.success) throw new Error(result.error || "Failed to delete task");
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", projectId, activeOrgId] });
+    },
+  });
+
+  const createSavedViewMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const result = await createSavedView(activeOrgId!, name, activeFilters);
+      if (!result.success) throw new Error(result.error || "Failed to create saved view");
+      return result;
+    },
+    onSuccess: (res, name) => {
+      queryClient.invalidateQueries({ queryKey: ["savedViews", activeOrgId] });
+      setActiveView(projectId, name);
+    },
+  });
+
+  const deleteSavedViewMutation = useMutation({
+    mutationFn: async (viewId: string) => {
+      const result = await deleteSavedView(viewId, activeOrgId!);
+      if (!result.success) throw new Error(result.error || "Failed to delete saved view");
+      return result;
+    },
+    onSuccess: (res, viewId) => {
+      queryClient.invalidateQueries({ queryKey: ["savedViews", activeOrgId] });
+      if (activeViewName && savedViews.find((v) => v.id === viewId)?.name === activeViewName) {
+        setActiveView(projectId, "");
       }
-      
-      setLoading(false);
-    }
+    },
+  });
 
-    loadProjectDetails();
-  }, [projectId, activeOrgId]);
+  // State Aliases to preserve downstream rendering without rewriting JSX
+  const loading = isProjectLoading;
+  const loadingTasks = isTasksLoading;
+  const loadingMembers = isMembersLoading;
+  const error = projectError ? (projectError as Error).message : "";
+  const updatingStatus = updateProjectMutation.isPending;
+  const archiving = archiveProjectMutation.isPending;
+
+  const [activeTab, setActiveTab] = useState<"backlog" | "members">("backlog");
 
   // Synchronize tab from URL search parameters on mount
   useEffect(() => {
@@ -109,69 +245,6 @@ export default function ProjectDetailsPage({ params }: Props) {
     }
   }, []);
 
-  // Load tasks callback
-  const loadTasks = useCallback(async () => {
-    if (!activeOrgId || !projectId) return;
-    setLoadingTasks(true);
-    const result = await getProjectTasks(projectId, activeOrgId);
-    if (result.success) {
-      setTasks(result.data);
-    }
-    setLoadingTasks(false);
-  }, [projectId, activeOrgId]);
-
-  // Fetch tasks on org/project change
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      loadTasks();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [loadTasks]);
-
-  // Fetch organization members
-  useEffect(() => {
-    if (!activeOrgId) return;
-
-    async function loadMembers() {
-      setLoadingMembers(true);
-      const result = await getOrganizationMembers(activeOrgId!);
-      if (result.success) {
-        setMembers(result.data);
-      }
-      setLoadingMembers(false);
-    }
-
-    async function loadSprints() {
-      const result = await getSprints(activeOrgId!);
-      if (result.success) {
-        setSprints(result.data);
-      }
-    }
-
-    loadMembers();
-    loadSprints();
-  }, [activeOrgId]);
-
-  // Fetch labels and saved views when active organization changes
-  useEffect(() => {
-    if (!activeOrgId) return;
-
-    async function loadFiltersData() {
-      const [labelsRes, viewsRes] = await Promise.all([
-        getLabels(activeOrgId!),
-        getSavedViews(activeOrgId!),
-      ]);
-      if (labelsRes.success) {
-        setLabels(labelsRes.data);
-      }
-      if (viewsRes.success) {
-        setSavedViews(viewsRes.data);
-      }
-    }
-
-    loadFiltersData();
-  }, [activeOrgId]);
-
   // Redirect to projects directory if activeOrgId changes
   const initialOrgIdRef = React.useRef(activeOrgId);
   useEffect(() => {
@@ -183,33 +256,23 @@ export default function ProjectDetailsPage({ params }: Props) {
   // Handle project status update dropdown
   async function handleStatusChange(newStatus: ProjectStatus) {
     if (!project || !activeOrgId) return;
-
-    setUpdatingStatus(true);
-    const res = await updateProject(project.id, project.name, project.description, newStatus, activeOrgId);
-    if (res.success) {
-      setProject({
-        ...project,
-        status: newStatus,
-        updated_at: new Date().toISOString(),
-      });
-    } else {
-      alert(res.error || "Failed to update project status");
+    try {
+      await updateProjectMutation.mutateAsync(newStatus);
+    } catch (e) {
+      const err = e instanceof Error ? e.message : "Failed to update project status";
+      alert(err);
     }
-    setUpdatingStatus(false);
   }
 
   // Handle project archiving
   async function handleArchive() {
     if (!project || !activeOrgId) return;
     if (!confirm("Are you sure you want to archive this project board?")) return;
-
-    setArchiving(true);
-    const res = await archiveProject(project.id, activeOrgId);
-    if (res.success) {
-      router.push("/projects");
-    } else {
-      alert(res.error || "Failed to archive project");
-      setArchiving(false);
+    try {
+      await archiveProjectMutation.mutateAsync();
+    } catch (e) {
+      const err = e instanceof Error ? e.message : "Failed to archive project";
+      alert(err);
     }
   }
 
@@ -224,11 +287,21 @@ export default function ProjectDetailsPage({ params }: Props) {
     labelIds: string[] = []
   ) {
     if (!activeOrgId || !projectId) return { success: false, error: "Missing context" };
-    const res = await createTask(projectId, activeOrgId, title, description, status, priority, assigneeId, dueDate, null, labelIds);
-    if (res.success) {
-      loadTasks();
+    try {
+      const res = await createTaskMutation.mutateAsync({
+        title,
+        description,
+        status,
+        priority,
+        assigneeId,
+        dueDate,
+        labelIds,
+      });
+      return res;
+    } catch (e) {
+      const err = e instanceof Error ? e.message : "An error occurred";
+      return { success: false, error: err };
     }
-    return res;
   }
 
   async function handleUpdateTask(
@@ -245,34 +318,39 @@ export default function ProjectDetailsPage({ params }: Props) {
     }
   ) {
     if (!activeOrgId || !projectId) return { success: false, error: "Missing context" };
-    const res = await updateTask(taskId, projectId, activeOrgId, updates);
-    if (res.success) {
-      loadTasks();
+    try {
+      const res = await updateTaskMutation.mutateAsync({
+        taskId,
+        updates,
+      });
+      return res;
+    } catch (e) {
+      const err = e instanceof Error ? e.message : "An error occurred";
+      return { success: false, error: err };
     }
-    return res;
   }
 
   // Saved Views Actions
   const handleSaveView = async (name: string) => {
     if (!activeOrgId) return { success: false, error: "No active workspace" };
-    const res = await createSavedView(activeOrgId, name, activeFilters);
-    if (res.success && res.data) {
-      setSavedViews((prev) => [res.data!, ...prev]);
-      setActiveView(projectId, name);
+    try {
+      const res = await createSavedViewMutation.mutateAsync(name);
+      return res;
+    } catch (e) {
+      const err = e instanceof Error ? e.message : "An error occurred";
+      return { success: false, error: err };
     }
-    return res;
   };
 
   const handleDeleteView = async (viewId: string) => {
     if (!activeOrgId) return { success: false, error: "No active workspace" };
-    const res = await deleteSavedView(viewId, activeOrgId);
-    if (res.success) {
-      setSavedViews((prev) => prev.filter((v) => v.id !== viewId));
-      if (activeViewName && savedViews.find((v) => v.id === viewId)?.name === activeViewName) {
-        setActiveView(projectId, "");
-      }
+    try {
+      const res = await deleteSavedViewMutation.mutateAsync(viewId);
+      return res;
+    } catch (e) {
+      const err = e instanceof Error ? e.message : "An error occurred";
+      return { success: false, error: err };
     }
-    return res;
   };
 
   // Apply filters client-side
@@ -299,21 +377,26 @@ export default function ProjectDetailsPage({ params }: Props) {
 
   async function handleDeleteTask(taskId: string) {
     if (!activeOrgId || !projectId) return { success: false, error: "Missing context" };
-    const res = await deleteTask(taskId, projectId, activeOrgId);
-    if (res.success) {
-      loadTasks();
+    try {
+      const res = await deleteTaskMutation.mutateAsync(taskId);
+      return res;
+    } catch (e) {
+      const err = e instanceof Error ? e.message : "An error occurred";
+      return { success: false, error: err };
     }
-    return res;
   }
 
   async function handleStatusToggle(task: TaskWithAssignee) {
     if (!activeOrgId || !projectId) return;
     const newStatus: TaskStatus = task.status === "DONE" ? "TODO" : "DONE";
-    const res = await updateTask(task.id, projectId, activeOrgId, { status: newStatus });
-    if (res.success) {
-      loadTasks();
-    } else {
-      alert(res.error || "Failed to toggle status");
+    try {
+      await updateTaskMutation.mutateAsync({
+        taskId: task.id,
+        updates: { status: newStatus },
+      });
+    } catch (e) {
+      const err = e instanceof Error ? e.message : "Failed to toggle status";
+      alert(err);
     }
   }
 

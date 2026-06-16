@@ -8,11 +8,12 @@ We are building Version 1
 ---
 
 ## Current Status
-- **Status:** **Feature 2.8 (Zustand State Management) Implemented**. Centralized active organization, task drawer selection/modal toggles, project/sprint modals, and notifications state into 6 Zustand stores, migrating all duplicated `useState` hooks, eliminating the 10× copy-pasted `getActiveOrgId` cookie readers and polling intervals, and resolving all lint/compile checks.
+- **Status:** **TanStack Query (React Query) Integration Implemented**. Installed `@tanstack/react-query@5.101.0`, wrapped layout in `QueryProvider`, and migrated client-side data fetching and mutations in `NotificationBell` and `projects/[id]/page.tsx` from manual React state/hooks to TanStack Query queries and mutations, resolving all lints and compiling a successful Next.js production build.
 - **Active Sprint:** Version 2 Work Management Platform features.
 - **Target Milestones:** Version 2 complete.
 
 ## Progress
+- [x] Integrate `@tanstack/react-query` v5 for client-side server state management, refactoring `NotificationBell` and `projects/[id]/page.tsx` with queries/mutations and optimistic updates.
 - [x] Align project overview and description to ProjectForge (`context/project-overview.md`).
 - [x] Formulate comprehensive, 700+ line engineering build-plan and blueprint (`context/build-plan.md`).
 - [x] Establish isolated verification checklist and todos for Version 1 (MVP) (`context/todos.md`).

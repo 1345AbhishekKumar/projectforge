@@ -5,10 +5,14 @@ import { Bell, Loader2, RefreshCw } from "lucide-react";
 import {
   deleteOldNotifications,
   checkOverdueTasks,
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
 } from "@/actions/notification";
 import type { Notification, NotificationType } from "@/types";
 import { useOrgStore } from "@/store/orgStore";
 import { useNotificationStore } from "@/store/notificationStore";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 function formatRelativeTime(dateStr: string): string {
   const now = new Date();
@@ -56,7 +60,6 @@ function groupNotificationsByDate(
   return ordered;
 }
 
-// Visual badge for each notification type
 const TYPE_BADGE: Record<
   NotificationType,
   { label: string; className: string }
@@ -71,27 +74,78 @@ const TYPE_BADGE: Record<
 
 export function NotificationBell() {
   const { activeOrgId } = useOrgStore();
-  const {
-    notifications,
-    isOpen: open,
-    isLoading: loading,
-    setIsOpen: setOpen,
-    fetchNotifications,
-    markRead,
-    markAllRead,
-  } = useNotificationStore();
+  const { isOpen: open, setIsOpen: setOpen } = useNotificationStore();
+  const queryClient = useQueryClient();
 
-  const [markingAll, setMarkingAll] = useState(false);
+  const { data: notifications = [], isLoading: loading } = useQuery<Notification[]>({
+    queryKey: ["notifications"],
+    queryFn: async () => {
+      const result = await getNotifications();
+      if (!result.success) throw new Error(result.error || "Failed to fetch notifications");
+      return result.data || [];
+    },
+    staleTime: 30 * 1000,
+  });
+
+  const markReadMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const result = await markNotificationRead(id);
+      if (!result.success) throw new Error(result.error || "Failed to mark notification read");
+      return result;
+    },
+    onMutate: async (id) => {
+      await queryClient.cancelQueries({ queryKey: ["notifications"] });
+      const previousNotifications = queryClient.getQueryData<Notification[]>(["notifications"]);
+      if (previousNotifications) {
+        queryClient.setQueryData<Notification[]>(
+          ["notifications"],
+          previousNotifications.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+        );
+      }
+      return { previousNotifications };
+    },
+    onError: (err, id, context) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(["notifications"], context.previousNotifications);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
+  const markAllReadMutation = useMutation({
+    mutationFn: async () => {
+      const result = await markAllNotificationsRead();
+      if (!result.success) throw new Error(result.error || "Failed to mark all notifications read");
+      return result;
+    },
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ["notifications"] });
+      const previousNotifications = queryClient.getQueryData<Notification[]>(["notifications"]);
+      if (previousNotifications) {
+        queryClient.setQueryData<Notification[]>(
+          ["notifications"],
+          previousNotifications.map((n) => ({ ...n, is_read: true }))
+        );
+      }
+      return { previousNotifications };
+    },
+    onError: (err, variables, context) => {
+      if (context?.previousNotifications) {
+        queryClient.setQueryData(["notifications"], context.previousNotifications);
+      }
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
+    },
+  });
+
   const [checkingOverdue, setCheckingOverdue] = useState(false);
   const [overdueMsg, setOverdueMsg] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
-
-  // Initial fetch
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
 
   // Close on outside click
   useEffect(() => {
@@ -109,19 +163,17 @@ export function NotificationBell() {
     setOpen(next);
     if (next) {
       deleteOldNotifications();
-      await fetchNotifications();
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     }
   };
 
   const handleMarkRead = async (id: string) => {
-    await markRead(id);
+    markReadMutation.mutate(id);
   };
 
   const handleMarkAllRead = async () => {
     if (unreadCount === 0) return;
-    setMarkingAll(true);
-    await markAllRead();
-    setMarkingAll(false);
+    markAllReadMutation.mutate();
   };
 
   const handleCheckOverdue = async () => {
@@ -141,8 +193,7 @@ export function NotificationBell() {
           ? "No new overdue tasks found."
           : `${count} overdue notification${count === 1 ? "" : "s"} sent.`
       );
-      // Refresh the list to show new notifications
-      await fetchNotifications();
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     } else {
       setOverdueMsg(result.error || "Check failed.");
     }
@@ -179,10 +230,10 @@ export function NotificationBell() {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                disabled={markingAll}
+                disabled={markAllReadMutation.isPending}
                 className="font-sans text-xs font-semibold text-tertiary hover:text-tertiary-hover underline underline-offset-2 disabled:opacity-40 transition-colors"
               >
-                {markingAll ? "Marking..." : "Mark all as read"}
+                {markAllReadMutation.isPending ? "Marking..." : "Mark all as read"}
               </button>
             )}
           </div>
