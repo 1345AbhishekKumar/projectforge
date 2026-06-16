@@ -2,7 +2,22 @@
 
 import { useState } from "react";
 import { Loader2, FolderPlus, X } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import type { ProjectStatus } from "@/types";
+
+const projectSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(3, "Project name must be at least 3 characters")
+    .max(50, "Project name must be at most 50 characters"),
+  description: z.string().trim().max(250, "Description must be at most 250 characters").optional(),
+  status: z.enum(["PLANNING", "ACTIVE", "COMPLETED", "ARCHIVED"]),
+});
+
+type ProjectInput = z.infer<typeof projectSchema>;
 
 type Props = {
   isOpen: boolean;
@@ -11,30 +26,40 @@ type Props = {
 };
 
 export function CreateProjectModal({ isOpen, onClose, onCreate }: Props) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<ProjectStatus>("PLANNING");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<ProjectInput>({
+    resolver: zodResolver(projectSchema),
+    mode: "onBlur",
+    defaultValues: {
+      name: "",
+      description: "",
+      status: "PLANNING",
+    },
+  });
+
   if (!isOpen) return null;
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name || name.length < 3) {
-      setError("Project name must be at least 3 characters");
-      return;
-    }
+  const handleClose = () => {
+    reset();
+    setError("");
+    onClose();
+  };
 
+  async function onSubmit(data: ProjectInput) {
     setError("");
     setLoading(true);
 
     try {
-      const result = await onCreate(name, description || null, status);
+      const result = await onCreate(data.name, data.description || null, data.status);
       if (result.success) {
-        setName("");
-        setDescription("");
-        setStatus("PLANNING");
+        reset();
         onClose();
       } else {
         setError(result.error || "Failed to create project");
@@ -52,7 +77,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreate }: Props) {
         
         {/* Close Button */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-4 right-4 w-8 h-8 rounded-full border-2 border-black bg-white hover:bg-neutral-bg flex items-center justify-center shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer font-bold"
           aria-label="Close modal"
         >
@@ -77,21 +102,27 @@ export function CreateProjectModal({ isOpen, onClose, onCreate }: Props) {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div>
             <label className="font-sans text-xs font-semibold mb-1 block">
               Project Name
             </label>
             <input
               type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              {...register("name")}
               placeholder="e.g., Q3 Mobile app refactor"
-              required
-              minLength={3}
-              maxLength={50}
-              className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow"
+              className={`w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow ${
+                errors.name ? "border-rose-500 bg-rose-50/20" : ""
+              }`}
             />
+            {errors.name && (
+              <span
+                aria-live="polite"
+                className="text-xs font-mono font-bold text-rose-600 mt-1 block"
+              >
+                {errors.name.message}
+              </span>
+            )}
           </div>
 
           <div>
@@ -99,13 +130,21 @@ export function CreateProjectModal({ isOpen, onClose, onCreate }: Props) {
               Description (Optional)
             </label>
             <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              {...register("description")}
               placeholder="What is the objective or timeline of this project?"
-              maxLength={250}
               rows={3}
-              className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow resize-none"
+              className={`w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow resize-none ${
+                errors.description ? "border-rose-500 bg-rose-50/20" : ""
+              }`}
             />
+            {errors.description && (
+              <span
+                aria-live="polite"
+                className="text-xs font-mono font-bold text-rose-600 mt-1 block"
+              >
+                {errors.description.message}
+              </span>
+            )}
           </div>
 
           <div>
@@ -113,8 +152,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreate }: Props) {
               Status Column
             </label>
             <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as ProjectStatus)}
+              {...register("status")}
               className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer"
             >
               <option value="PLANNING">PLANNING (Backlog design)</option>
@@ -126,7 +164,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreate }: Props) {
 
           <button
             type="submit"
-            disabled={loading || !name}
+            disabled={loading}
             className="w-full py-2.5 mt-2 bg-tertiary hover:bg-tertiary-hover text-white font-sans text-sm font-bold border-2 border-black rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
           >
             {loading ? (

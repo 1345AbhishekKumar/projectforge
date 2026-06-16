@@ -4,10 +4,24 @@ import { auth } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { SavedView } from "@/types";
+import { orgIdSchema, viewIdSchema } from "@/lib/utils";
 
 const savedViewSchema = z.object({
   name: z.string().min(3, "Saved view name must be at least 3 characters").max(50),
   filters: z.record(z.string(), z.any()),
+});
+
+const getSavedViewsInputSchema = z.object({
+  orgId: orgIdSchema,
+});
+
+const createSavedViewInputSchema = savedViewSchema.extend({
+  orgId: orgIdSchema,
+});
+
+const deleteSavedViewInputSchema = z.object({
+  viewId: viewIdSchema,
+  orgId: orgIdSchema,
 });
 
 async function verifyMembership(insforge: ReturnType<typeof createInsforgeServer>, orgId: string, userId: string): Promise<boolean> {
@@ -21,18 +35,23 @@ async function verifyMembership(insforge: ReturnType<typeof createInsforgeServer
 }
 
 export async function getSavedViews(orgId: string): Promise<{ success: boolean; data: SavedView[]; error?: string }> {
+  const validated = getSavedViewsInputSchema.safeParse({ orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message, data: [] };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
     const insforge = createInsforgeServer();
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) return { success: false, error: "Not a member of this workspace", data: [] };
 
     const { data, error } = await (await insforge).database
       .from("saved_views")
       .select("*")
-      .eq("organization_id", orgId)
+      .eq("organization_id", validated.data.orgId)
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
@@ -47,17 +66,17 @@ export async function getSavedViews(orgId: string): Promise<{ success: boolean; 
 }
 
 export async function createSavedView(orgId: string, name: string, filters: SavedView["filters"]): Promise<{ success: boolean; data?: SavedView; error?: string }> {
+  const validated = createSavedViewInputSchema.safeParse({ orgId, name, filters });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const validated = savedViewSchema.safeParse({ name, filters });
-    if (!validated.success) {
-      return { success: false, error: validated.error.issues[0].message };
-    }
-
     const insforge = createInsforgeServer();
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) return { success: false, error: "Not a member of this workspace" };
 
     const { data, error } = await (await insforge).database
@@ -65,7 +84,7 @@ export async function createSavedView(orgId: string, name: string, filters: Save
       .insert([
         {
           user_id: userId,
-          organization_id: orgId,
+          organization_id: validated.data.orgId,
           name: validated.data.name,
           filters: validated.data.filters,
         },
@@ -87,19 +106,24 @@ export async function createSavedView(orgId: string, name: string, filters: Save
 }
 
 export async function deleteSavedView(viewId: string, orgId: string): Promise<{ success: boolean; error?: string }> {
+  const validated = deleteSavedViewInputSchema.safeParse({ viewId, orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
     const insforge = createInsforgeServer();
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) return { success: false, error: "Not a member of this workspace" };
 
     const { error } = await (await insforge).database
       .from("saved_views")
       .delete()
-      .eq("id", viewId)
-      .eq("organization_id", orgId)
+      .eq("id", validated.data.viewId)
+      .eq("organization_id", validated.data.orgId)
       .eq("user_id", userId);
 
     if (error) {

@@ -6,6 +6,7 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { Task, TaskStatus, TaskPriority, Label } from "@/types";
 import { logActivity } from "@/actions/activity";
+import { orgIdSchema, projectIdSchema, taskIdSchema } from "@/lib/utils";
 
 const taskSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(100),
@@ -15,6 +16,56 @@ const taskSchema = z.object({
   assigneeId: z.string().nullable().optional(),
   dueDate: z.string().nullable().optional(),
   sprintId: z.string().uuid().nullable().optional(),
+});
+
+const createTaskInputSchema = taskSchema.extend({
+  projectId: projectIdSchema,
+  orgId: orgIdSchema,
+  labelIds: z.array(z.string().uuid()).optional(),
+});
+
+const getProjectTasksInputSchema = z.object({
+  projectId: projectIdSchema,
+  orgId: orgIdSchema,
+});
+
+const updateTaskInputSchema = z.object({
+  taskId: taskIdSchema,
+  projectId: projectIdSchema,
+  orgId: orgIdSchema,
+  updates: z.object({
+    title: z.string().min(3, "Title must be at least 3 characters").max(100).optional(),
+    description: z.string().max(500).nullable().optional(),
+    status: z.enum(["TODO", "IN_PROGRESS", "DONE"]).optional(),
+    priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
+    assignee_id: z.string().nullable().optional(),
+    due_date: z.string().nullable().optional(),
+    sprint_id: z.string().uuid().nullable().optional(),
+    board_index: z.number().int().min(0).optional(),
+    label_ids: z.array(z.string().uuid()).nullable().optional(),
+  }),
+});
+
+const deleteTaskInputSchema = z.object({
+  taskId: taskIdSchema,
+  projectId: projectIdSchema,
+  orgId: orgIdSchema,
+});
+
+const getOrganizationTasksInputSchema = z.object({
+  orgId: orgIdSchema,
+});
+
+const reorderTasksInputSchema = z.object({
+  projectId: projectIdSchema,
+  orgId: orgIdSchema,
+  taskUpdates: z.array(
+    z.object({
+      id: taskIdSchema,
+      status: z.enum(["TODO", "IN_PROGRESS", "DONE"]),
+      board_index: z.number().int().min(0),
+    })
+  ),
 });
 
 // Helper to verify if user is member of organization
@@ -40,43 +91,46 @@ export async function createTask(
   sprintId: string | null = null,
   labelIds: string[] = []
 ): Promise<{ success: boolean; data?: { taskId: string }; error?: string }> {
+  const validated = createTaskInputSchema.safeParse({
+    projectId,
+    orgId,
+    title,
+    description,
+    status,
+    priority,
+    assigneeId,
+    dueDate,
+    sprintId,
+    labelIds,
+  });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const validated = taskSchema.safeParse({
-      title,
-      description,
-      status,
-      priority,
-      assigneeId,
-      dueDate,
-      sprintId,
-    });
-    if (!validated.success) {
-      return { success: false, error: validated.error.issues[0].message };
-    }
-
     const insforge = createInsforgeServer();
 
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace" };
     }
 
-    if (assigneeId) {
-      const isAssigneeMember = await verifyMembership(insforge, orgId, assigneeId);
+    if (validated.data.assigneeId) {
+      const isAssigneeMember = await verifyMembership(insforge, validated.data.orgId, validated.data.assigneeId);
       if (!isAssigneeMember) {
         return { success: false, error: "Assignee is not a member of this workspace" };
       }
     }
 
-    if (sprintId) {
+    if (validated.data.sprintId) {
       const { data: targetSprint } = await insforge.database
         .from("sprints")
         .select("status")
-        .eq("id", sprintId)
-        .eq("organization_id", orgId)
+        .eq("id", validated.data.sprintId)
+        .eq("organization_id", validated.data.orgId)
         .single();
       
       if (!targetSprint) {
@@ -91,8 +145,8 @@ export async function createTask(
       .from("tasks")
       .insert([
         {
-          project_id: projectId,
-          organization_id: orgId,
+          project_id: validated.data.projectId,
+          organization_id: validated.data.orgId,
           title: validated.data.title,
           description: validated.data.description || null,
           status: validated.data.status,
@@ -122,7 +176,7 @@ export async function createTask(
       }
     }
 
-    await logActivity(orgId, projectId, userId, "TASK_CREATED", {
+    await logActivity(validated.data.orgId, validated.data.projectId, userId, "TASK_CREATED", {
       taskId: task.id,
       taskTitle: validated.data.title,
       priority: validated.data.priority,
@@ -136,7 +190,7 @@ export async function createTask(
         .single();
       const assigneeName = profile?.full_name || "Unknown User";
 
-      await logActivity(orgId, projectId, userId, "TASK_ASSIGNED", {
+      await logActivity(validated.data.orgId, validated.data.projectId, userId, "TASK_ASSIGNED", {
         taskId: task.id,
         taskTitle: validated.data.title,
         assigneeId: validated.data.assigneeId,
@@ -144,7 +198,7 @@ export async function createTask(
       });
     }
 
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true, data: { taskId: task.id } };
   } catch {
     return { success: false, error: "An unexpected error occurred" };
@@ -177,13 +231,18 @@ export async function getProjectTasks(
   projectId: string,
   orgId: string
 ): Promise<{ success: boolean; data: TaskWithAssignee[]; error?: string }> {
+  const validated = getProjectTasksInputSchema.safeParse({ projectId, orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message, data: [] };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
     const insforge = createInsforgeServer();
 
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace", data: [] };
     }
@@ -195,8 +254,8 @@ export async function getProjectTasks(
         assignee:profiles(id, full_name, email, avatar_url),
         task_label_mappings(label:labels(*))
       `)
-      .eq("project_id", projectId)
-      .eq("organization_id", orgId)
+      .eq("project_id", validated.data.projectId)
+      .eq("organization_id", validated.data.orgId)
       .order("board_index", { ascending: true })
       .order("created_at", { ascending: false });
 
@@ -233,19 +292,24 @@ export async function updateTask(
     label_ids?: string[] | null;
   }
 ): Promise<{ success: boolean; error?: string }> {
+  const validated = updateTaskInputSchema.safeParse({ taskId, projectId, orgId, updates });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
     const insforge = createInsforgeServer();
 
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace" };
     }
 
-    if (updates.assignee_id) {
-      const isAssigneeMember = await verifyMembership(insforge, orgId, updates.assignee_id);
+    if (validated.data.updates.assignee_id) {
+      const isAssigneeMember = await verifyMembership(insforge, validated.data.orgId, validated.data.updates.assignee_id);
       if (!isAssigneeMember) {
         return { success: false, error: "Assignee is not a member of this workspace" };
       }
@@ -255,8 +319,8 @@ export async function updateTask(
     const { data: currentTask, error: fetchError } = await insforge.database
       .from("tasks")
       .select("title, assignee_id, status, sprint_id")
-      .eq("id", taskId)
-      .eq("organization_id", orgId)
+      .eq("id", validated.data.taskId)
+      .eq("organization_id", validated.data.orgId)
       .single();
 
     if (fetchError || !currentTask) {
@@ -264,14 +328,14 @@ export async function updateTask(
     }
 
     // Enforce Completed Sprint Lock constraints on sprint_id changes
-    if (updates.sprint_id !== undefined && updates.sprint_id !== currentTask.sprint_id) {
+    if (validated.data.updates.sprint_id !== undefined && validated.data.updates.sprint_id !== currentTask.sprint_id) {
       // 1. Verify that the task is not currently inside a completed sprint
       if (currentTask.sprint_id) {
         const { data: oldSprint } = await insforge.database
           .from("sprints")
           .select("status")
           .eq("id", currentTask.sprint_id)
-          .eq("organization_id", orgId)
+          .eq("organization_id", validated.data.orgId)
           .single();
 
         if (oldSprint && oldSprint.status === "COMPLETED") {
@@ -280,12 +344,12 @@ export async function updateTask(
       }
 
       // 2. Verify that the target sprint is not completed
-      if (updates.sprint_id) {
+      if (validated.data.updates.sprint_id) {
         const { data: newSprint } = await insforge.database
           .from("sprints")
           .select("status")
-          .eq("id", updates.sprint_id)
-          .eq("organization_id", orgId)
+          .eq("id", validated.data.updates.sprint_id)
+          .eq("organization_id", validated.data.orgId)
           .single();
 
         if (newSprint && newSprint.status === "COMPLETED") {
@@ -294,21 +358,21 @@ export async function updateTask(
       }
     }
 
-    if (updates.label_ids !== undefined) {
+    if (validated.data.updates.label_ids !== undefined) {
       // First delete existing mappings for this task
       const { error: deleteError } = await insforge.database
         .from("task_label_mappings")
         .delete()
-        .eq("task_id", taskId);
+        .eq("task_id", validated.data.taskId);
 
       if (deleteError) {
         return { success: false, error: "Failed to update task labels" };
       }
 
       // Then insert new mappings if any
-      if (updates.label_ids && updates.label_ids.length > 0) {
-        const mappings = updates.label_ids.map((labelId) => ({
-          task_id: taskId,
+      if (validated.data.updates.label_ids && validated.data.updates.label_ids.length > 0) {
+        const mappings = validated.data.updates.label_ids.map((labelId) => ({
+          task_id: validated.data.taskId,
           label_id: labelId,
         }));
         const { error: insertError } = await insforge.database
@@ -325,80 +389,74 @@ export async function updateTask(
       updated_at: new Date().toISOString(),
     };
 
-    if (updates.title !== undefined) {
-      if (updates.title.length < 3 || updates.title.length > 100) {
-        return { success: false, error: "Title must be between 3 and 100 characters" };
-      }
-      updatePayload.title = updates.title;
+    if (validated.data.updates.title !== undefined) {
+      updatePayload.title = validated.data.updates.title;
     }
-    if (updates.description !== undefined) {
-      if (updates.description && updates.description.length > 500) {
-        return { success: false, error: "Description must not exceed 500 characters" };
-      }
-      updatePayload.description = updates.description;
+    if (validated.data.updates.description !== undefined) {
+      updatePayload.description = validated.data.updates.description;
     }
-    if (updates.status !== undefined) {
-      updatePayload.status = updates.status;
+    if (validated.data.updates.status !== undefined) {
+      updatePayload.status = validated.data.updates.status;
     }
-    if (updates.priority !== undefined) {
-      updatePayload.priority = updates.priority;
+    if (validated.data.updates.priority !== undefined) {
+      updatePayload.priority = validated.data.updates.priority;
     }
-    if (updates.assignee_id !== undefined) {
-      updatePayload.assignee_id = updates.assignee_id;
+    if (validated.data.updates.assignee_id !== undefined) {
+      updatePayload.assignee_id = validated.data.updates.assignee_id;
     }
-    if (updates.due_date !== undefined) {
-      updatePayload.due_date = updates.due_date;
+    if (validated.data.updates.due_date !== undefined) {
+      updatePayload.due_date = validated.data.updates.due_date;
     }
-    if (updates.sprint_id !== undefined) {
-      updatePayload.sprint_id = updates.sprint_id;
+    if (validated.data.updates.sprint_id !== undefined) {
+      updatePayload.sprint_id = validated.data.updates.sprint_id;
     }
-    if (updates.board_index !== undefined) {
-      updatePayload.board_index = updates.board_index;
+    if (validated.data.updates.board_index !== undefined) {
+      updatePayload.board_index = validated.data.updates.board_index;
     }
 
     const { error } = await insforge.database
       .from("tasks")
       .update(updatePayload)
-      .eq("id", taskId)
-      .eq("organization_id", orgId);
+      .eq("id", validated.data.taskId)
+      .eq("organization_id", validated.data.orgId);
 
     if (error) {
       return { success: false, error: "Failed to update task" };
     }
 
-    const taskTitle = updates.title || currentTask.title;
+    const taskTitle = validated.data.updates.title || currentTask.title;
 
-    if (updates.status === "DONE" && currentTask.status !== "DONE") {
-      await logActivity(orgId, projectId, userId, "TASK_COMPLETED", {
-        taskId,
+    if (validated.data.updates.status === "DONE" && currentTask.status !== "DONE") {
+      await logActivity(validated.data.orgId, validated.data.projectId, userId, "TASK_COMPLETED", {
+        taskId: validated.data.taskId,
         taskTitle,
       });
     }
 
-    if (updates.assignee_id !== undefined && updates.assignee_id !== currentTask.assignee_id) {
-      if (updates.assignee_id) {
+    if (validated.data.updates.assignee_id !== undefined && validated.data.updates.assignee_id !== currentTask.assignee_id) {
+      if (validated.data.updates.assignee_id) {
         const { data: profile } = await insforge.database
           .from("profiles")
           .select("full_name")
-          .eq("id", updates.assignee_id)
+          .eq("id", validated.data.updates.assignee_id)
           .single();
         const assigneeName = profile?.full_name || "Unknown User";
 
-        await logActivity(orgId, projectId, userId, "TASK_ASSIGNED", {
-          taskId,
+        await logActivity(validated.data.orgId, validated.data.projectId, userId, "TASK_ASSIGNED", {
+          taskId: validated.data.taskId,
           taskTitle,
-          assigneeId: updates.assignee_id,
+          assigneeId: validated.data.updates.assignee_id,
           assigneeName,
         });
       } else {
-        await logActivity(orgId, projectId, userId, "TASK_UNASSIGNED", {
-          taskId,
+        await logActivity(validated.data.orgId, validated.data.projectId, userId, "TASK_UNASSIGNED", {
+          taskId: validated.data.taskId,
           taskTitle,
         });
       }
     }
 
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };
   } catch {
     return { success: false, error: "An unexpected error occurred" };
@@ -410,13 +468,18 @@ export async function deleteTask(
   projectId: string,
   orgId: string
 ): Promise<{ success: boolean; error?: string }> {
+  const validated = deleteTaskInputSchema.safeParse({ taskId, projectId, orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
     const insforge = createInsforgeServer();
 
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace" };
     }
@@ -424,14 +487,14 @@ export async function deleteTask(
     const { error } = await insforge.database
       .from("tasks")
       .delete()
-      .eq("id", taskId)
-      .eq("organization_id", orgId);
+      .eq("id", validated.data.taskId)
+      .eq("organization_id", validated.data.orgId);
 
     if (error) {
       return { success: false, error: "Failed to delete task" };
     }
 
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };
   } catch {
     return { success: false, error: "An unexpected error occurred" };
@@ -441,13 +504,18 @@ export async function deleteTask(
 export async function getOrganizationTasks(
   orgId: string
 ): Promise<{ success: boolean; data: TaskWithAssignee[]; error?: string }> {
+  const validated = getOrganizationTasksInputSchema.safeParse({ orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message, data: [] };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
     const insforge = createInsforgeServer();
 
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace", data: [] };
     }
@@ -459,7 +527,7 @@ export async function getOrganizationTasks(
         assignee:profiles(id, full_name, email, avatar_url),
         task_label_mappings(label:labels(*))
       `)
-      .eq("organization_id", orgId)
+      .eq("organization_id", validated.data.orgId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -484,26 +552,31 @@ export async function reorderTasks(
   orgId: string,
   taskUpdates: { id: string; status: TaskStatus; board_index: number }[]
 ): Promise<{ success: boolean; error?: string }> {
+  const validated = reorderTasksInputSchema.safeParse({ projectId, orgId, taskUpdates });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
     const insforge = createInsforgeServer();
 
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace" };
     }
 
     // Fetch previous task states to log status transitions
-    const taskIds = taskUpdates.map((u) => u.id);
+    const taskIds = validated.data.taskUpdates.map((u) => u.id);
     const { data: prevTasks } = await insforge.database
       .from("tasks")
       .select("id, title, status")
       .in("id", taskIds);
 
     // Run updates in parallel
-    const promises = taskUpdates.map((update) =>
+    const promises = validated.data.taskUpdates.map((update) =>
       insforge.database
         .from("tasks")
         .update({
@@ -512,7 +585,7 @@ export async function reorderTasks(
           updated_at: new Date().toISOString(),
         })
         .eq("id", update.id)
-        .eq("organization_id", orgId)
+        .eq("organization_id", validated.data.orgId)
     );
 
     const results = await Promise.all(promises);
@@ -524,16 +597,16 @@ export async function reorderTasks(
 
     // Log status transitions after successful updates
     if (prevTasks) {
-      for (const update of taskUpdates) {
+      for (const update of validated.data.taskUpdates) {
         const prev = prevTasks.find((t) => t.id === update.id);
         if (prev && prev.status !== update.status) {
           if (update.status === "DONE") {
-            await logActivity(orgId, projectId, userId, "TASK_COMPLETED", {
+            await logActivity(validated.data.orgId, validated.data.projectId, userId, "TASK_COMPLETED", {
               taskId: update.id,
               taskTitle: prev.title,
             });
           } else {
-            await logActivity(orgId, projectId, userId, "TASK_STATUS_UPDATED", {
+            await logActivity(validated.data.orgId, validated.data.projectId, userId, "TASK_STATUS_UPDATED", {
               taskId: update.id,
               taskTitle: prev.title,
               fromStatus: prev.status,
@@ -544,7 +617,7 @@ export async function reorderTasks(
       }
     }
 
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };
   } catch {
     return { success: false, error: "An unexpected error occurred" };

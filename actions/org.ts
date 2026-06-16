@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { OrganizationWithRole } from "@/types";
+import { orgIdSchema } from "@/lib/utils";
 
 const createOrgSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(50),
@@ -17,6 +18,10 @@ const createOrgSchema = z.object({
       /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
       "Slug must be lowercase alphanumeric with hyphens"
     ),
+});
+
+const setActiveOrganizationInputSchema = z.object({
+  orgId: orgIdSchema,
 });
 
 export async function createOrganization(
@@ -136,6 +141,11 @@ export async function getUserOrganizations(): Promise<{
 export async function setActiveOrganization(
   orgId: string
 ): Promise<{ success: boolean; error?: string }> {
+  const validated = setActiveOrganizationInputSchema.safeParse({ orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
@@ -144,7 +154,7 @@ export async function setActiveOrganization(
     const { data } = await insforge.database
       .from("memberships")
       .select("id")
-      .eq("organization_id", orgId)
+      .eq("organization_id", validated.data.orgId)
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -153,7 +163,7 @@ export async function setActiveOrganization(
     }
 
     const cookieStore = await cookies();
-    cookieStore.set("active_org_id", orgId, {
+    cookieStore.set("active_org_id", validated.data.orgId, {
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
       httpOnly: false,

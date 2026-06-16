@@ -3,6 +3,16 @@
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
+import { z } from "zod";
+import { orgIdSchema, projectIdSchema } from "@/lib/utils";
+
+const logActivityInputSchema = z.object({
+  orgId: orgIdSchema,
+  projectId: projectIdSchema.nullable(),
+  userId: z.string().min(1),
+  actionType: z.string().min(1),
+  metadata: z.record(z.any()),
+});
 
 // Helper to verify if user is member of organization
 async function verifyMembership(insforge: ReturnType<typeof createInsforgeServer>, orgId: string, userId: string): Promise<boolean> {
@@ -23,6 +33,11 @@ export async function logActivity(
   metadata: Record<string, unknown> = {}
 ): Promise<{ success: boolean; error?: string }> {
   try {
+    const validated = logActivityInputSchema.safeParse({ orgId, projectId, userId, actionType, metadata });
+    if (!validated.success) {
+      return { success: false, error: validated.error.issues[0].message };
+    }
+
     const insforge = createInsforgeServer();
     const { error } = await insforge.database
       .from("activities")
@@ -67,6 +82,13 @@ export type ActivityWithActor = {
   } | null;
 };
 
+const getProjectActivitiesInputSchema = z.object({
+  projectId: projectIdSchema,
+  orgId: orgIdSchema,
+  page: z.number().int().min(1),
+  limit: z.number().int().min(1),
+});
+
 export async function getProjectActivities(
   projectId: string,
   orgId: string,
@@ -74,18 +96,23 @@ export async function getProjectActivities(
   limit: number = 20
 ): Promise<{ success: boolean; data: ActivityWithActor[]; error?: string }> {
   try {
+    const validated = getProjectActivitiesInputSchema.safeParse({ projectId, orgId, page, limit });
+    if (!validated.success) {
+      return { success: false, error: validated.error.issues[0].message, data: [] };
+    }
+
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
     const insforge = createInsforgeServer();
 
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace", data: [] };
     }
 
-    const from = (page - 1) * limit;
-    const to = from + limit - 1;
+    const from = (validated.data.page - 1) * validated.data.limit;
+    const to = from + validated.data.limit - 1;
 
     const { data, error } = await insforge.database
       .from("activities")
@@ -93,8 +120,8 @@ export async function getProjectActivities(
         *,
         actor:profiles(id, full_name, email, avatar_url)
       `)
-      .eq("project_id", projectId)
-      .eq("organization_id", orgId)
+      .eq("project_id", validated.data.projectId)
+      .eq("organization_id", validated.data.orgId)
       .order("created_at", { ascending: false })
       .range(from, to);
 

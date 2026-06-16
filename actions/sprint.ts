@@ -6,12 +6,33 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { Sprint, SprintStatus } from "@/types";
 import { createNotification } from "@/actions/notification";
+import { orgIdSchema, sprintIdSchema } from "@/lib/utils";
 
 const sprintSchema = z.object({
   name: z.string().min(3, "Sprint name must be at least 3 characters").max(100),
   goal: z.string().max(500).nullable().optional(),
   startDate: z.string().datetime(),
   endDate: z.string().datetime(),
+});
+
+const createSprintInputSchema = sprintSchema.extend({
+  orgId: orgIdSchema,
+});
+
+const getSprintsInputSchema = z.object({
+  orgId: orgIdSchema,
+});
+
+const updateSprintInputSchema = z.object({
+  orgId: orgIdSchema,
+  sprintId: sprintIdSchema,
+  updates: sprintSchema.partial(),
+});
+
+const updateSprintStatusInputSchema = z.object({
+  orgId: orgIdSchema,
+  sprintId: sprintIdSchema,
+  status: z.enum(["PLANNED", "ACTIVE", "COMPLETED", "CANCELLED"]),
 });
 
 // Helper to verify if user is Owner/Admin in organization
@@ -66,35 +87,30 @@ export async function createSprint(
   startDate: string,
   endDate: string
 ): Promise<{ success: boolean; data?: { sprintId: string }; error?: string }> {
+  const validated = createSprintInputSchema.safeParse({ orgId, name, goal, startDate, endDate });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const validated = sprintSchema.safeParse({
-      name,
-      goal,
-      startDate,
-      endDate,
-    });
-    if (!validated.success) {
-      return { success: false, error: validated.error.issues[0].message };
-    }
-
     const insforge = createInsforgeServer();
 
     // Check permissions
-    const isAuthorized = await verifyAdminOrOwnerRole(insforge, orgId, userId);
+    const isAuthorized = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
     if (!isAuthorized) {
       return { success: false, error: "Unauthorized: Only Admins and Owners can manage sprints." };
     }
 
     // Check date order
-    if (new Date(startDate) > new Date(endDate)) {
+    if (new Date(validated.data.startDate) > new Date(validated.data.endDate)) {
       return { success: false, error: "Start date must be before or equal to end date" };
     }
 
     // Check overlaps
-    const hasOverlap = await checkSprintOverlap(insforge, orgId, startDate, endDate);
+    const hasOverlap = await checkSprintOverlap(insforge, validated.data.orgId, validated.data.startDate, validated.data.endDate);
     if (hasOverlap) {
       return { success: false, error: "Sprint dates overlap with an existing sprint." };
     }
@@ -103,7 +119,7 @@ export async function createSprint(
       .from("sprints")
       .insert([
         {
-          organization_id: orgId,
+          organization_id: validated.data.orgId,
           name: validated.data.name,
           goal: validated.data.goal || null,
           start_date: validated.data.startDate,
@@ -129,6 +145,11 @@ export async function createSprint(
 export async function getSprints(
   orgId: string
 ): Promise<{ success: boolean; data: Sprint[]; error?: string }> {
+  const validated = getSprintsInputSchema.safeParse({ orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message, data: [] };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
@@ -139,7 +160,7 @@ export async function getSprints(
     const { data: membership } = await insforge.database
       .from("memberships")
       .select("id")
-      .eq("organization_id", orgId)
+      .eq("organization_id", validated.data.orgId)
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -150,7 +171,7 @@ export async function getSprints(
     const { data, error } = await insforge.database
       .from("sprints")
       .select("*")
-      .eq("organization_id", orgId)
+      .eq("organization_id", validated.data.orgId)
       .order("start_date", { ascending: true });
 
     if (error) {
@@ -174,6 +195,11 @@ export async function updateSprint(
     endDate?: string;
   }
 ): Promise<{ success: boolean; error?: string }> {
+  const validated = updateSprintInputSchema.safeParse({ orgId, sprintId, updates });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
@@ -181,7 +207,7 @@ export async function updateSprint(
     const insforge = createInsforgeServer();
 
     // Check permissions
-    const isAuthorized = await verifyAdminOrOwnerRole(insforge, orgId, userId);
+    const isAuthorized = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
     if (!isAuthorized) {
       return { success: false, error: "Unauthorized: Only Admins and Owners can manage sprints." };
     }
@@ -190,8 +216,8 @@ export async function updateSprint(
     const { data: existingSprint } = await insforge.database
       .from("sprints")
       .select("status, start_date, end_date")
-      .eq("id", sprintId)
-      .eq("organization_id", orgId)
+      .eq("id", validated.data.sprintId)
+      .eq("organization_id", validated.data.orgId)
       .single();
 
     if (!existingSprint) {
@@ -204,24 +230,18 @@ export async function updateSprint(
 
     const updatePayload: Record<string, string | null> = {};
 
-    if (updates.name !== undefined) {
-      if (updates.name.length < 3 || updates.name.length > 100) {
-        return { success: false, error: "Name must be between 3 and 100 characters" };
-      }
-      updatePayload.name = updates.name;
+    if (validated.data.updates.name !== undefined) {
+      updatePayload.name = validated.data.updates.name;
     }
 
-    if (updates.goal !== undefined) {
-      if (updates.goal && updates.goal.length > 500) {
-        return { success: false, error: "Goal must not exceed 500 characters" };
-      }
-      updatePayload.goal = updates.goal;
+    if (validated.data.updates.goal !== undefined) {
+      updatePayload.goal = validated.data.updates.goal;
     }
 
-    const proposedStart = updates.startDate || existingSprint.start_date;
-    const proposedEnd = updates.endDate || existingSprint.end_date;
+    const proposedStart = validated.data.updates.startDate || existingSprint.start_date;
+    const proposedEnd = validated.data.updates.endDate || existingSprint.end_date;
 
-    if (updates.startDate !== undefined || updates.endDate !== undefined) {
+    if (validated.data.updates.startDate !== undefined || validated.data.updates.endDate !== undefined) {
       // Validate dates order
       if (new Date(proposedStart) > new Date(proposedEnd)) {
         return { success: false, error: "Start date must be before or equal to end date" };
@@ -230,24 +250,24 @@ export async function updateSprint(
       // Check overlaps
       const hasOverlap = await checkSprintOverlap(
         insforge,
-        orgId,
+        validated.data.orgId,
         proposedStart,
         proposedEnd,
-        sprintId
+        validated.data.sprintId
       );
       if (hasOverlap) {
         return { success: false, error: "Sprint dates overlap with an existing sprint." };
       }
 
-      if (updates.startDate !== undefined) updatePayload.start_date = updates.startDate;
-      if (updates.endDate !== undefined) updatePayload.end_date = updates.endDate;
+      if (validated.data.updates.startDate !== undefined) updatePayload.start_date = validated.data.updates.startDate;
+      if (validated.data.updates.endDate !== undefined) updatePayload.end_date = validated.data.updates.endDate;
     }
 
     const { error } = await insforge.database
       .from("sprints")
       .update(updatePayload)
-      .eq("id", sprintId)
-      .eq("organization_id", orgId);
+      .eq("id", validated.data.sprintId)
+      .eq("organization_id", validated.data.orgId);
 
     if (error) {
       return { success: false, error: "Failed to update sprint" };
@@ -266,6 +286,11 @@ export async function updateSprintStatus(
   sprintId: string,
   status: SprintStatus
 ): Promise<{ success: boolean; error?: string }> {
+  const validated = updateSprintStatusInputSchema.safeParse({ orgId, sprintId, status });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
@@ -273,7 +298,7 @@ export async function updateSprintStatus(
     const insforge = createInsforgeServer();
 
     // Check permissions
-    const isAuthorized = await verifyAdminOrOwnerRole(insforge, orgId, userId);
+    const isAuthorized = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
     if (!isAuthorized) {
       return { success: false, error: "Unauthorized: Only Admins and Owners can manage sprints." };
     }
@@ -281,8 +306,8 @@ export async function updateSprintStatus(
     const { data: existingSprint } = await insforge.database
       .from("sprints")
       .select("status")
-      .eq("id", sprintId)
-      .eq("organization_id", orgId)
+      .eq("id", validated.data.sprintId)
+      .eq("organization_id", validated.data.orgId)
       .single();
 
     if (!existingSprint) {
@@ -295,13 +320,13 @@ export async function updateSprintStatus(
     }
 
     // Only one active sprint is allowed per organization
-    if (status === "ACTIVE") {
+    if (validated.data.status === "ACTIVE") {
       const { count } = await insforge.database
         .from("sprints")
         .select("id", { count: "exact", head: true })
-        .eq("organization_id", orgId)
+        .eq("organization_id", validated.data.orgId)
         .eq("status", "ACTIVE")
-        .neq("id", sprintId);
+        .neq("id", validated.data.sprintId);
 
       if ((count || 0) > 0) {
         return { success: false, error: "An active sprint already exists. Complete or cancel it first." };
@@ -310,31 +335,31 @@ export async function updateSprintStatus(
 
     const { error } = await insforge.database
       .from("sprints")
-      .update({ status })
-      .eq("id", sprintId)
-      .eq("organization_id", orgId);
+      .update({ status: validated.data.status })
+      .eq("id", validated.data.sprintId)
+      .eq("organization_id", validated.data.orgId);
 
     if (error) {
       return { success: false, error: "Failed to update sprint status" };
     }
 
     // Fan-out notifications for all org members on sprint lifecycle events
-    if (status === "ACTIVE" || status === "COMPLETED") {
+    if (validated.data.status === "ACTIVE" || validated.data.status === "COMPLETED") {
       const { data: sprintData } = await insforge.database
         .from("sprints")
         .select("name")
-        .eq("id", sprintId)
+        .eq("id", validated.data.sprintId)
         .single();
 
       const { data: memberRows } = await insforge.database
         .from("memberships")
         .select("user_id")
-        .eq("organization_id", orgId);
+        .eq("organization_id", validated.data.orgId);
 
       if (sprintData && memberRows) {
-        const notifType = status === "ACTIVE" ? "SPRINT_STARTED" : "SPRINT_ENDED";
+        const notifType = validated.data.status === "ACTIVE" ? "SPRINT_STARTED" : "SPRINT_ENDED";
         const content =
-          status === "ACTIVE"
+          validated.data.status === "ACTIVE"
             ? `🚀 Sprint "${sprintData.name}" has started. Let's ship it!`
             : `✅ Sprint "${sprintData.name}" has been completed.`;
 

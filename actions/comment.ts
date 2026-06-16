@@ -6,9 +6,18 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { CommentWithUser } from "@/types";
 import { logActivity } from "@/actions/activity";
+import { orgIdSchema, projectIdSchema, taskIdSchema } from "@/lib/utils";
 
-const commentSchema = z.object({
+const createCommentInputSchema = z.object({
+  taskId: taskIdSchema,
+  projectId: projectIdSchema,
+  orgId: orgIdSchema,
   content: z.string().min(1, "Comment content cannot be empty").max(1000, "Comment must not exceed 1000 characters"),
+});
+
+const getTaskCommentsInputSchema = z.object({
+  taskId: taskIdSchema,
+  orgId: orgIdSchema,
 });
 
 // Helper to verify if user is member of organization
@@ -28,18 +37,18 @@ export async function createComment(
   orgId: string,
   content: string
 ): Promise<{ success: boolean; error?: string }> {
+  const validated = createCommentInputSchema.safeParse({ taskId, projectId, orgId, content });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const validated = commentSchema.safeParse({ content });
-    if (!validated.success) {
-      return { success: false, error: validated.error.issues[0].message };
-    }
-
     const insforge = createInsforgeServer();
 
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace" };
     }
@@ -49,7 +58,7 @@ export async function createComment(
       .from("comments")
       .insert([
         {
-          task_id: taskId,
+          task_id: validated.data.taskId,
           user_id: userId,
           content: validated.data.content,
         },
@@ -63,7 +72,7 @@ export async function createComment(
     const { data: task } = await insforge.database
       .from("tasks")
       .select("title, assignee_id")
-      .eq("id", taskId)
+      .eq("id", validated.data.taskId)
       .single();
 
     if (task && task.assignee_id && task.assignee_id !== userId) {
@@ -87,15 +96,15 @@ export async function createComment(
         ]);
     }
 
-    await logActivity(orgId, projectId, userId, "COMMENT_ADDED", {
-      taskId,
+    await logActivity(validated.data.orgId, validated.data.projectId, userId, "COMMENT_ADDED", {
+      taskId: validated.data.taskId,
       taskTitle: task?.title || "Unknown Task",
       snippet: validated.data.content.length > 60 
         ? validated.data.content.substring(0, 60) + "..." 
         : validated.data.content,
     });
 
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };
   } catch {
     return { success: false, error: "An unexpected error occurred" };
@@ -106,13 +115,18 @@ export async function getTaskComments(
   taskId: string,
   orgId: string
 ): Promise<{ success: boolean; data: CommentWithUser[]; error?: string }> {
+  const validated = getTaskCommentsInputSchema.safeParse({ taskId, orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message, data: [] };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
     const insforge = createInsforgeServer();
 
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace", data: [] };
     }
@@ -123,7 +137,7 @@ export async function getTaskComments(
         *,
         user:profiles(id, full_name, email, avatar_url)
       `)
-      .eq("task_id", taskId)
+      .eq("task_id", validated.data.taskId)
       .order("created_at", { ascending: true });
 
     if (error) {

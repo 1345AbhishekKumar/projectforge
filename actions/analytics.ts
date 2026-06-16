@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
+import { orgIdSchema } from "@/lib/utils";
 
 // Helper to verify if user is member of organization
 async function verifyMembership(insforge: ReturnType<typeof createInsforgeServer>, orgId: string, userId: string): Promise<boolean> {
@@ -40,12 +41,17 @@ export async function getAnalyticsData(
   orgId: string
 ): Promise<{ success: boolean; data?: AnalyticsData; error?: string }> {
   try {
+    const validated = orgIdSchema.safeParse(orgId);
+    if (!validated.success) {
+      return { success: false, error: validated.error.issues[0].message };
+    }
+
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
     const insforge = createInsforgeServer();
 
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace" };
     }

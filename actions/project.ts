@@ -7,11 +7,35 @@ import { z } from "zod";
 import type { Project, ProjectStatus } from "@/types";
 import { logActivity } from "@/actions/activity";
 import { createNotification } from "@/actions/notification";
+import { orgIdSchema, projectIdSchema } from "@/lib/utils";
 
 const projectSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(50),
   description: z.string().max(250).nullable().optional(),
   status: z.enum(["PLANNING", "ACTIVE", "COMPLETED", "ARCHIVED"]),
+});
+
+const createProjectInputSchema = projectSchema.extend({
+  orgId: orgIdSchema,
+});
+
+const getUserProjectsInputSchema = z.object({
+  orgId: orgIdSchema,
+});
+
+const getProjectDetailsInputSchema = z.object({
+  projectId: projectIdSchema,
+  orgId: orgIdSchema,
+});
+
+const updateProjectInputSchema = projectSchema.extend({
+  projectId: projectIdSchema,
+  orgId: orgIdSchema,
+});
+
+const archiveProjectInputSchema = z.object({
+  projectId: projectIdSchema,
+  orgId: orgIdSchema,
 });
 
 // Helper to verify if user is member of organization
@@ -31,18 +55,18 @@ export async function createProject(
   status: ProjectStatus,
   orgId: string
 ): Promise<{ success: boolean; data?: { projectId: string }; error?: string }> {
+  const validated = createProjectInputSchema.safeParse({ name, description, status, orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const validated = projectSchema.safeParse({ name, description, status });
-    if (!validated.success) {
-      return { success: false, error: validated.error.issues[0].message };
-    }
-
     const insforge = createInsforgeServer();
 
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace" };
     }
@@ -54,7 +78,7 @@ export async function createProject(
           name: validated.data.name,
           description: validated.data.description || null,
           status: validated.data.status,
-          organization_id: orgId,
+          organization_id: validated.data.orgId,
         },
       ])
       .select("id")
@@ -64,7 +88,7 @@ export async function createProject(
       return { success: false, error: "Failed to create project" };
     }
 
-    await logActivity(orgId, project.id, userId, "PROJECT_CREATED", {
+    await logActivity(validated.data.orgId, project.id, userId, "PROJECT_CREATED", {
       projectName: validated.data.name,
     });
 
@@ -78,13 +102,18 @@ export async function createProject(
 export async function getUserProjects(
   orgId: string
 ): Promise<{ success: boolean; data: Project[]; error?: string }> {
+  const validated = getUserProjectsInputSchema.safeParse({ orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message, data: [] };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
     const insforge = createInsforgeServer();
 
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace", data: [] };
     }
@@ -92,7 +121,7 @@ export async function getUserProjects(
     const { data, error } = await insforge.database
       .from("projects")
       .select("*")
-      .eq("organization_id", orgId)
+      .eq("organization_id", validated.data.orgId)
       .order("updated_at", { ascending: false });
 
     if (error) {
@@ -109,13 +138,18 @@ export async function getProjectDetails(
   projectId: string,
   orgId: string
 ): Promise<{ success: boolean; data?: Project; error?: string }> {
+  const validated = getProjectDetailsInputSchema.safeParse({ projectId, orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
     const insforge = createInsforgeServer();
 
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace" };
     }
@@ -123,8 +157,8 @@ export async function getProjectDetails(
     const { data, error } = await insforge.database
       .from("projects")
       .select("*")
-      .eq("id", projectId)
-      .eq("organization_id", orgId)
+      .eq("id", validated.data.projectId)
+      .eq("organization_id", validated.data.orgId)
       .maybeSingle();
 
     if (error || !data) {
@@ -144,18 +178,18 @@ export async function updateProject(
   status: ProjectStatus,
   orgId: string
 ): Promise<{ success: boolean; error?: string }> {
+  const validated = updateProjectInputSchema.safeParse({ projectId, name, description, status, orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const validated = projectSchema.safeParse({ name, description, status });
-    if (!validated.success) {
-      return { success: false, error: validated.error.issues[0].message };
-    }
-
     const insforge = createInsforgeServer();
 
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace" };
     }
@@ -168,8 +202,8 @@ export async function updateProject(
         status: validated.data.status,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", projectId)
-      .eq("organization_id", orgId);
+      .eq("id", validated.data.projectId)
+      .eq("organization_id", validated.data.orgId);
 
     if (error) {
       return { success: false, error: "Failed to update project" };
@@ -180,7 +214,7 @@ export async function updateProject(
       const { data: memberRows } = await insforge.database
         .from("memberships")
         .select("user_id")
-        .eq("organization_id", orgId);
+        .eq("organization_id", validated.data.orgId);
 
       if (memberRows) {
         await Promise.all(
@@ -196,7 +230,7 @@ export async function updateProject(
     }
 
     revalidatePath("/projects");
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };
   } catch {
     return { success: false, error: "An unexpected error occurred" };
@@ -207,13 +241,18 @@ export async function archiveProject(
   projectId: string,
   orgId: string
 ): Promise<{ success: boolean; error?: string }> {
+  const validated = archiveProjectInputSchema.safeParse({ projectId, orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
     const insforge = createInsforgeServer();
 
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace" };
     }
@@ -221,7 +260,7 @@ export async function archiveProject(
     const { data: projData } = await insforge.database
       .from("projects")
       .select("name")
-      .eq("id", projectId)
+      .eq("id", validated.data.projectId)
       .single();
     const projectName = projData?.name || "Unknown Project";
 
@@ -231,19 +270,19 @@ export async function archiveProject(
         status: "ARCHIVED",
         updated_at: new Date().toISOString(),
       })
-      .eq("id", projectId)
-      .eq("organization_id", orgId);
+      .eq("id", validated.data.projectId)
+      .eq("organization_id", validated.data.orgId);
 
     if (error) {
       return { success: false, error: "Failed to archive project" };
     }
 
-    await logActivity(orgId, projectId, userId, "PROJECT_ARCHIVED", {
+    await logActivity(validated.data.orgId, validated.data.projectId, userId, "PROJECT_ARCHIVED", {
       projectName,
     });
 
     revalidatePath("/projects");
-    revalidatePath(`/projects/${projectId}`);
+    revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };
   } catch {
     return { success: false, error: "An unexpected error occurred" };

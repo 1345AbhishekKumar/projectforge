@@ -11,6 +11,34 @@ import { createAttachment, getTaskAttachments, deleteAttachment } from "@/action
 import { insforge } from "@/lib/insforge-client";
 import type { CommentWithUser, AttachmentWithUser, Sprint, Label } from "@/types";
 import { getLabels, createLabel } from "@/actions/label";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+const taskDetailsSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(3, "Title must be at least 3 characters")
+    .max(100, "Title must be at most 100 characters"),
+  description: z.string().trim().max(500, "Description must be at most 500 characters").optional(),
+  status: z.enum(["TODO", "IN_PROGRESS", "DONE"]),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
+  assigneeId: z.string().optional(),
+  dueDate: z.string().optional(),
+});
+
+type TaskDetailsInput = z.infer<typeof taskDetailsSchema>;
+
+const commentSchema = z.object({
+  content: z
+    .string()
+    .trim()
+    .min(1, "Comment cannot be empty")
+    .max(1000, "Comment must be at most 1000 characters"),
+});
+
+type CommentInput = z.infer<typeof commentSchema>;
 
 type Props = {
   task: TaskWithAssignee | null;
@@ -36,12 +64,38 @@ type Props = {
 
 export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, sprints = [], onUpdate, onDelete }: Props) {
   const task = propTask;
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<TaskStatus>("TODO");
-  const [priority, setPriority] = useState<TaskPriority>("MEDIUM");
-  const [assigneeId, setAssigneeId] = useState("");
-  const [dueDate, setDueDate] = useState("");
+
+  const {
+    register: registerDetails,
+    handleSubmit: handleSubmitDetails,
+    formState: { errors: detailsErrors },
+    reset: resetDetails,
+  } = useForm<TaskDetailsInput>({
+    resolver: zodResolver(taskDetailsSchema),
+    mode: "onBlur",
+    defaultValues: {
+      title: "",
+      description: "",
+      status: "TODO",
+      priority: "MEDIUM",
+      assigneeId: "",
+      dueDate: "",
+    },
+  });
+
+  const {
+    register: registerComment,
+    handleSubmit: handleSubmitComment,
+    formState: { errors: commentErrors },
+    reset: resetComment,
+  } = useForm<CommentInput>({
+    resolver: zodResolver(commentSchema),
+    mode: "onSubmit",
+    defaultValues: {
+      content: "",
+    },
+  });
+
   const [sprintId, setSprintId] = useState("");
   
   // Label states
@@ -57,7 +111,6 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
   const [error, setError] = useState("");
 
   const [activeTab, setActiveTab] = useState<"details" | "comments">("details");
-  const [newComment, setNewComment] = useState("");
   const [postingComment, setPostingComment] = useState(false);
   const [comments, setComments] = useState<CommentWithUser[]>([]);
   const [attachments, setAttachments] = useState<AttachmentWithUser[]>([]);
@@ -116,17 +169,16 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
     loadLabels();
   }, [isOpen, task]);
 
-  async function handlePostComment(e: React.FormEvent) {
-    e.preventDefault();
-    if (!newComment.trim() || !task) return;
+  async function onCommentSubmit(data: CommentInput) {
+    if (!task) return;
 
     setCommentError("");
     setPostingComment(true);
 
     try {
-      const res = await createComment(task.id, task.project_id, task.organization_id, newComment.trim());
+      const res = await createComment(task.id, task.project_id, task.organization_id, data.content);
       if (res.success) {
-        setNewComment("");
+        resetComment();
         const commentsRes = await getTaskComments(task.id, task.organization_id);
         if (commentsRes.success) {
           setComments(commentsRes.data);
@@ -236,57 +288,57 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
     }
   }
 
+  // Helper to format date
+  const formatDateForInput = (dateStr: string | null) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return "";
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, "0");
+    const dd = String(date.getDate()).padStart(2, "0");
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
   // Sync state with selected task
   useEffect(() => {
     if (!task) return;
 
     const timer = setTimeout(() => {
-      setTitle(task.title || "");
-      setDescription(task.description || "");
-      setStatus(task.status || "TODO");
-      setPriority(task.priority || "MEDIUM");
-      setAssigneeId(task.assignee_id || "");
+      resetDetails({
+        title: task.title || "",
+        description: task.description || "",
+        status: task.status || "TODO",
+        priority: task.priority || "MEDIUM",
+        assigneeId: task.assignee_id || "",
+        dueDate: formatDateForInput(task.due_date),
+      });
+      resetComment({ content: "" });
       setSprintId(task.sprint_id || "");
       setSelectedLabelIds(task.labels?.map((l: Label) => l.id) || []);
-      
-      if (task.due_date) {
-        const date = new Date(task.due_date);
-        const yyyy = date.getFullYear();
-        const mm = String(date.getMonth() + 1).padStart(2, "0");
-        const dd = String(date.getDate()).padStart(2, "0");
-        setDueDate(`${yyyy}-${mm}-${dd}`);
-      } else {
-        setDueDate("");
-      }
       setError("");
     }, 0);
 
     return () => clearTimeout(timer);
-  }, [task]);
+  }, [task, resetDetails, resetComment]);
 
   if (!isOpen || !task) return null;
 
   const isOverdue = task.due_date && new Date(task.due_date) < new Date() && task.status !== "DONE";
 
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
+  async function onSaveSubmit(data: TaskDetailsInput) {
     if (!task) return;
-    if (!title || title.length < 3) {
-      setError("Title must be at least 3 characters");
-      return;
-    }
 
     setError("");
     setSaving(true);
 
     try {
       const result = await onUpdate(task.id, {
-        title,
-        description: description || null,
-        status,
-        priority,
-        assignee_id: assigneeId || null,
-        due_date: dueDate || null,
+        title: data.title,
+        description: data.description || null,
+        status: data.status,
+        priority: data.priority,
+        assignee_id: data.assigneeId || null,
+        due_date: data.dueDate || null,
         sprint_id: sprintId || null,
         label_ids: selectedLabelIds,
       });
@@ -378,7 +430,7 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
 
         {/* Tab 1: Details */}
         {activeTab === "details" && (
-          <form onSubmit={handleSave} className="flex flex-col gap-5 flex-1">
+          <form onSubmit={handleSubmitDetails(onSaveSubmit)} className="flex flex-col gap-5 flex-1">
             {/* Overdue Warning Card */}
             {isOverdue && (
               <div className="bg-accent-pink border-2 border-black rounded-sketchy-sm p-4 text-center">
@@ -400,13 +452,16 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
               </label>
               <input
                 type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                required
-                minLength={3}
-                maxLength={100}
-                className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow"
+                {...registerDetails("title")}
+                className={`w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow ${
+                  detailsErrors.title ? "border-rose-500 bg-rose-50/20" : ""
+                }`}
               />
+              {detailsErrors.title && (
+                <span aria-live="polite" className="text-xs font-mono font-bold text-rose-600 mt-1 block">
+                  {detailsErrors.title.message}
+                </span>
+              )}
             </div>
 
             <div>
@@ -414,12 +469,17 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
                 Description (Optional)
               </label>
               <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                maxLength={500}
+                {...registerDetails("description")}
                 rows={4}
-                className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow resize-none"
+                className={`w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow resize-none ${
+                  detailsErrors.description ? "border-rose-500 bg-rose-50/20" : ""
+                }`}
               />
+              {detailsErrors.description && (
+                <span aria-live="polite" className="text-xs font-mono font-bold text-rose-600 mt-1 block">
+                  {detailsErrors.description.message}
+                </span>
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -428,8 +488,7 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
                   Status
                 </label>
                 <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as TaskStatus)}
+                  {...registerDetails("status")}
                   className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer"
                 >
                   <option value="TODO">TODO</option>
@@ -443,8 +502,7 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
                   Priority
                 </label>
                 <select
-                  value={priority}
-                  onChange={(e) => setPriority(e.target.value as TaskPriority)}
+                  {...registerDetails("priority")}
                   className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer"
                 >
                   <option value="LOW">LOW</option>
@@ -460,8 +518,7 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
                 Assignee (Optional)
               </label>
               <select
-                value={assigneeId}
-                onChange={(e) => setAssigneeId(e.target.value)}
+                {...registerDetails("assigneeId")}
                 className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer"
               >
                 <option value="">Unassigned</option>
@@ -513,8 +570,7 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
               </label>
               <input
                 type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
+                {...registerDetails("dueDate")}
                 className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer shadow-flat-offset-sm"
               />
             </div>
@@ -654,7 +710,7 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
 
               <button
                 type="submit"
-                disabled={saving || deleting || !title}
+                disabled={saving || deleting}
                 className="flex-1 py-2.5 bg-tertiary hover:bg-tertiary-hover text-white border-2 border-black rounded-full font-sans text-sm font-bold shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
               >
                 {saving ? (
@@ -814,26 +870,33 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
                 </div>
               )}
               
-              <form onSubmit={handlePostComment} className="flex gap-2 items-start mt-2">
-                <textarea
-                  value={newComment}
-                  onChange={(e) => setNewComment(e.target.value)}
-                  placeholder="Type a comment..."
-                  maxLength={1000}
-                  rows={2}
-                  className="flex-1 px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-xs bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary resize-none"
-                />
-                <button
-                  type="submit"
-                  disabled={postingComment || !newComment.trim()}
-                  className="p-3 bg-tertiary hover:bg-tertiary-hover text-white border-2 border-black rounded-full font-sans text-xs font-bold shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:pointer-events-none cursor-pointer flex-shrink-0"
-                >
-                  {postingComment ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <Send className="h-4 w-4" />
-                  )}
-                </button>
+              <form onSubmit={handleSubmitComment(onCommentSubmit)} className="flex flex-col gap-2 mt-2">
+                <div className="flex gap-2 items-start">
+                  <textarea
+                    {...registerComment("content")}
+                    placeholder="Type a comment..."
+                    rows={2}
+                    className={`flex-1 px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-xs bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary resize-none ${
+                      commentErrors.content ? "border-rose-500 bg-rose-50/20" : ""
+                    }`}
+                  />
+                  <button
+                    type="submit"
+                    disabled={postingComment}
+                    className="p-3 bg-tertiary hover:bg-tertiary-hover text-white border-2 border-black rounded-full font-sans text-xs font-bold shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:pointer-events-none cursor-pointer flex-shrink-0"
+                  >
+                    {postingComment ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+                {commentErrors.content && (
+                  <span aria-live="polite" className="text-xs font-mono font-bold text-rose-600 mt-1 block">
+                    {commentErrors.content.message}
+                  </span>
+                )}
               </form>
             </div>
           </div>

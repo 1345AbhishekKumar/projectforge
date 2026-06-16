@@ -2,9 +2,27 @@
 
 import { useState, useEffect } from "react";
 import { Loader2, Plus, X } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import type { TaskStatus, TaskPriority, Label } from "@/types";
 import type { MemberListItem } from "@/actions/membership";
 import { getLabels, createLabel } from "@/actions/label";
+
+const createTaskSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(3, "Task title must be at least 3 characters")
+    .max(100, "Task title must be at most 100 characters"),
+  description: z.string().trim().max(500, "Description must be at most 500 characters").optional(),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
+  status: z.enum(["TODO", "IN_PROGRESS", "DONE"]),
+  assigneeId: z.string().optional(),
+  dueDate: z.string().optional(),
+});
+
+type CreateTaskInput = z.infer<typeof createTaskSchema>;
 
 type Props = {
   isOpen: boolean;
@@ -33,22 +51,34 @@ const labelColors = [
 ];
 
 export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, defaultStatus }: Props) {
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [status, setStatus] = useState<TaskStatus>(defaultStatus || "TODO");
-  const [priority, setPriority] = useState<TaskPriority>("MEDIUM");
-  const [assigneeId, setAssigneeId] = useState("");
-  const [dueDate, setDueDate] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Label states
+  // Label states — managed outside RHF due to custom interactive picker
   const [labels, setLabels] = useState<Label[]>([]);
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
   const [showLabelCreator, setShowLabelCreator] = useState(false);
   const [newLabelName, setNewLabelName] = useState("");
   const [newLabelColor, setNewLabelColor] = useState(labelColors[0]);
   const [creatingLabel, setCreatingLabel] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<CreateTaskInput>({
+    resolver: zodResolver(createTaskSchema),
+    mode: "onBlur",
+    defaultValues: {
+      title: "",
+      description: "",
+      priority: "MEDIUM",
+      status: defaultStatus || "TODO",
+      assigneeId: "",
+      dueDate: "",
+    },
+  });
 
   // Fetch labels on open
   useEffect(() => {
@@ -64,33 +94,31 @@ export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, def
 
   if (!isOpen) return null;
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!title || title.length < 3) {
-      setError("Task title must be at least 3 characters");
-      return;
-    }
+  const handleClose = () => {
+    reset();
+    setSelectedLabelIds([]);
+    setShowLabelCreator(false);
+    setNewLabelName("");
+    setError("");
+    onClose();
+  };
 
+  async function onSubmit(data: CreateTaskInput) {
     setError("");
     setLoading(true);
 
     try {
       const result = await onCreate(
-        title,
-        description || null,
-        status,
-        priority,
-        assigneeId || null,
-        dueDate || null,
+        data.title,
+        data.description || null,
+        data.status,
+        data.priority,
+        data.assigneeId || null,
+        data.dueDate || null,
         selectedLabelIds
       );
       if (result.success) {
-        setTitle("");
-        setDescription("");
-        setStatus(defaultStatus || "TODO");
-        setPriority("MEDIUM");
-        setAssigneeId("");
-        setDueDate("");
+        reset();
         setSelectedLabelIds([]);
         setShowLabelCreator(false);
         setNewLabelName("");
@@ -111,7 +139,7 @@ export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, def
         
         {/* Close Button */}
         <button
-          onClick={onClose}
+          onClick={handleClose}
           className="absolute top-4 right-4 w-8 h-8 rounded-full border-2 border-black bg-white hover:bg-neutral-bg flex items-center justify-center shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer font-bold"
           aria-label="Close modal"
         >
@@ -136,21 +164,24 @@ export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, def
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div>
             <label className="font-sans text-xs font-semibold mb-1 block">
               Task Title
             </label>
             <input
               type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              {...register("title")}
               placeholder="e.g., Integrate checkout form"
-              required
-              minLength={3}
-              maxLength={100}
-              className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow"
+              className={`w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow ${
+                errors.title ? "border-rose-500 bg-rose-50/20" : ""
+              }`}
             />
+            {errors.title && (
+              <span aria-live="polite" className="text-xs font-mono font-bold text-rose-600 mt-1 block">
+                {errors.title.message}
+              </span>
+            )}
           </div>
 
           <div>
@@ -158,13 +189,18 @@ export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, def
               Description (Optional)
             </label>
             <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
+              {...register("description")}
               placeholder="Provide context or steps to complete this task"
-              maxLength={500}
               rows={2}
-              className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow resize-none"
+              className={`w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow resize-none ${
+                errors.description ? "border-rose-500 bg-rose-50/20" : ""
+              }`}
             />
+            {errors.description && (
+              <span aria-live="polite" className="text-xs font-mono font-bold text-rose-600 mt-1 block">
+                {errors.description.message}
+              </span>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -173,8 +209,7 @@ export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, def
                 Priority
               </label>
               <select
-                value={priority}
-                onChange={(e) => setPriority(e.target.value as TaskPriority)}
+                {...register("priority")}
                 className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer"
               >
                 <option value="LOW">LOW</option>
@@ -189,8 +224,7 @@ export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, def
                 Status
               </label>
               <select
-                value={status}
-                onChange={(e) => setStatus(e.target.value as TaskStatus)}
+                {...register("status")}
                 className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer"
               >
                 <option value="TODO">TODO</option>
@@ -205,8 +239,7 @@ export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, def
               Assignee (Optional)
             </label>
             <select
-              value={assigneeId}
-              onChange={(e) => setAssigneeId(e.target.value)}
+              {...register("assigneeId")}
               className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer"
             >
               <option value="">Unassigned</option>
@@ -341,15 +374,14 @@ export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, def
             </label>
             <input
               type="date"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
+              {...register("dueDate")}
               className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer"
             />
           </div>
 
           <button
             type="submit"
-            disabled={loading || !title}
+            disabled={loading}
             className="w-full py-2.5 mt-2 bg-tertiary hover:bg-tertiary-hover text-white font-sans text-sm font-bold border-2 border-black rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
           >
             {loading ? (

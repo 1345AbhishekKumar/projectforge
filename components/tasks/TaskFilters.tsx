@@ -4,6 +4,19 @@ import React, { useState, useEffect, useRef } from "react";
 import { Filter, ChevronDown, Check, Save, Trash2, X } from "lucide-react";
 import type { TaskPriority, TaskStatus, Label, SavedView } from "@/types";
 import type { MemberListItem } from "@/actions/membership";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+const savedViewSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(3, "View name must be at least 3 characters")
+    .max(50, "View name must be at most 50 characters"),
+});
+
+type SavedViewInput = z.infer<typeof savedViewSchema>;
 
 export type FiltersState = {
   priorities: TaskPriority[];
@@ -43,10 +56,22 @@ export function TaskFilters({
   onClearViewName
 }: Props) {
   const [openDropdown, setOpenDropdown] = useState<"priority" | "status" | "assignee" | "label" | "views" | null>(null);
-  const [newViewName, setNewViewName] = useState("");
   const [isSavingView, setIsSavingView] = useState(false);
   const [saveError, setSaveError] = useState("");
   const [showSaveInput, setShowSaveInput] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<SavedViewInput>({
+    resolver: zodResolver(savedViewSchema),
+    mode: "onBlur",
+    defaultValues: {
+      name: "",
+    },
+  });
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -101,17 +126,14 @@ export function TaskFilters({
     if (onClearViewName) onClearViewName();
   };
 
-  const handleSaveViewSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newViewName.trim()) return;
-
+  const onSaveViewSubmit = async (data: SavedViewInput) => {
     setIsSavingView(true);
     setSaveError("");
-    const res = await onSaveView(newViewName.trim());
+    const res = await onSaveView(data.name);
     setIsSavingView(false);
 
     if (res.success) {
-      setNewViewName("");
+      reset();
       setShowSaveInput(false);
     } else {
       setSaveError(res.error || "Failed to save view");
@@ -397,35 +419,40 @@ export function TaskFilters({
       {/* Save View Inline Modal */}
       {showSaveInput && (
         <div className="border-t border-black/10 pt-3 mt-1 flex flex-col gap-2">
-          <form onSubmit={handleSaveViewSubmit} className="flex gap-2 items-center">
-            <input
-              type="text"
-              required
-              minLength={3}
-              maxLength={50}
-              placeholder="Saved view name (e.g. My Tasks)"
-              value={newViewName}
-              onChange={(e) => setNewViewName(e.target.value)}
-              className="flex-grow px-3 py-1.5 border-2 border-black rounded-sketchy-sm font-sans text-xs bg-white focus:outline-none focus:ring-2 focus:ring-tertiary"
-            />
-            <button
-              type="submit"
-              disabled={isSavingView || !newViewName.trim()}
-              className="flex items-center gap-1 px-4 py-2 bg-tertiary hover:bg-tertiary-hover text-white font-sans text-xs font-bold border-2 border-black rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-40"
-            >
-              Save View
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowSaveInput(false);
-                setNewViewName("");
-                setSaveError("");
-              }}
-              className="p-2 border-2 border-black bg-white hover:bg-neutral-bg rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
-            >
-              <X className="h-3.5 w-3.5" />
-            </button>
+          <form onSubmit={handleSubmit(onSaveViewSubmit)} className="flex flex-col gap-2">
+            <div className="flex gap-2 items-center">
+              <input
+                type="text"
+                {...register("name")}
+                placeholder="Saved view name (e.g. My Tasks)"
+                className={`flex-grow px-3 py-1.5 border-2 border-black rounded-sketchy-sm font-sans text-xs bg-white focus:outline-none focus:ring-2 focus:ring-tertiary ${
+                  errors.name ? "border-rose-500 bg-rose-50/20" : ""
+                }`}
+              />
+              <button
+                type="submit"
+                disabled={isSavingView}
+                className="flex items-center gap-1 px-4 py-2 bg-tertiary hover:bg-tertiary-hover text-white font-sans text-xs font-bold border-2 border-black rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-40"
+              >
+                Save View
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowSaveInput(false);
+                  reset();
+                  setSaveError("");
+                }}
+                className="p-2 border-2 border-black bg-white hover:bg-neutral-bg rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            {errors.name && (
+              <span aria-live="polite" className="text-xs font-mono font-bold text-rose-600 mt-1 block">
+                {errors.name.message}
+              </span>
+            )}
           </form>
           {saveError && (
             <span className="text-[10px] text-accent-pink font-semibold mt-1 block">

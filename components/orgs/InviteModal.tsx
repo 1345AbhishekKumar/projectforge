@@ -2,33 +2,55 @@
 
 import { useState } from "react";
 import { Loader2, UserPlus } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+const inviteSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, "Please enter an email address.")
+    .email("Please enter a valid email format (e.g., colleague@domain.com)."),
+  role: z.enum(["ADMIN", "MEMBER"]),
+});
+
+type InviteInput = z.infer<typeof inviteSchema>;
 
 type Props = {
   onInvite: (email: string, role: "ADMIN" | "MEMBER") => Promise<{ success: boolean; error?: string }>;
 };
 
 export function InviteModal({ onInvite }: Props) {
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState<"ADMIN" | "MEMBER">("MEMBER");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!email) return;
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<InviteInput>({
+    resolver: zodResolver(inviteSchema),
+    mode: "onBlur",
+    defaultValues: {
+      email: "",
+      role: "MEMBER",
+    },
+  });
 
+  async function onSubmit(data: InviteInput) {
     setError("");
     setSuccess(false);
     setLoading(true);
 
     try {
-      const result = await onInvite(email, role);
+      const result = await onInvite(data.email, data.role);
       if (result.success) {
         setSuccess(true);
-        setEmail("");
-        setRole("MEMBER");
-        // Clear success message after 3 seconds
+        reset({ email: "", role: "MEMBER" });
+        // Clear success message after 4 seconds
         setTimeout(() => setSuccess(false), 4000);
       } else {
         setError(result.error || "Failed to invite collaborator");
@@ -65,19 +87,27 @@ export function InviteModal({ onInvite }: Props) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         <div>
           <label className="font-sans text-xs font-semibold mb-1 block">
             Email Address
           </label>
           <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            type="text"
+            {...register("email")}
             placeholder="colleague@domain.com"
-            required
-            className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow"
+            className={`w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow ${
+              errors.email ? "border-rose-500 bg-rose-50/20" : ""
+            }`}
           />
+          {errors.email && (
+            <span
+              aria-live="polite"
+              className="text-xs font-mono font-bold text-rose-600 mt-1 block"
+            >
+              {errors.email.message}
+            </span>
+          )}
         </div>
 
         <div>
@@ -85,8 +115,7 @@ export function InviteModal({ onInvite }: Props) {
             Workspace Role
           </label>
           <select
-            value={role}
-            onChange={(e) => setRole(e.target.value as "ADMIN" | "MEMBER")}
+            {...register("role")}
             className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer"
           >
             <option value="MEMBER">MEMBER (Read/Write Tasks & Projects)</option>
@@ -96,7 +125,7 @@ export function InviteModal({ onInvite }: Props) {
 
         <button
           type="submit"
-          disabled={loading || !email}
+          disabled={loading}
           className="w-full py-2.5 mt-2 bg-tertiary hover:bg-tertiary-hover text-white font-sans text-sm font-bold border-2 border-black rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
         >
           {loading ? (

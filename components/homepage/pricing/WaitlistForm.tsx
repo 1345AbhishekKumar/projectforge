@@ -1,6 +1,19 @@
 "use client";
 
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+const waitlistSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .min(1, "Please enter your email address.")
+    .email("Please enter a valid email format (e.g., mail@example.com)."),
+});
+
+type WaitlistInput = z.infer<typeof waitlistSchema>;
 
 interface WaitlistFormProps {
   isDarkMode: boolean;
@@ -9,30 +22,23 @@ interface WaitlistFormProps {
 }
 
 export default function WaitlistForm({ isDarkMode, status, setStatus }: WaitlistFormProps) {
-  const [email, setEmail] = useState("");
-  const [errorMsg, setErrorMsg] = useState("");
-  const emailInputRef = useRef<HTMLInputElement>(null);
+  const [submittedEmail, setSubmittedEmail] = useState("");
 
-  const validateEmail = (emailStr: string) => {
-    return /\S+@\S+\.\S+/.test(emailStr);
-  };
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm<WaitlistInput>({
+    resolver: zodResolver(waitlistSchema),
+    mode: "onBlur",
+    defaultValues: {
+      email: "",
+    },
+  });
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg("");
-
-    if (!email) {
-      setErrorMsg("Please enter your email address.");
-      emailInputRef.current?.focus();
-      return;
-    }
-
-    if (!validateEmail(email)) {
-      setErrorMsg("Please enter a valid email format (e.g., mail@example.com).");
-      emailInputRef.current?.focus();
-      return;
-    }
-
+  const onSubmit = (data: WaitlistInput) => {
+    setSubmittedEmail(data.email);
     setStatus("loading");
 
     setTimeout(() => {
@@ -49,7 +55,7 @@ export default function WaitlistForm({ isDarkMode, status, setStatus }: Waitlist
       }`}
     >
       {status !== "success" ? (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5 w-full">
+        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5 w-full">
           <div className="flex flex-col gap-2 relative">
             <label
               htmlFor="cta-email-input"
@@ -62,32 +68,27 @@ export default function WaitlistForm({ isDarkMode, status, setStatus }: Waitlist
 
             <div className="relative">
               <input
-                ref={emailInputRef}
                 id="cta-email-input"
                 type="text"
-                value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (errorMsg) setErrorMsg("");
-                }}
+                disabled={status === "loading"}
+                {...register("email")}
                 placeholder="dev@projectforge.com…"
                 spellCheck={false}
-                disabled={status === "loading"}
                 className={`w-full px-4 py-3 rounded-none border-2 font-mono text-sm placeholder-slate-400 dark:placeholder-zinc-650 transition-all duration-200 outline-none focus-visible:ring-2 focus-visible:ring-offset-1 focus-visible:ring-black ${
                   isDarkMode
                     ? "bg-zinc-950 text-white border-white focus-visible:ring-white/20"
                     : "bg-white text-slate-900 border-black focus-visible:ring-emerald-500/20"
-                } ${errorMsg ? "border-rose-500 bg-rose-50/20" : ""}`}
+                } ${errors.email ? "border-rose-500 bg-rose-50/20" : ""}`}
               />
             </div>
 
             {/* Inline Error Reporting */}
-            {errorMsg && (
+            {errors.email && (
               <span
                 aria-live="polite"
                 className="text-xs font-mono font-bold text-rose-600 dark:text-rose-455 mt-1"
               >
-                {errorMsg}
+                {errors.email.message}
               </span>
             )}
           </div>
@@ -163,13 +164,14 @@ export default function WaitlistForm({ isDarkMode, status, setStatus }: Waitlist
             }`}
           >
             We&rsquo;ve reserved a cluster slot for{" "}
-            <strong className="font-mono text-slate-900 dark:text-zinc-200">{email}</strong>. Check
+            <strong className="font-mono text-slate-900 dark:text-zinc-200">{submittedEmail}</strong>. Check
             your inbox for confirmation details shortly.
           </p>
           <button
             onClick={() => {
+              reset();
+              setSubmittedEmail("");
               setStatus("idle");
-              setEmail("");
             }}
             className={`w-full md:w-auto self-start px-4 py-2 border-2 rounded-full text-xs font-mono font-bold transition-all duration-300 active:scale-[0.97] ${
               isDarkMode

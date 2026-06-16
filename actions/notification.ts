@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { Notification, NotificationType, NotificationPreference } from "@/types";
+import { orgIdSchema, notificationIdSchema } from "@/lib/utils";
 
 const ALL_NOTIFICATION_TYPES: NotificationType[] = [
   "GENERAL",
@@ -25,6 +26,14 @@ const preferenceSchema = z.object({
   ]),
   inApp: z.boolean(),
   email: z.boolean(),
+});
+
+const checkOverdueTasksInputSchema = z.object({
+  orgId: orgIdSchema,
+});
+
+const markNotificationReadInputSchema = z.object({
+  notificationId: notificationIdSchema,
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,11 +82,14 @@ export async function createNotification(
 export async function checkOverdueTasks(
   orgId: string
 ): Promise<{ success: boolean; count?: number; error?: string }> {
+  const validated = checkOverdueTasksInputSchema.safeParse({ orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
-
-    if (!orgId) return { success: false, error: "No active workspace" };
 
     const insforge = createInsforgeServer();
 
@@ -85,7 +97,7 @@ export async function checkOverdueTasks(
     const { data: membership } = await insforge.database
       .from("memberships")
       .select("id")
-      .eq("organization_id", orgId)
+      .eq("organization_id", validated.data.orgId)
       .eq("user_id", userId)
       .maybeSingle();
 
@@ -98,7 +110,7 @@ export async function checkOverdueTasks(
     const { data: overdueTasks, error: tasksError } = await insforge.database
       .from("tasks")
       .select("id, title, assignee_id")
-      .eq("organization_id", orgId)
+      .eq("organization_id", validated.data.orgId)
       .neq("status", "DONE")
       .lt("due_date", now)
       .not("assignee_id", "is", null);
@@ -170,6 +182,11 @@ export async function getNotifications(): Promise<{
 export async function markNotificationRead(
   notificationId: string
 ): Promise<{ success: boolean; error?: string }> {
+  const validated = markNotificationReadInputSchema.safeParse({ notificationId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
@@ -179,7 +196,7 @@ export async function markNotificationRead(
     const { error } = await insforge.database
       .from("notifications")
       .update({ is_read: true })
-      .eq("id", notificationId)
+      .eq("id", validated.data.notificationId)
       .eq("user_id", userId);
 
     if (error) return { success: false, error: "Failed to update notification" };
