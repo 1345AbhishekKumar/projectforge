@@ -6,6 +6,7 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { MembershipRole } from "@/types";
 import { logActivity } from "@/actions/activity";
+import { createNotification } from "@/actions/notification";
 
 const inviteSchema = z.object({
   email: z.string().email("Invalid email format"),
@@ -167,6 +168,20 @@ export async function inviteMember(
       joinedUserName: inviteeProfile.full_name || "Unknown Member",
       joinedUserEmail: validated.data.email,
     });
+
+    // Notify the invited user
+    const { data: orgRow } = await insforge.database
+      .from("organizations")
+      .select("name")
+      .eq("id", orgId)
+      .maybeSingle();
+
+    const orgName = orgRow?.name || "your workspace";
+    await createNotification(
+      inviteeProfile.id,
+      `🎉 You've been added to "${orgName}" as ${validated.data.role}.`,
+      "MEMBER_INVITED"
+    );
 
     revalidatePath("/organizations/settings");
     revalidatePath("/dashboard");

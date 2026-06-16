@@ -111,12 +111,31 @@ export type AttachmentWithUser = Attachment & {
   };
 };
 
+export type NotificationType =
+  | "GENERAL"
+  | "TASK_OVERDUE"
+  | "SPRINT_STARTED"
+  | "SPRINT_ENDED"
+  | "MEMBER_INVITED"
+  | "PROJECT_COMPLETED";
+
 export type Notification = {
   id: string;
   user_id: string;
   content: string;
+  type: NotificationType;
   is_read: boolean;
   created_at: string;
+};
+
+export type NotificationPreference = {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  in_app: boolean;
+  email: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 export type Label = {

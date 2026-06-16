@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { Sprint, SprintStatus } from "@/types";
+import { createNotification } from "@/actions/notification";
 
 const sprintSchema = z.object({
   name: z.string().min(3, "Sprint name must be at least 3 characters").max(100),
@@ -315,6 +316,34 @@ export async function updateSprintStatus(
 
     if (error) {
       return { success: false, error: "Failed to update sprint status" };
+    }
+
+    // Fan-out notifications for all org members on sprint lifecycle events
+    if (status === "ACTIVE" || status === "COMPLETED") {
+      const { data: sprintData } = await insforge.database
+        .from("sprints")
+        .select("name")
+        .eq("id", sprintId)
+        .single();
+
+      const { data: memberRows } = await insforge.database
+        .from("memberships")
+        .select("user_id")
+        .eq("organization_id", orgId);
+
+      if (sprintData && memberRows) {
+        const notifType = status === "ACTIVE" ? "SPRINT_STARTED" : "SPRINT_ENDED";
+        const content =
+          status === "ACTIVE"
+            ? `🚀 Sprint "${sprintData.name}" has started. Let's ship it!`
+            : `✅ Sprint "${sprintData.name}" has been completed.`;
+
+        await Promise.all(
+          memberRows.map((m: { user_id: string }) =>
+            createNotification(m.user_id, content, notifType)
+          )
+        );
+      }
     }
 
     revalidatePath("/sprints");

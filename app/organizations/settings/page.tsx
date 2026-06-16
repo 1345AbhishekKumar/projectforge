@@ -9,6 +9,7 @@ import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { MemberList } from "@/components/orgs/MemberList";
 import { InviteModal } from "@/components/orgs/InviteModal";
+import { NotificationPreferences } from "@/components/notifications/NotificationPreferences";
 import { Sidebar } from "@/components/layout/Sidebar";
 import {
   getOrganizationMembers,
@@ -287,6 +288,9 @@ export default function SettingsPage() {
                 </div>
               )}
             </div>
+
+            {/* Notification Preferences — full width below members */}
+            <NotificationPreferences />
           </div>
         )}
       </div>

@@ -2,14 +2,156 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
-import type { Notification } from "@/types";
+import { z } from "zod";
+import type { Notification, NotificationType, NotificationPreference } from "@/types";
 
-export async function getNotifications(): Promise<{ success: boolean; data: Notification[]; error?: string }> {
+const ALL_NOTIFICATION_TYPES: NotificationType[] = [
+  "GENERAL",
+  "TASK_OVERDUE",
+  "SPRINT_STARTED",
+  "SPRINT_ENDED",
+  "MEMBER_INVITED",
+  "PROJECT_COMPLETED",
+];
+
+const preferenceSchema = z.object({
+  type: z.enum([
+    "GENERAL",
+    "TASK_OVERDUE",
+    "SPRINT_STARTED",
+    "SPRINT_ENDED",
+    "MEMBER_INVITED",
+    "PROJECT_COMPLETED",
+  ]),
+  inApp: z.boolean(),
+  email: z.boolean(),
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Internal helper — used by other actions to fan-out notifications.
+// Checks the target user's in_app preference before inserting.
+// Never throws — logs and silently exits on failure so callers are unaffected.
+// ─────────────────────────────────────────────────────────────────────────────
+export async function createNotification(
+  targetUserId: string,
+  content: string,
+  type: NotificationType
+): Promise<void> {
+  try {
+    const insforge = createInsforgeServer();
+
+    // Check in_app preference — only block if an explicit "false" row exists
+    const { data: pref } = await insforge.database
+      .from("notification_preferences")
+      .select("in_app")
+      .eq("user_id", targetUserId)
+      .eq("type", type)
+      .maybeSingle();
+
+    // If preference exists and is disabled, skip insertion
+    if (pref && pref.in_app === false) return;
+
+    await insforge.database.from("notifications").insert([
+      {
+        user_id: targetUserId,
+        content,
+        type,
+        is_read: false,
+      },
+    ]);
+  } catch (err) {
+    console.error("createNotification failed silently:", { targetUserId, type, err });
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Scans for tasks that are past their due date and not completed.
+// Creates one TASK_OVERDUE notification per unique assignee.
+// Deduplication: skips if a TASK_OVERDUE notification for the same task
+// already exists within the last 24 hours (matched via content substring).
+// ─────────────────────────────────────────────────────────────────────────────
+export async function checkOverdueTasks(
+  orgId: string
+): Promise<{ success: boolean; count?: number; error?: string }> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    if (!orgId) return { success: false, error: "No active workspace" };
+
+    const insforge = createInsforgeServer();
+
+    // Verify caller is a member
+    const { data: membership } = await insforge.database
+      .from("memberships")
+      .select("id")
+      .eq("organization_id", orgId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!membership) return { success: false, error: "Not a member of this workspace" };
+
+    const now = new Date().toISOString();
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+    // Find all overdue tasks with an assignee
+    const { data: overdueTasks, error: tasksError } = await insforge.database
+      .from("tasks")
+      .select("id, title, assignee_id")
+      .eq("organization_id", orgId)
+      .neq("status", "DONE")
+      .lt("due_date", now)
+      .not("assignee_id", "is", null);
+
+    if (tasksError) return { success: false, error: "Failed to fetch overdue tasks" };
+    if (!overdueTasks || overdueTasks.length === 0) return { success: true, count: 0 };
+
+    // Fetch recent TASK_OVERDUE notifications to deduplicate
+    const { data: recentNotifs } = await insforge.database
+      .from("notifications")
+      .select("content")
+      .eq("type", "TASK_OVERDUE")
+      .gte("created_at", yesterday);
+
+    const alreadyNotifiedTaskIds = new Set<string>();
+    for (const n of recentNotifs || []) {
+      // Content contains task ID in bracket form: "[task-id]"
+      const match = n.content.match(/\[([a-f0-9-]{36})\]/);
+      if (match) alreadyNotifiedTaskIds.add(match[1]);
+    }
+
+    let count = 0;
+    for (const task of overdueTasks as { id: string; title: string; assignee_id: string }[]) {
+      if (alreadyNotifiedTaskIds.has(task.id)) continue;
+
+      await createNotification(
+        task.assignee_id,
+        `⚠️ Task "[${task.id}]${task.title}" is overdue. Please update its status or due date.`,
+        "TASK_OVERDUE"
+      );
+      count++;
+    }
+
+    return { success: true, count };
+  } catch (err) {
+    console.error("checkOverdueTasks error:", err);
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Fetch all notifications for the current user (newest first).
+// ─────────────────────────────────────────────────────────────────────────────
+export async function getNotifications(): Promise<{
+  success: boolean;
+  data: Notification[];
+  error?: string;
+}> {
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
-    const insforge = await createInsforgeServer();
+    const insforge = createInsforgeServer();
 
     const { data, error } = await insforge.database
       .from("notifications")
@@ -17,22 +159,22 @@ export async function getNotifications(): Promise<{ success: boolean; data: Noti
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
-    if (error) {
-      return { success: false, error: "Failed to fetch notifications", data: [] };
-    }
+    if (error) return { success: false, error: "Failed to fetch notifications", data: [] };
 
-    return { success: true, data: data as unknown as Notification[] };
+    return { success: true, data: (data as unknown as Notification[]) || [] };
   } catch {
     return { success: false, error: "An unexpected error occurred", data: [] };
   }
 }
 
-export async function markNotificationRead(notificationId: string): Promise<{ success: boolean; error?: string }> {
+export async function markNotificationRead(
+  notificationId: string
+): Promise<{ success: boolean; error?: string }> {
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = await createInsforgeServer();
+    const insforge = createInsforgeServer();
 
     const { error } = await insforge.database
       .from("notifications")
@@ -40,9 +182,7 @@ export async function markNotificationRead(notificationId: string): Promise<{ su
       .eq("id", notificationId)
       .eq("user_id", userId);
 
-    if (error) {
-      return { success: false, error: "Failed to update notification" };
-    }
+    if (error) return { success: false, error: "Failed to update notification" };
 
     return { success: true };
   } catch {
@@ -50,12 +190,15 @@ export async function markNotificationRead(notificationId: string): Promise<{ su
   }
 }
 
-export async function markAllNotificationsRead(): Promise<{ success: boolean; error?: string }> {
+export async function markAllNotificationsRead(): Promise<{
+  success: boolean;
+  error?: string;
+}> {
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = await createInsforgeServer();
+    const insforge = createInsforgeServer();
 
     const { error } = await insforge.database
       .from("notifications")
@@ -63,9 +206,7 @@ export async function markAllNotificationsRead(): Promise<{ success: boolean; er
       .eq("user_id", userId)
       .eq("is_read", false);
 
-    if (error) {
-      return { success: false, error: "Failed to update notifications" };
-    }
+    if (error) return { success: false, error: "Failed to update notifications" };
 
     return { success: true };
   } catch {
@@ -73,12 +214,15 @@ export async function markAllNotificationsRead(): Promise<{ success: boolean; er
   }
 }
 
-export async function deleteOldNotifications(): Promise<{ success: boolean; error?: string }> {
+export async function deleteOldNotifications(): Promise<{
+  success: boolean;
+  error?: string;
+}> {
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = await createInsforgeServer();
+    const insforge = createInsforgeServer();
 
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
@@ -89,8 +233,102 @@ export async function deleteOldNotifications(): Promise<{ success: boolean; erro
       .eq("user_id", userId)
       .lt("created_at", cutoff.toISOString());
 
-    if (error) {
-      return { success: false, error: "Failed to delete old notifications" };
+    if (error) return { success: false, error: "Failed to delete old notifications" };
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Preferences — fetch all 6 preference rows for the current user.
+// Returns defaults (in_app: true, email: false) for any type with no saved row.
+// ─────────────────────────────────────────────────────────────────────────────
+export async function getNotificationPreferences(): Promise<{
+  success: boolean;
+  data?: NotificationPreference[];
+  error?: string;
+}> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const insforge = createInsforgeServer();
+
+    const { data, error } = await insforge.database
+      .from("notification_preferences")
+      .select("*")
+      .eq("user_id", userId);
+
+    if (error) return { success: false, error: "Failed to fetch preferences" };
+
+    const saved = (data as NotificationPreference[]) || [];
+    const savedByType = new Map(saved.map((p) => [p.type, p]));
+
+    // Fill missing types with defaults
+    const full: NotificationPreference[] = ALL_NOTIFICATION_TYPES.map((type) => {
+      if (savedByType.has(type)) return savedByType.get(type)!;
+      return {
+        id: "",
+        user_id: userId,
+        type,
+        in_app: true,
+        email: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+    });
+
+    return { success: true, data: full };
+  } catch {
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function upsertNotificationPreference(
+  type: NotificationType,
+  inApp: boolean,
+  email: boolean
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const validated = preferenceSchema.safeParse({ type, inApp, email });
+    if (!validated.success) {
+      return { success: false, error: validated.error.issues[0].message };
+    }
+
+    const insforge = createInsforgeServer();
+
+    // Check if a row exists
+    const { data: existing } = await insforge.database
+      .from("notification_preferences")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("type", type)
+      .maybeSingle();
+
+    if (existing) {
+      const { error } = await insforge.database
+        .from("notification_preferences")
+        .update({ in_app: inApp, email, updated_at: new Date().toISOString() })
+        .eq("user_id", userId)
+        .eq("type", type);
+
+      if (error) return { success: false, error: "Failed to update preference" };
+    } else {
+      const { error } = await insforge.database.from("notification_preferences").insert([
+        {
+          user_id: userId,
+          type,
+          in_app: inApp,
+          email,
+        },
+      ]);
+
+      if (error) return { success: false, error: "Failed to save preference" };
     }
 
     return { success: true };

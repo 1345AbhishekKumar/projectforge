@@ -1,14 +1,21 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Bell } from "lucide-react";
+import { Bell, Loader2, RefreshCw } from "lucide-react";
 import {
   getNotifications,
   markNotificationRead,
   markAllNotificationsRead,
   deleteOldNotifications,
+  checkOverdueTasks,
 } from "@/actions/notification";
-import type { Notification } from "@/types";
+import type { Notification, NotificationType } from "@/types";
+
+function getActiveOrgId(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(/active_org_id=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 function formatRelativeTime(dateStr: string): string {
   const now = new Date();
@@ -37,7 +44,9 @@ function getDateGroupLabel(dateStr: string): string {
   return "Earlier";
 }
 
-function groupNotificationsByDate(notifications: Notification[]): Record<string, Notification[]> {
+function groupNotificationsByDate(
+  notifications: Notification[]
+): Record<string, Notification[]> {
   const groups: Record<string, Notification[]> = {};
   const order = ["Today", "Yesterday", "Earlier"];
 
@@ -54,11 +63,26 @@ function groupNotificationsByDate(notifications: Notification[]): Record<string,
   return ordered;
 }
 
+// Visual badge for each notification type
+const TYPE_BADGE: Record<
+  NotificationType,
+  { label: string; className: string }
+> = {
+  GENERAL: { label: "General", className: "bg-neutral-bg border border-black/20 text-secondary" },
+  TASK_OVERDUE: { label: "Overdue", className: "bg-accent-pink border border-black/30 text-primary" },
+  SPRINT_STARTED: { label: "Sprint ▶", className: "bg-accent-blue border border-black/30 text-primary" },
+  SPRINT_ENDED: { label: "Sprint ✓", className: "bg-accent-green border border-black/30 text-primary" },
+  MEMBER_INVITED: { label: "Invited", className: "bg-accent-purple text-white border border-black/30" },
+  PROJECT_COMPLETED: { label: "Project ✓", className: "bg-accent-yellow border border-black/30 text-primary" },
+};
+
 export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
   const [markingAll, setMarkingAll] = useState(false);
+  const [checkingOverdue, setCheckingOverdue] = useState(false);
+  const [overdueMsg, setOverdueMsg] = useState("");
   const containerRef = useRef<HTMLDivElement>(null);
 
   const unreadCount = notifications.filter((n) => !n.is_read).length;
@@ -70,7 +94,7 @@ export function NotificationBell() {
     setLoading(false);
   }
 
-  // Initial fetch — async IIFE keeps setState out of the synchronous effect body
+  // Initial fetch
   useEffect(() => {
     let active = true;
     (async () => {
@@ -81,7 +105,9 @@ export function NotificationBell() {
         setLoading(false);
       }
     })();
-    return () => { active = false; };
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Close on outside click
@@ -99,7 +125,6 @@ export function NotificationBell() {
     const next = !open;
     setOpen(next);
     if (next) {
-      // Cleanup old notifications fire-and-forget
       deleteOldNotifications();
       await fetchNotifications();
     }
@@ -109,7 +134,6 @@ export function NotificationBell() {
     const notification = notifications.find((n) => n.id === id);
     if (!notification || notification.is_read) return;
 
-    // Optimistic update
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
     );
@@ -119,10 +143,37 @@ export function NotificationBell() {
   const handleMarkAllRead = async () => {
     if (unreadCount === 0) return;
     setMarkingAll(true);
-    // Optimistic update
     setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     await markAllNotificationsRead();
     setMarkingAll(false);
+  };
+
+  const handleCheckOverdue = async () => {
+    const orgId = getActiveOrgId();
+    if (!orgId) {
+      setOverdueMsg("No active workspace selected.");
+      return;
+    }
+
+    setCheckingOverdue(true);
+    setOverdueMsg("");
+    const result = await checkOverdueTasks(orgId);
+
+    if (result.success) {
+      const count = result.count ?? 0;
+      setOverdueMsg(
+        count === 0
+          ? "No new overdue tasks found."
+          : `${count} overdue notification${count === 1 ? "" : "s"} sent.`
+      );
+      // Refresh the list to show new notifications
+      await fetchNotifications();
+    } else {
+      setOverdueMsg(result.error || "Check failed.");
+    }
+
+    setCheckingOverdue(false);
+    setTimeout(() => setOverdueMsg(""), 3500);
   };
 
   const grouped = groupNotificationsByDate(notifications);
@@ -146,7 +197,7 @@ export function NotificationBell() {
 
       {/* Dropdown Panel */}
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-white border-2 border-black rounded-sketchy shadow-flat-offset z-[100] overflow-hidden">
+        <div className="absolute right-0 top-full mt-2 w-[340px] bg-white border-2 border-black rounded-sketchy shadow-flat-offset z-[100] overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b-2 border-black">
             <span className="font-cursive text-xl font-bold text-primary">Notifications</span>
@@ -161,6 +212,25 @@ export function NotificationBell() {
             )}
           </div>
 
+          {/* Check Overdue Tasks row */}
+          <div className="px-4 py-2.5 border-b border-black/10 bg-neutral-bg/50 flex items-center justify-between gap-3">
+            <span className="font-sans text-[11px] text-secondary/70 truncate">
+              {overdueMsg || "Scan for past-due tasks and alert assignees"}
+            </span>
+            <button
+              onClick={handleCheckOverdue}
+              disabled={checkingOverdue}
+              className="flex items-center gap-1.5 bg-white border-2 border-black rounded-full px-3 py-1 font-sans text-[11px] font-bold shadow-flat-offset-sm hover:-translate-y-0.5 active:translate-y-0 transition-all cursor-pointer disabled:opacity-40 shrink-0"
+            >
+              {checkingOverdue ? (
+                <Loader2 className="h-3 w-3 animate-spin" />
+              ) : (
+                <RefreshCw className="h-3 w-3" />
+              )}
+              {checkingOverdue ? "Checking..." : "Check Overdue"}
+            </button>
+          </div>
+
           {/* Body */}
           <div className="max-h-80 overflow-y-auto">
             {loading && (
@@ -172,7 +242,9 @@ export function NotificationBell() {
             {!loading && !hasNotifications && (
               <div className="px-4 py-8 text-center">
                 <span className="font-cursive text-2xl block mb-1">🎉</span>
-                <p className="font-sans text-sm font-semibold text-primary">You&apos;re all caught up!</p>
+                <p className="font-sans text-sm font-semibold text-primary">
+                  You&apos;re all caught up!
+                </p>
                 <p className="font-sans text-xs text-secondary mt-1">No notifications yet.</p>
               </div>
             )}
@@ -186,36 +258,47 @@ export function NotificationBell() {
                     <span className="font-cursive text-sm font-bold text-secondary">{label}</span>
                   </div>
 
-                  {items.map((notification) => (
-                    <button
-                      key={notification.id}
-                      onClick={() => handleMarkRead(notification.id)}
-                      className={[
-                        "w-full text-left flex items-start gap-3 px-4 py-3 border-b border-black/10 transition-colors duration-150",
-                        notification.is_read
-                          ? "hover:bg-neutral-bg/50"
-                          : "bg-accent-yellow/20 hover:bg-accent-yellow/40",
-                      ].join(" ")}
-                    >
-                      {/* Unread dot */}
-                      <span className="mt-1.5 flex-shrink-0">
-                        {!notification.is_read ? (
-                          <span className="block w-2 h-2 rounded-full bg-tertiary" />
-                        ) : (
-                          <span className="block w-2 h-2 rounded-full bg-transparent" />
-                        )}
-                      </span>
+                  {items.map((notification) => {
+                    const badge = TYPE_BADGE[notification.type] ?? TYPE_BADGE.GENERAL;
+                    return (
+                      <button
+                        key={notification.id}
+                        onClick={() => handleMarkRead(notification.id)}
+                        className={[
+                          "w-full text-left flex items-start gap-3 px-4 py-3 border-b border-black/10 transition-colors duration-150",
+                          notification.is_read
+                            ? "hover:bg-neutral-bg/50"
+                            : "bg-accent-yellow/20 hover:bg-accent-yellow/40",
+                        ].join(" ")}
+                      >
+                        {/* Unread dot */}
+                        <span className="mt-1.5 flex-shrink-0">
+                          {!notification.is_read ? (
+                            <span className="block w-2 h-2 rounded-full bg-tertiary" />
+                          ) : (
+                            <span className="block w-2 h-2 rounded-full bg-transparent" />
+                          )}
+                        </span>
 
-                      <div className="flex-1 min-w-0">
-                        <p className="font-sans text-sm text-primary leading-snug line-clamp-2">
-                          {notification.content}
-                        </p>
-                        <p className="font-sans text-xs text-secondary mt-0.5">
-                          {formatRelativeTime(notification.created_at)}
-                        </p>
-                      </div>
-                    </button>
-                  ))}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-sans text-sm text-primary leading-snug line-clamp-2">
+                            {notification.content}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1 flex-wrap">
+                            {/* Type badge */}
+                            <span
+                              className={`inline-block px-1.5 py-0.5 rounded text-[9px] font-bold font-sans ${badge.className}`}
+                            >
+                              {badge.label}
+                            </span>
+                            <p className="font-sans text-xs text-secondary">
+                              {formatRelativeTime(notification.created_at)}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               ))}
           </div>

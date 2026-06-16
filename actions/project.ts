@@ -6,6 +6,7 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { Project, ProjectStatus } from "@/types";
 import { logActivity } from "@/actions/activity";
+import { createNotification } from "@/actions/notification";
 
 const projectSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(50),
@@ -172,6 +173,26 @@ export async function updateProject(
 
     if (error) {
       return { success: false, error: "Failed to update project" };
+    }
+
+    // If the project was just marked as COMPLETED, notify all org members
+    if (validated.data.status === "COMPLETED") {
+      const { data: memberRows } = await insforge.database
+        .from("memberships")
+        .select("user_id")
+        .eq("organization_id", orgId);
+
+      if (memberRows) {
+        await Promise.all(
+          memberRows.map((m: { user_id: string }) =>
+            createNotification(
+              m.user_id,
+              `🌟 Project "${validated.data.name}" has been marked as Completed.`,
+              "PROJECT_COMPLETED"
+            )
+          )
+        );
+      }
     }
 
     revalidatePath("/projects");
