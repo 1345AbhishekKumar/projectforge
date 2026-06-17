@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { orgIdSchema } from "@/lib/utils";
-import { verifyMembership } from "@/lib/auth-helpers";
+import { verifyMembership, getOrganizationMemberships } from "@/lib/auth-helpers";
 
 
 export type MemberWorkload = {
@@ -40,7 +40,7 @@ export async function getAnalyticsData(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     const isMember = await verifyMembership(insforge, validated.data, userId);
     if (!isMember) {
@@ -70,17 +70,7 @@ export async function getAnalyticsData(
     }
 
     // 3. Fetch memberships & profiles
-    const { data: memberships, error: membershipsError } = await insforge.database
-      .from("memberships")
-      .select(`
-        user_id,
-        profiles (
-          full_name,
-          email,
-          avatar_url
-        )
-      `)
-      .eq("organization_id", orgId);
+    const { data: memberships, error: membershipsError } = await getOrganizationMemberships(insforge, orgId);
 
     if (membershipsError) {
       console.error("Failed to fetch members for analytics:", membershipsError);

@@ -162,7 +162,7 @@ import * as Sentry from "@sentry/nextjs";
 
 export async function updateTaskStatus(taskId: string, status: string, projectId: string) {
   try {
-    const insforge = await createInsforgeServer();
+    const insforge = createInsforgeServer();
     // validate input
     // write to DB
     revalidatePath(`/projects/${projectId}`);
@@ -218,12 +218,12 @@ import { insforge } from "@/lib/insforge-client";
 
 // Server context — Server Components, Route Handlers, Server Actions, Agent
 import { createInsforgeServer } from "@/lib/insforge-server";
-const insforge = await createInsforgeServer();
+const insforge = createInsforgeServer();
 ```
 
 - Never use the browser client in server context
 - Never use the server client in browser context
-- Always await createInsforgeServer() — it reads cookies asynchronously
+- Always call createInsforgeServer() synchronously (it doesn't need to be awaited)
 - Always scope every query to the current user_id and active organization_id — never query without these identity and tenant filters
 
 ---

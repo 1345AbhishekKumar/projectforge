@@ -8,6 +8,7 @@ import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { syncProfile } from "@/actions/profile";
+import { InvitationBanner } from "@/components/invitations/InvitationBanner";
 
 export default function DashboardPage() {
   const { user, isLoaded } = useUser();
@@ -84,6 +85,7 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-8">
+        <InvitationBanner />
         <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8">
           <h1 className="font-cursive text-4xl font-bold mb-2">
             Hey, {user?.firstName || "Collaborator"}! 👋

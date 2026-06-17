@@ -29,7 +29,7 @@ export async function logActivity(
       return { success: false, error: validated.error.issues[0].message };
     }
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
     const { error } = await insforge.database
       .from("activities")
       .insert([
@@ -95,7 +95,7 @@ export async function getProjectActivities(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
@@ -127,3 +127,56 @@ export async function getProjectActivities(
     return { success: false, error: "An unexpected error occurred", data: [] };
   }
 }
+
+const getOrganizationActivitiesInputSchema = z.object({
+  orgId: orgIdSchema,
+  page: z.number().int().min(1),
+  limit: z.number().int().min(1),
+});
+
+export async function getOrganizationActivities(
+  orgId: string,
+  page: number = 1,
+  limit: number = 20
+): Promise<{ success: boolean; data: ActivityWithActor[]; error?: string }> {
+  try {
+    const validated = getOrganizationActivitiesInputSchema.safeParse({ orgId, page, limit });
+    if (!validated.success) {
+      return { success: false, error: validated.error.issues[0].message, data: [] };
+    }
+
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized", data: [] };
+
+    const insforge = createInsforgeServer(userId);
+
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
+    if (!isMember) {
+      return { success: false, error: "Not a member of this workspace", data: [] };
+    }
+
+    const from = (validated.data.page - 1) * validated.data.limit;
+    const to = from + validated.data.limit - 1;
+
+    const { data, error } = await insforge.database
+      .from("activities")
+      .select(`
+        *,
+        actor:profiles(id, full_name, email, avatar_url)
+      `)
+      .eq("organization_id", validated.data.orgId)
+      .order("created_at", { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.error("Failed to fetch organization activities:", error);
+      return { success: false, error: "Failed to fetch activities", data: [] };
+    }
+
+    return { success: true, data: data as unknown as ActivityWithActor[] };
+  } catch (err) {
+    console.error("Error fetching organization activities:", err);
+    return { success: false, error: "An unexpected error occurred", data: [] };
+  }
+}
+

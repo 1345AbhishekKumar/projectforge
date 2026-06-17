@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { ClerkProvider } from "@clerk/nextjs";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { WorkspaceGate } from "@/components/layout/WorkspaceGate";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -39,7 +40,9 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <ClerkProvider dynamic>
           <QueryProvider>
-            {children}
+            <WorkspaceGate>
+              {children}
+            </WorkspaceGate>
           </QueryProvider>
         </ClerkProvider>
       </body>

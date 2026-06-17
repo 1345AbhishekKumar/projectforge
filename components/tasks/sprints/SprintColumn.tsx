@@ -74,7 +74,7 @@ export function SprintColumn({
                     <div>
                       <h3 className="font-cursive text-xl font-bold">{sprint.name}</h3>
                       {sprint.goal && <p className="font-sans text-xs text-secondary mb-1">Goal: {sprint.goal}</p>}
-                      <p className="font-sans text-[10px] text-secondary/70">
+                       <p className="font-sans text-[10px] text-secondary/70" suppressHydrationWarning>
                         Timeline: {new Date(sprint.start_date).toLocaleDateString()} - {new Date(sprint.end_date).toLocaleDateString()}
                       </p>
                     </div>
@@ -156,7 +156,7 @@ export function SprintColumn({
                     <div>
                       <h3 className="font-cursive text-lg font-bold">{sprint.name}</h3>
                       {sprint.goal && <p className="font-sans text-xs text-secondary/80 line-clamp-1">Goal: {sprint.goal}</p>}
-                      <p className="font-sans text-[10px] text-secondary/60">
+                       <p className="font-sans text-[10px] text-secondary/60" suppressHydrationWarning>
                         Timeline: {new Date(sprint.start_date).toLocaleDateString()} - {new Date(sprint.end_date).toLocaleDateString()}
                       </p>
                     </div>
@@ -225,7 +225,7 @@ export function SprintColumn({
                     {sprint.status.toLowerCase()}
                   </span>
                 </h3>
-                <p className="font-sans text-[10px] text-secondary/60">
+                 <p className="font-sans text-[10px] text-secondary/60" suppressHydrationWarning>
                   Timeline: {new Date(sprint.start_date).toLocaleDateString()} - {new Date(sprint.end_date).toLocaleDateString()}
                 </p>
                 <span className="font-sans text-[10px] font-bold text-secondary">

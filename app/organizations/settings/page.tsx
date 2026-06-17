@@ -1,112 +1,56 @@
-"use client";
-
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useUser, useAuth } from "@clerk/nextjs";
-import { ArrowLeft, Building2, LogOut, User as UserIcon, Loader2 } from "lucide-react";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import { auth, currentUser } from "@clerk/nextjs/server";
+import { ArrowLeft, Building2, User as UserIcon } from "lucide-react";
+import Link from "next/link";
 
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
-import { MemberList } from "@/components/orgs/MemberList";
-import { InviteModal } from "@/components/orgs/InviteModal";
-import { NotificationPreferences } from "@/components/notifications/NotificationPreferences";
 import { Sidebar } from "@/components/layout/Sidebar";
-import {
-  getOrganizationMembers,
-  inviteMember,
-  updateMemberRole,
-  removeMember,
-  type MemberListItem,
-} from "@/actions/membership";
+import { SettingsForm } from "@/components/orgs/SettingsForm";
+import { getOrganizationMembers, type MemberListItem } from "@/actions/membership";
+import { getOrganizationInvitations, type OrgInvitationItem } from "@/actions/invitation";
+import { getUserOrganizations } from "@/actions/org";
+import type { MembershipRole } from "@/types";
 
-import { useOrgStore } from "@/store/orgStore";
+export default async function SettingsPage() {
+  const { userId } = await auth();
+  if (!userId) {
+    redirect("/sign-in");
+  }
 
-export default function SettingsPage() {
-  const router = useRouter();
-  const { user, isLoaded } = useUser();
-  const { signOut } = useAuth();
+  const user = await currentUser();
+  const email = user?.emailAddresses[0]?.emailAddress ?? "";
 
-  const { activeOrgId, activeOrgName } = useOrgStore();
-  const [members, setMembers] = useState<MemberListItem[]>([]);
-  const [loadingMembers, setLoadingMembers] = useState(true);
-  const [error, setError] = useState("");
+  const cookieStore = await cookies();
+  const activeOrgId = cookieStore.get("active_org_id")?.value;
 
-  const handleSignOut = async () => {
-    await signOut();
-    router.push("/sign-in");
-  };
+  let initialMembers: MemberListItem[] = [];
+  let initialInvitations: OrgInvitationItem[] = [];
+  let activeOrgName = "";
+  let currentUserRole: MembershipRole = "MEMBER";
 
-  // Fetch members when activeOrgId updates
-  useEffect(() => {
-    if (!activeOrgId) {
-      const timer = setTimeout(() => {
-        setMembers([]);
-        setLoadingMembers(false);
-      }, 0);
-      return () => clearTimeout(timer);
+  if (activeOrgId) {
+    const [membersRes, invitesRes, orgsRes] = await Promise.all([
+      getOrganizationMembers(activeOrgId),
+      getOrganizationInvitations(activeOrgId),
+      getUserOrganizations(),
+    ]);
+
+    if (membersRes.success) {
+      initialMembers = membersRes.data;
     }
-
-    async function loadMembers() {
-      setLoadingMembers(true);
-      setError("");
-      const result = await getOrganizationMembers(activeOrgId!);
-      if (result.success) {
-        setMembers(result.data);
-      } else {
-        setError(result.error || "Failed to load members");
+    if (invitesRes.success) {
+      initialInvitations = invitesRes.data;
+    }
+    if (orgsRes.success && orgsRes.data) {
+      const activeOrg = orgsRes.data.find((o) => o.id === activeOrgId);
+      if (activeOrg) {
+        activeOrgName = activeOrg.name;
+        currentUserRole = activeOrg.role as MembershipRole;
       }
-      setLoadingMembers(false);
-    }
-
-    loadMembers();
-  }, [activeOrgId]);
-
-  // Action callbacks passed to subcomponents
-  async function handleInvite(email: string, role: "ADMIN" | "MEMBER") {
-    if (!activeOrgId) return { success: false, error: "No active workspace selected" };
-    const res = await inviteMember(activeOrgId, email, role);
-    if (res.success) {
-      // Reload members list
-      const membersRes = await getOrganizationMembers(activeOrgId);
-      if (membersRes.success) setMembers(membersRes.data);
-    }
-    return res;
-  }
-
-  async function handleUpdateRole(membershipId: string, newRole: "ADMIN" | "MEMBER") {
-    if (!activeOrgId) return;
-    const res = await updateMemberRole(membershipId, activeOrgId, newRole);
-    if (res.success) {
-      // Reload members
-      const membersRes = await getOrganizationMembers(activeOrgId);
-      if (membersRes.success) setMembers(membersRes.data);
-    } else {
-      alert(res.error || "Failed to update role");
     }
   }
-
-  async function handleRemoveMember(membershipId: string) {
-    if (!activeOrgId) return;
-    const res = await removeMember(membershipId, activeOrgId);
-    if (res.success) {
-      // Reload members
-      const membersRes = await getOrganizationMembers(activeOrgId);
-      if (membersRes.success) setMembers(membersRes.data);
-    } else {
-      alert(res.error || "Failed to remove member");
-    }
-  }
-
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-neutral-bg bg-dot-grid text-primary">
-        <span className="font-cursive text-xl animate-pulse">Loading settings...</span>
-      </div>
-    );
-  }
-
-  const currentUserMember = members.find((m) => m.userId === user?.id);
-  const currentUserRole = currentUserMember?.role || "MEMBER";
 
   return (
     <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
@@ -139,17 +83,9 @@ export default function SettingsPage() {
             <div className="hidden sm:flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-neutral-bg">
               <UserIcon className="h-4 w-4 text-secondary" />
               <span className="font-sans text-xs font-semibold text-secondary">
-                {user?.primaryEmailAddress?.emailAddress}
+                {email}
               </span>
             </div>
-
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-2 bg-accent-pink hover:bg-[#FFB2B2] text-primary border-2 border-black font-sans text-xs font-bold px-4 py-2 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Sign Out
-            </button>
           </div>
         </header>
 
@@ -158,91 +94,45 @@ export default function SettingsPage() {
           <OrgSwitcher />
         </div>
 
-      {/* Main Settings Body */}
-      <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-6">
-        <div>
-          <button
-            onClick={() => router.push("/dashboard")}
-            className="flex items-center gap-1.5 font-sans text-sm text-secondary hover:text-primary mb-6 transition-colors cursor-pointer"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
-          </button>
-        </div>
-
-        {!activeOrgId ? (
-          <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8 text-center max-w-lg mx-auto mt-8">
-            <div className="w-12 h-12 rounded-full bg-accent-pink border-2 border-black flex items-center justify-center mx-auto mb-4 shadow-flat-offset-sm">
-              <Building2 className="h-6 w-6" />
-            </div>
-            <h2 className="font-cursive text-2xl font-bold mb-2">No Active Workspace</h2>
-            <p className="font-sans text-sm text-secondary mb-6">
-              Please select or create an organization workspace to manage settings and memberships.
-            </p>
-            <button
-              onClick={() => router.push("/orgs/create")}
-              className="bg-accent-yellow hover:bg-[#FFE680] text-primary border-2 border-black font-sans text-sm font-bold px-6 py-2.5 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
+        {/* Main Settings Body */}
+        <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-6">
+          <div>
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-1.5 font-sans text-sm text-secondary hover:text-primary mb-6 transition-colors cursor-pointer"
             >
-              Create New Workspace
-            </button>
+              <ArrowLeft className="h-4 w-4" />
+              Back to Dashboard
+            </Link>
           </div>
-        ) : (
-          <div className="flex flex-col gap-8">
-            {/* Header info card */}
-            <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h1 className="font-cursive text-3xl font-bold mb-1">
-                  Workspace Settings: <span className="underline decoration-tertiary decoration-2">{activeOrgName}</span>
-                </h1>
-                <p className="font-sans text-xs text-secondary">
-                  Organization ID: <code className="bg-neutral-bg px-1 py-0.5 rounded border border-black/10">{activeOrgId}</code>
-                </p>
+
+          {!activeOrgId ? (
+            <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8 text-center max-w-lg mx-auto mt-8">
+              <div className="w-12 h-12 rounded-full bg-accent-pink border-2 border-black flex items-center justify-center mx-auto mb-4 shadow-flat-offset-sm">
+                <Building2 className="h-6 w-6" />
               </div>
-              <div className="flex items-center gap-2 self-start sm:self-center">
-                <span className="font-sans text-xs text-secondary font-semibold">Your Role:</span>
-                <span className="bg-accent-purple text-white border-2 border-black text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                  {currentUserRole}
-                </span>
-              </div>
+              <h2 className="font-cursive text-2xl font-bold mb-2">No Active Workspace</h2>
+              <p className="font-sans text-sm text-secondary mb-6">
+                Please select or create an organization workspace to manage settings and memberships.
+              </p>
+              <Link
+                href="/orgs/create"
+                className="inline-block bg-accent-yellow hover:bg-[#FFE680] text-primary border-2 border-black font-sans text-sm font-bold px-6 py-2.5 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
+              >
+                Create New Workspace
+              </Link>
             </div>
-
-            {/* Content panels */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-              {/* Members List (Left panel) */}
-              <div className="lg:col-span-2">
-                {loadingMembers ? (
-                  <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8 flex items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-tertiary mr-3" />
-                    <span className="font-cursive text-xl">Loading members list...</span>
-                  </div>
-                ) : error ? (
-                  <div className="bg-accent-pink border-2 border-black rounded-sketchy-sm p-4 text-center">
-                    <p className="font-sans text-sm font-semibold">{error}</p>
-                  </div>
-                ) : (
-                  <MemberList
-                    members={members}
-                    currentUserId={user?.id || ""}
-                    currentUserRole={currentUserRole}
-                    onUpdateRole={handleUpdateRole}
-                    onRemoveMember={handleRemoveMember}
-                  />
-                )}
-              </div>
-
-              {/* Invite panel (Right panel) - only shown to owners & admins */}
-              {(currentUserRole === "OWNER" || currentUserRole === "ADMIN") && (
-                <div className="lg:col-span-1">
-                  <InviteModal onInvite={handleInvite} />
-                </div>
-              )}
-            </div>
-
-            {/* Notification Preferences — full width below members */}
-            <NotificationPreferences />
-          </div>
-        )}
-      </div>
+          ) : (
+            <SettingsForm
+              initialMembers={initialMembers}
+              initialInvitations={initialInvitations}
+              activeOrgId={activeOrgId}
+              activeOrgName={activeOrgName}
+              currentUserId={userId}
+              currentUserRole={currentUserRole}
+            />
+          )}
+        </div>
       </div>
     </div>
   );

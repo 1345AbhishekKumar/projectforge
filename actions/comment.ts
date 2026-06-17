@@ -6,8 +6,9 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { CommentWithUser } from "@/types";
 import { logActivity } from "@/actions/activity";
-import { orgIdSchema, projectIdSchema, taskIdSchema } from "@/lib/utils";
+import { orgIdSchema, projectIdSchema, taskIdSchema, uuidSchema } from "@/lib/utils";
 import { verifyMembership } from "@/lib/auth-helpers";
+import { createNotification } from "@/actions/notification";
 
 const createCommentInputSchema = z.object({
   taskId: taskIdSchema,
@@ -37,7 +38,7 @@ export async function createComment(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
@@ -76,15 +77,12 @@ export async function createComment(
 
       const name = profile?.full_name || "A member";
       
-      // Trigger notification record in DB
-      await insforge.database
-        .from("notifications")
-        .insert([
-          {
-            user_id: task.assignee_id,
-            content: `${name} commented on your assigned task "${task.title}"`,
-          },
-        ]);
+      // Trigger notification record in DB via createNotification service layer
+      await createNotification(
+        task.assignee_id,
+        `${name} commented on your assigned task "${task.title}"`,
+        "GENERAL"
+      );
     }
 
     await logActivity(validated.data.orgId, validated.data.projectId, userId, "COMMENT_ADDED", {
@@ -115,7 +113,7 @@ export async function getTaskComments(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
@@ -138,5 +136,106 @@ export async function getTaskComments(
     return { success: true, data: data as unknown as CommentWithUser[] };
   } catch {
     return { success: false, error: "An unexpected error occurred", data: [] };
+  }
+}
+
+const updateCommentInputSchema = z.object({
+  commentId: uuidSchema,
+  content: z.string().min(1, "Comment content cannot be empty").max(1000, "Comment must not exceed 1000 characters"),
+});
+
+const deleteCommentInputSchema = z.object({
+  commentId: uuidSchema,
+});
+
+export async function updateComment(
+  commentId: string,
+  content: string
+): Promise<{ success: boolean; error?: string }> {
+  const validated = updateCommentInputSchema.safeParse({ commentId, content });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const insforge = createInsforgeServer(userId);
+
+    // Verify comment ownership
+    const { data: comment } = await insforge.database
+      .from("comments")
+      .select("user_id")
+      .eq("id", validated.data.commentId)
+      .maybeSingle();
+
+    if (!comment) {
+      return { success: false, error: "Comment not found" };
+    }
+
+    if (comment.user_id !== userId) {
+      return { success: false, error: "You can only edit your own comments" };
+    }
+
+    const { error } = await insforge.database
+      .from("comments")
+      .update({
+        content: validated.data.content,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", validated.data.commentId);
+
+    if (error) {
+      return { success: false, error: "Failed to update comment" };
+    }
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function deleteComment(
+  commentId: string
+): Promise<{ success: boolean; error?: string }> {
+  const validated = deleteCommentInputSchema.safeParse({ commentId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const insforge = createInsforgeServer(userId);
+
+    // Verify comment ownership
+    const { data: comment } = await insforge.database
+      .from("comments")
+      .select("user_id")
+      .eq("id", validated.data.commentId)
+      .maybeSingle();
+
+    if (!comment) {
+      return { success: false, error: "Comment not found" };
+    }
+
+    if (comment.user_id !== userId) {
+      return { success: false, error: "You can only delete your own comments" };
+    }
+
+    const { error } = await insforge.database
+      .from("comments")
+      .delete()
+      .eq("id", validated.data.commentId);
+
+    if (error) {
+      return { success: false, error: "Failed to delete comment" };
+    }
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "An unexpected error occurred" };
   }
 }

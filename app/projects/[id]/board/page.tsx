@@ -159,10 +159,18 @@ export default function KanbanBoardPage({ params }: Props) {
                   members={board.members}
                   labels={board.labels}
                   savedViews={board.savedViews}
+                  activeFilters={board.activeFilters}
+                  onFiltersChange={(filters) => {
+                    board.setFilters(board.projectId, filters);
+                    const matchedView = board.savedViews.find(
+                      (v) => JSON.stringify(v.filters) === JSON.stringify(filters)
+                    );
+                    board.setActiveView(board.projectId, matchedView ? matchedView.name : "");
+                  }}
                   onSaveView={board.handleSaveView}
                   onDeleteView={board.handleDeleteView}
                   activeViewName={board.activeViewName}
-                  onClearViewName={() => board.setActiveView(board.projectId, "")}
+                  onClearViewName={() => board.clearFilters(board.projectId)}
                 />
 
                 {/* Board Columns Grid */}

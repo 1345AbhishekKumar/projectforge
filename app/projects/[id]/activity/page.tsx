@@ -209,7 +209,7 @@ export default function ProjectActivityPage({ params }: Props) {
                   <p className="font-sans text-sm text-secondary leading-relaxed">
                     {project.description || "No description provided for this project whiteboard board."}
                   </p>
-                  <div className="flex items-center gap-2 mt-4 text-[10px] text-secondary/60 font-sans">
+                  <div className="flex items-center gap-2 mt-4 text-[10px] text-secondary/60 font-sans" suppressHydrationWarning>
                     <Calendar className="h-3.5 w-3.5" />
                     <span>Created: {new Date(project.created_at).toLocaleDateString()}</span>
                     <span>•</span>

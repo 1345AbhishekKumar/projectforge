@@ -2,6 +2,7 @@
 
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
+import { z } from "zod";
 
 /**
  * Ensures the current Clerk user has a matching row in InsForge `profiles`.
@@ -16,7 +17,7 @@ export async function syncProfile(): Promise<{
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     // Check if profile already exists
     const { data: existing } = await insforge.database
@@ -49,6 +50,45 @@ export async function syncProfile(): Promise<{
         return { success: true };
       }
       return { success: false, error: "Failed to sync profile" };
+    }
+
+    return { success: true };
+  } catch {
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+const updateProfileSchema = z.object({
+  fullName: z.string().min(2, "Full name must be at least 2 characters").max(50),
+  avatarUrl: z.string().url("Invalid avatar URL").nullable().optional(),
+});
+
+export async function updateProfile(
+  fullName: string,
+  avatarUrl?: string | null
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const validated = updateProfileSchema.safeParse({ fullName, avatarUrl });
+    if (!validated.success) {
+      return { success: false, error: validated.error.issues[0].message };
+    }
+
+    const insforge = createInsforgeServer(userId);
+
+    const { error } = await insforge.database
+      .from("profiles")
+      .update({
+        full_name: validated.data.fullName,
+        avatar_url: validated.data.avatarUrl || null,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
+
+    if (error) {
+      return { success: false, error: "Failed to update profile" };
     }
 
     return { success: true };

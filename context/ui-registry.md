@@ -86,6 +86,14 @@ After building any component — update this file with the component name, file 
 - **Tab Button (Active):** `bg-accent-yellow border-2 border-black border-b-0 rounded-t-lg shadow-[0_-2px_0_rgba(0,0,0,1)] px-6 py-2.5 text-sm font-bold font-cursive`
 - **Empty State Card:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8 md:p-12 text-center max-w-lg mx-auto`
 
+#### BacklogTab Component
+- **File Path:** [BacklogTab.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/projects/BacklogTab.tsx)
+- **Container Classes:** `flex flex-col gap-6`
+
+#### MembersTab Component
+- **File Path:** [MembersTab.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/projects/MembersTab.tsx)
+- **Grid Classes:** `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`
+
 #### ProjectCard Component
 - **File Path:** [ProjectCard.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/projects/ProjectCard.tsx)
 - **Card Link:** `block w-full rounded-sketchy p-5 shadow-flat-offset-sm hover:-translate-y-1 hover:rotate-1 hover:shadow-flat-offset active:translate-y-0.5 active:rotate-0 transition-all duration-200 cursor-pointer`
@@ -253,5 +261,37 @@ After building any component — update this file with the component name, file 
 - **SVG Bar Shadows:** `fill="#000000" rx="4"`
 - **SVG Bars:** `fill="#D4EDDA" stroke="#000000" strokeWidth="2.5" rx="4"`
 
+### User Profile Page & Form
 
+#### Profile Page
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/profile/page.tsx)
+- **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
+
+#### ProfileForm Component
+- **File Path:** [ProfileForm.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/profile/ProfileForm.tsx)
+- **Card Wrapper:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-2xl w-full mx-auto relative rotate-[-0.5deg]`
+
+### Notifications Manager Page & Components
+
+#### Notifications Page
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/notifications/page.tsx)
+- **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
+
+#### NotificationManager Component
+- **File Path:** [NotificationManager.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/notifications/NotificationManager.tsx)
+- **Filters Box:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-4 flex flex-col gap-2`
+- **Notification Item:** `bg-white border-2 border-black rounded-sketchy-sm p-4 shadow-flat-offset-sm transition-all flex items-start gap-4`
+
+### Global Organization Activity Page
+
+#### Global Activity Feed Page
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/activity/page.tsx)
+- **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
+- **Activity Item:** `bg-white border-2 border-black rounded-sketchy-sm p-4 shadow-flat-offset-sm flex items-start gap-4 hover:-translate-y-0.5 transition-transform`
+
+### Dashboard Invitation Banner Component
+
+#### InvitationBanner Component
+- **File Path:** [InvitationBanner.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/invitations/InvitationBanner.tsx)
+- **Banner Wrapper:** `bg-accent-purple border-2 border-black rounded-sketchy p-5 shadow-flat-offset flex flex-col md:flex-row md:items-center justify-between gap-4 rotate-[0.5deg] text-primary`
 

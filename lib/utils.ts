@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const DEFAULT_PAGE_SIZE = 25;
+export const MATCH_THRESHOLD = 0.3;
 
 export const uuidSchema = z.string().uuid("Invalid unique identifier");
 export const orgIdSchema = uuidSchema;

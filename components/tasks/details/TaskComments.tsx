@@ -102,7 +102,7 @@ export function TaskComments({ taskId, projectId, orgId, comments, onCommentAdde
                 <span className="font-sans text-xs font-bold">
                   {comment.user?.full_name || "Member"}
                 </span>
-                <span className="font-sans text-[10px] text-secondary ml-auto">
+                <span className="font-sans text-[10px] text-secondary ml-auto" suppressHydrationWarning>
                   {new Date(comment.created_at).toLocaleString()}
                 </span>
               </div>

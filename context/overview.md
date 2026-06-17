@@ -107,7 +107,7 @@ Intelligent Organizational OS (V5)
 * **DB & Storage:** PostgreSQL, Redis, Object Storage, Vector DB (V5).
 * **Ecosystem:** Event Bus, Search Cluster, Analytics Warehouse.
 * **AI Infra (V5):** Model routing, Agent runtime, Embeddings, Prompt management.
-* **Auth:** Clerk / InsForge Auth → Enterprise SSO (V4).
+* **Auth:** Clerk.
 * **Deployment:** Vercel (monolith) → K8s (distributed).
 
 ---

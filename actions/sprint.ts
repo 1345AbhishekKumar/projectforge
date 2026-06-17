@@ -81,7 +81,7 @@ export async function createSprint(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     // Check permissions
     const isAuthorized = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
@@ -139,7 +139,7 @@ export async function getSprints(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     // Check membership
     const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
@@ -183,7 +183,7 @@ export async function updateSprint(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     // Check permissions
     const isAuthorized = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
@@ -274,7 +274,7 @@ export async function updateSprintStatus(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     // Check permissions
     const isAuthorized = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);

@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { SearchResult } from "@/types";
-import { verifyMembership } from "@/lib/auth-helpers";
+import { verifyMembership, getOrganizationMemberships } from "@/lib/auth-helpers";
 
 const searchSchema = z.object({
   query: z
@@ -19,59 +19,43 @@ export async function globalSearch(
   query: string,
   orgId: string
 ): Promise<{ success: boolean; data?: SearchResult; error?: string }> {
+  const validated = searchSchema.safeParse({ query, orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const validated = searchSchema.safeParse({ query, orgId });
-    if (!validated.success) {
-      return { success: false, error: validated.error.issues[0].message };
-    }
+    const insforge = createInsforgeServer(userId);
 
-    const insforge = createInsforgeServer();
-
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace" };
     }
 
-    const searchTerm = query.trim();
-    const likeTerm = `%${searchTerm}%`;
+    const searchTerm = validated.data.query.trim();
 
-    // Run all three searches in parallel for performance
     const [projectsRes, tasksRes, membersRes] = await Promise.all([
-      // 1. Projects: ILIKE match on name and description
+      // 1. Projects: match name ILIKE
       insforge.database
         .from("projects")
-        .select("id, name, status, description")
+        .select("id, name, description, status")
         .eq("organization_id", orgId)
-        .or(`name.ilike.${likeTerm},description.ilike.${likeTerm}`)
+        .ilike("name", `%${searchTerm}%`)
         .limit(10),
 
-      // 2. Tasks: full-text search via tsvector on title + description
+      // 2. Tasks: match title/description using textSearch
       insforge.database
         .from("tasks")
-        .select("id, title, status, priority, project_id")
+        .select("id, project_id, title, description, status, priority")
         .eq("organization_id", orgId)
         .textSearch("title", searchTerm, { type: "plain" })
         .limit(10),
 
       // 3. Members: fetch all for org, filter in-process by name/email
-      insforge.database
-        .from("memberships")
-        .select(
-          `
-          user_id,
-          role,
-          profiles (
-            full_name,
-            avatar_url,
-            email
-          )
-        `
-        )
-        .eq("organization_id", orgId)
-        .limit(50),
+      getOrganizationMemberships(insforge, orgId, 50),
     ]);
 
     if (projectsRes.error) {

@@ -55,7 +55,7 @@ export async function createAttachment(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
@@ -99,7 +99,7 @@ export async function getTaskAttachments(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
@@ -139,7 +139,7 @@ export async function deleteAttachment(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
@@ -160,7 +160,7 @@ export async function deleteAttachment(
     // Remove file object from storage bucket
     const { error: storageError } = await insforge.storage
       .from("attachments")
-      .remove(attachment.storage_path);
+      .remove([attachment.storage_path]);
 
     if (storageError) {
       return { success: false, error: "Failed to delete file from storage" };

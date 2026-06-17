@@ -5,7 +5,7 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { Label } from "@/types";
 import { orgIdSchema, labelIdSchema } from "@/lib/utils";
-import { verifyMembership } from "@/lib/auth-helpers";
+import { verifyMembership, verifyAdminOrOwnerRole } from "@/lib/auth-helpers";
 
 const labelSchema = z.object({
   name: z.string().min(2, "Label name must be at least 2 characters").max(30),
@@ -36,11 +36,11 @@ export async function getLabels(orgId: string): Promise<{ success: boolean; data
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
     const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) return { success: false, error: "Not a member of this workspace", data: [] };
 
-    const { data, error } = await (await insforge).database
+    const { data, error } = await insforge.database
       .from("labels")
       .select("*")
       .eq("organization_id", validated.data.orgId)
@@ -66,11 +66,11 @@ export async function createLabel(orgId: string, name: string, color: string): P
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
-    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
-    if (!isMember) return { success: false, error: "Not a member of this workspace" };
+    const insforge = createInsforgeServer(userId);
+    const isAdminOrOwner = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
+    if (!isAdminOrOwner) return { success: false, error: "Only owners and admins can create labels." };
 
-    const { data, error } = await (await insforge).database
+    const { data, error } = await insforge.database
       .from("labels")
       .insert([
         {
@@ -105,11 +105,11 @@ export async function deleteLabel(labelId: string, orgId: string): Promise<{ suc
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
-    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
-    if (!isMember) return { success: false, error: "Not a member of this workspace" };
+    const insforge = createInsforgeServer(userId);
+    const isAdminOrOwner = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
+    if (!isAdminOrOwner) return { success: false, error: "Only owners and admins can delete labels." };
 
-    const { error } = await (await insforge).database
+    const { error } = await insforge.database
       .from("labels")
       .delete()
       .eq("id", validated.data.labelId)
@@ -120,6 +120,56 @@ export async function deleteLabel(labelId: string, orgId: string): Promise<{ suc
     }
 
     return { success: true };
+  } catch {
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+const updateLabelInputSchema = z.object({
+  labelId: labelIdSchema,
+  orgId: orgIdSchema,
+  name: z.string().min(2, "Label name must be at least 2 characters").max(30),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/, "Must be a valid hex color"),
+});
+
+export async function updateLabel(
+  labelId: string,
+  orgId: string,
+  name: string,
+  color: string
+): Promise<{ success: boolean; data?: Label; error?: string }> {
+  const validated = updateLabelInputSchema.safeParse({ labelId, orgId, name, color });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const insforge = createInsforgeServer(userId);
+    const isAdminOrOwner = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
+    if (!isAdminOrOwner) return { success: false, error: "Only owners and admins can update labels." };
+
+    const { data, error } = await insforge.database
+      .from("labels")
+      .update({
+        name: validated.data.name,
+        color: validated.data.color,
+      })
+      .eq("id", validated.data.labelId)
+      .eq("organization_id", validated.data.orgId)
+      .select("*")
+      .single();
+
+    if (error) {
+      if (error.message?.includes("unique") || error.details?.includes("already exists")) {
+        return { success: false, error: "A label with this name already exists in this workspace" };
+      }
+      return { success: false, error: "Failed to update label" };
+    }
+
+    return { success: true, data };
   } catch {
     return { success: false, error: "An unexpected error occurred" };
   }

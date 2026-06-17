@@ -533,25 +533,13 @@ export const insforge = createBrowserClient(
 
 // lib/insforge-server.ts
 // Server client — API, Actions, SSR
-import { createServerClient } from "@insforge/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@insforge/sdk";
 
-export const createInsforgeServer = async () => {
-  const cookieStore = await cookies();
-  return createServerClient(
-    process.env.NEXT_PUBLIC_INSFORGE_URL!,
-    process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY!,
-    {
-      cookies: {
-        getAll: () => cookieStore.getAll(),
-        setAll: (cookiesToSet) => {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options),
-          );
-        },
-      },
-    },
-  );
+export const createInsforgeServer = () => {
+  return createClient({
+    baseUrl: process.env.NEXT_PUBLIC_INSFORGE_URL!,
+    anonKey: process.env.NEXT_PUBLIC_INSFORGE_ANON_KEY!,
+  });
 };
 ```
 

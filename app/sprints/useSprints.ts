@@ -9,7 +9,8 @@ import { useTaskStore } from "@/store/taskStore";
 import { getOrganizationMembers, type MemberListItem } from "@/actions/membership";
 import { getUserOrganizations } from "@/actions/org";
 import { getSprints, createSprint, updateSprintStatus } from "@/actions/sprint";
-import { getOrganizationTasks, updateTask, deleteTask, type TaskWithAssignee } from "@/actions/task";
+import { getOrganizationTasks, type TaskWithAssignee } from "@/actions/task";
+import { updateTask, deleteTask } from "@/actions/taskMutation";
 import type { Sprint, SprintStatus, TaskStatus, TaskPriority } from "@/types";
 
 function getActiveOrgId(): string | null {

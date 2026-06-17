@@ -3,27 +3,20 @@
 import React from "react";
 
 interface PricingCardProps {
-  isDarkMode: boolean;
   onDeploy: () => void;
 }
 
-export default function PricingCard({ isDarkMode, onDeploy }: PricingCardProps) {
+export default function PricingCard({ onDeploy }: PricingCardProps) {
   return (
     <div className="md:col-span-5 cta-reveal">
       <div
-        className={`border-2 rounded-sketchy-lg p-8 md:p-10 flex flex-col justify-between min-h-[480px] transition-all duration-300 ${
-          isDarkMode
-            ? "bg-zinc-900 text-white border-white shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]"
-            : "bg-[#D0E1FD] text-black border-black shadow-flat-offset"
-        }`}
+        className="border-2 rounded-sketchy-lg p-8 md:p-10 flex flex-col justify-between min-h-[480px] transition-all duration-300 bg-[#D0E1FD] text-black border-black shadow-flat-offset"
       >
         <div>
           <div className="flex items-center justify-between mb-8">
             <div>
               <span
-                className={`text-xs font-mono font-bold tracking-widest uppercase transition-colors duration-300 ${
-                  isDarkMode ? "text-zinc-400" : "text-slate-700"
-                }`}
+                className="text-xs font-mono font-bold tracking-widest uppercase transition-colors duration-300 text-slate-700"
               >
                 Pricing Tier
               </span>
@@ -32,11 +25,7 @@ export default function PricingCard({ isDarkMode, onDeploy }: PricingCardProps) 
 
             {/* Visual Accent Badge */}
             <span
-              className={`text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border transition-all duration-300 ${
-                isDarkMode
-                  ? "bg-zinc-950 text-white border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,0.15)]"
-                  : "bg-white text-black border-black shadow-flat-offset-sm"
-              }`}
+              className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border transition-all duration-300 bg-white text-black border-black shadow-flat-offset-sm"
             >
               Popular
             </span>
@@ -46,9 +35,7 @@ export default function PricingCard({ isDarkMode, onDeploy }: PricingCardProps) 
           <div className="flex items-baseline gap-1.5 mb-8">
             <span className="text-5xl font-bold tracking-tight font-mono">$19</span>
             <span
-              className={`text-sm font-mono transition-colors duration-300 ${
-                isDarkMode ? "text-zinc-400" : "text-slate-700"
-              }`}
+              className="text-sm font-mono transition-colors duration-300 text-slate-700"
             >
               /&nbsp;mo
             </span>
@@ -58,9 +45,7 @@ export default function PricingCard({ isDarkMode, onDeploy }: PricingCardProps) 
           <ul className="space-y-4 mb-10 text-sm font-bold">
             <li className="flex items-start gap-3">
               <svg
-                className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                  isDarkMode ? "text-[#00a099]" : "text-slate-900"
-                }`}
+                className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-900"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="3"
@@ -73,9 +58,7 @@ export default function PricingCard({ isDarkMode, onDeploy }: PricingCardProps) 
             </li>
             <li className="flex items-start gap-3">
               <svg
-                className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                  isDarkMode ? "text-[#00a099]" : "text-slate-900"
-                }`}
+                className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-900"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="3"
@@ -88,9 +71,7 @@ export default function PricingCard({ isDarkMode, onDeploy }: PricingCardProps) 
             </li>
             <li className="flex items-start gap-3">
               <svg
-                className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                  isDarkMode ? "text-[#00a099]" : "text-slate-900"
-                }`}
+                className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-900"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="3"
@@ -103,9 +84,7 @@ export default function PricingCard({ isDarkMode, onDeploy }: PricingCardProps) 
             </li>
             <li className="flex items-start gap-3">
               <svg
-                className={`w-4 h-4 mt-0.5 flex-shrink-0 ${
-                  isDarkMode ? "text-[#00a099]" : "text-slate-900"
-                }`}
+                className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-900"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="3"
@@ -122,11 +101,7 @@ export default function PricingCard({ isDarkMode, onDeploy }: PricingCardProps) 
         {/* Primary Action Button */}
         <button
           onClick={onDeploy}
-          className={`w-full py-3.5 rounded-full font-mono text-sm font-bold bg-[#00a099] border-2 hover:bg-[#008B8B] text-white transition-all duration-150 ease-out active:scale-[0.97] cursor-pointer ${
-            isDarkMode
-              ? "border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]"
-              : "border-black shadow-flat-offset-sm"
-          }`}
+          className="w-full py-3.5 rounded-full font-mono text-sm font-bold bg-[#00a099] border-2 hover:bg-[#008B8B] text-white transition-all duration-150 ease-out active:scale-[0.97] cursor-pointer border-black shadow-flat-offset-sm"
         >
           Deploy Pro Cluster
         </button>

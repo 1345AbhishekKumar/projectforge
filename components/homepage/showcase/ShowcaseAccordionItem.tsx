@@ -16,7 +16,6 @@ interface ShowcaseAccordionItemProps {
   item: AccordionItem;
   isCurrentHovered: boolean;
   isAnyHovered: boolean;
-  isDarkMode: boolean;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
   onClick: () => void;
@@ -26,7 +25,6 @@ export default function ShowcaseAccordionItem({
   item,
   isCurrentHovered,
   isAnyHovered,
-  isDarkMode,
   onMouseEnter,
   onMouseLeave,
   onClick,
@@ -37,10 +35,7 @@ export default function ShowcaseAccordionItem({
     widthClass = isCurrentHovered ? "md:w-[50%]" : "md:w-[25%]";
   }
 
-  // In dark mode, follow BentoFeatures style: bg-zinc-900 border-white text-white shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]
-  const cardBgClass = isDarkMode
-    ? "bg-zinc-900 border-white text-white shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]"
-    : `${item.color} border-black text-black shadow-flat-offset`;
+  const cardBgClass = `${item.color} border-black text-black shadow-flat-offset`;
 
   return (
     <div
@@ -58,7 +53,7 @@ export default function ShowcaseAccordionItem({
       }}
     >
       {/* Background Image with grayscale blend filter */}
-      <div className="absolute inset-0 opacity-10 dark:opacity-5 group-hover:opacity-25 dark:group-hover:opacity-15 transition-opacity duration-500 pointer-events-none">
+      <div className="absolute inset-0 opacity-10 group-hover:opacity-25 transition-opacity duration-500 pointer-events-none">
         <div
           className="accordion-bg-img absolute inset-0 bg-cover bg-center transition-transform duration-700 ease-out"
           style={{
@@ -70,18 +65,14 @@ export default function ShowcaseAccordionItem({
       {/* Header block inside panel */}
       <div className="relative z-10 flex items-start justify-between w-full">
         <span
-          className={`text-sm font-mono font-bold tracking-widest transition-colors duration-300 ${
-            isDarkMode ? "text-zinc-400" : "text-slate-800"
-          }`}
+          className="text-sm font-mono font-bold tracking-widest transition-colors duration-300 text-slate-800"
         >
           {item.num}
         </span>
 
         {/* Horizontal Accordion indicator */}
         <span
-          className={`text-xs font-mono font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-all duration-300 ${
-            isDarkMode ? "text-[#00a099]" : "text-black"
-          }`}
+          className="text-xs font-mono font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-all duration-300 text-black"
         >
           Explore Phase &rarr;
         </span>
@@ -90,9 +81,7 @@ export default function ShowcaseAccordionItem({
       {/* Typography block */}
       <div className="relative z-10 mt-auto">
         <h3
-          className={`font-cursive text-4xl font-bold tracking-tight mb-3 transition-transform duration-300 ${
-            isDarkMode ? "text-[#FAF9F6]" : "text-slate-900"
-          }`}
+          className="font-cursive text-4xl font-bold tracking-tight mb-3 transition-transform duration-300 text-slate-900"
         >
           {item.title}
         </h3>
@@ -106,9 +95,7 @@ export default function ShowcaseAccordionItem({
           }`}
         >
           <p
-            className={`text-sm font-sans leading-relaxed max-w-[42ch] transition-colors duration-300 ${
-              isDarkMode ? "text-zinc-400" : "text-slate-900"
-            }`}
+            className="text-sm font-sans leading-relaxed max-w-[42ch] transition-colors duration-300 text-slate-900"
           >
             {item.description}
           </p>
@@ -119,8 +106,6 @@ export default function ShowcaseAccordionItem({
           className={`hidden md:block text-xs font-mono font-bold mt-1 transition-opacity duration-300 ${
             isCurrentHovered
               ? "opacity-0"
-              : isDarkMode
-              ? "text-zinc-500"
               : "text-slate-700"
           }`}
         >

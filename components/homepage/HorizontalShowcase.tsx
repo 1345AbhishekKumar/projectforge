@@ -5,16 +5,6 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import ShowcaseAccordionItem, { AccordionItem } from "./showcase/ShowcaseAccordionItem";
 
-/* 
-<design_plan>
-1. Integrating isDarkMode prop into HorizontalShowcase:
-   - Headings H2, H3: Cursive font, colors toggle (isDarkMode ? text-[#FAF9F6] : text-slate-900).
-   - Accordion Container: isDarkMode ? bg-zinc-900 border-white text-white shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)] : item.color border-black text-black shadow-flat-offset.
-   - Pills inside headers: Toggle border-white & white shadow in dark mode.
-</design_plan>
-*/
-
-
 const SHOWCASE_ITEMS: AccordionItem[] = [
   {
     id: "ideate",
@@ -46,7 +36,6 @@ const SHOWCASE_ITEMS: AccordionItem[] = [
 ];
 
 export default function HorizontalShowcase() {
-  const isDarkMode = false;
   const containerRef = useRef<HTMLDivElement>(null);
   const itemsContainerRef = useRef<HTMLDivElement>(null);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
@@ -96,36 +85,24 @@ export default function HorizontalShowcase() {
     >
       {/* Title block with editorial typography containing inline header pills */}
       <div className="mb-16 md:mb-20 max-w-4xl showcase-reveal">
-        <h2 className={`font-cursive text-4xl md:text-6xl font-bold tracking-tight leading-tight text-wrap-balance mb-6 transition-colors duration-300 ${
-          isDarkMode ? "text-[#FAF9F6]" : "text-slate-900"
-        }`}>
+        <h2 className="font-cursive text-4xl md:text-6xl font-bold tracking-tight leading-tight text-wrap-balance mb-6 transition-colors duration-300 text-slate-900">
           Construct, align, and ship{" "}
           <span 
-            className={`inline-block w-16 md:w-24 h-7 md:h-10 rounded-full align-middle bg-cover bg-center mx-1.5 md:mx-2 border-2 transition-all duration-300 ${
-              isDarkMode 
-                ? "border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]" 
-                : "border-black shadow-flat-offset-sm"
-            }`}
+            className="inline-block w-16 md:w-24 h-7 md:h-10 rounded-full align-middle bg-cover bg-center mx-1.5 md:mx-2 border-2 transition-all duration-300 border-black shadow-flat-offset-sm"
             style={{ backgroundImage: `url('https://picsum.photos/seed/forge-pill1/150/80')` }}
             role="img"
             aria-label="Sketch preview icon"
           />{" "}
           without switching contexts or{" "}
           <span 
-            className={`inline-block w-16 md:w-24 h-7 md:h-10 rounded-full align-middle bg-cover bg-center mx-1.5 md:mx-2 border-2 transition-all duration-300 ${
-              isDarkMode 
-                ? "border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]" 
-                : "border-black shadow-flat-offset-sm"
-            }`}
+            className="inline-block w-16 md:w-24 h-7 md:h-10 rounded-full align-middle bg-cover bg-center mx-1.5 md:mx-2 border-2 transition-all duration-300 border-black shadow-flat-offset-sm"
             style={{ backgroundImage: `url('https://picsum.photos/seed/forge-pill2/150/80')` }}
             role="img"
             aria-label="Workflow preview icon"
           />{" "}
           losing momentum.
         </h2>
-        <p className={`text-base font-sans leading-relaxed max-w-[65ch] transition-colors duration-300 ${
-          isDarkMode ? "text-zinc-400" : "text-slate-655"
-        }`}>
+        <p className="text-base font-sans leading-relaxed max-w-[65ch] transition-colors duration-300 text-slate-655">
           The three foundational stages of ProjectForge combined into a unified workflow model. Click or hover on a phase to explore details.
         </p>
       </div>
@@ -141,7 +118,6 @@ export default function HorizontalShowcase() {
             item={item}
             isCurrentHovered={hoveredIdx === idx}
             isAnyHovered={hoveredIdx !== null}
-            isDarkMode={isDarkMode}
             onMouseEnter={() => setHoveredIdx(idx)}
             onMouseLeave={() => setHoveredIdx(null)}
             onClick={() => setHoveredIdx(idx === hoveredIdx ? null : idx)}

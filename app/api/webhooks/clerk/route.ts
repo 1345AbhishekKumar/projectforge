@@ -3,15 +3,16 @@ import { headers } from "next/headers";
 import { NextRequest } from "next/server";
 import { WebhookEvent } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
+import { logger } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
-  console.log("Webhook endpoint hit at:", new Date().toISOString());
+  logger.info("Webhook endpoint hit");
   
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 
   if (!WEBHOOK_SECRET) {
     const error = "CLERK_WEBHOOK_SECRET is not set in environment variables";
-    console.error(error);
+    logger.error(error);
     return new Response(error, { status: 500 });
   }
 
@@ -21,11 +22,11 @@ export async function POST(req: NextRequest) {
   const svix_timestamp = headerPayload.get("svix-timestamp");
   const svix_signature = headerPayload.get("svix-signature");
 
-  console.log("Received webhook headers:", {
-    "svix-id": svix_id ? "present" : "missing",
-    "svix-timestamp": svix_timestamp ? "present" : "missing",
-    "svix-signature": svix_signature ? "present" : "missing",
-  });
+  logger.info({
+    svixId: svix_id ? "present" : "missing",
+    svixTimestamp: svix_timestamp ? "present" : "missing",
+    svixSignature: svix_signature ? "present" : "missing",
+  }, "Received webhook headers");
 
   // If there are no headers, error out
   if (!svix_id || !svix_timestamp || !svix_signature) {
@@ -40,18 +41,16 @@ export async function POST(req: NextRequest) {
   try {
     payload = JSON.parse(body);
   } catch (err) {
-    console.error("Failed to parse webhook JSON body:", err);
+    logger.error({ err }, "Failed to parse webhook JSON body");
     return new Response("Invalid JSON", { status: 400 });
   }
 
-  console.log("Webhook payload received:", {
+  logger.info({
     type: payload.type,
-    data: {
-      id: payload.data?.id,
-      email: payload.data?.email_addresses?.[0]?.email_address,
-      object: payload.data?.object,
-    },
-  });
+    userId: payload.data?.id,
+    email: payload.data?.email_addresses?.[0]?.email_address,
+    object: payload.data?.object,
+  }, "Webhook payload received");
 
   // Create a new Svix instance with the secret
   const wh = new Webhook(WEBHOOK_SECRET);
@@ -67,39 +66,45 @@ export async function POST(req: NextRequest) {
     }) as WebhookEvent;
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    console.error("Error verifying webhook:", {
+    logger.error({
       error: errorMessage,
-      headers: {
-        "svix-id": svix_id,
-        "svix-timestamp": svix_timestamp,
-        "svix-signature": svix_signature ? "present" : "missing",
-      },
-    });
+      svixId: svix_id,
+      svixTimestamp: svix_timestamp,
+      svixSignature: svix_signature ? "present" : "missing",
+    }, "Error verifying webhook");
     return new Response(`Error verifying webhook: ${errorMessage}`, {
       status: 400,
     });
   }
 
   const eventType = evt.type;
-  const insforge = createInsforgeServer();
+  const eventUserId = (evt.data as { id?: string })?.id;
+  
+  if (!eventUserId) {
+    logger.error({ eventType }, "Missing user ID in webhook event data");
+    return new Response("Error occurred -- missing user ID", { status: 400 });
+  }
+
+  // Pass eventUserId as RLS context, so that profiles operations execute under this user's RLS policy.
+  const insforge = createInsforgeServer(eventUserId);
 
   if (eventType === "user.created") {
-    console.log("Processing user.created event:", JSON.stringify(evt.data, null, 2));
+    logger.info({ userId: eventUserId }, "Processing user.created event");
 
     const { id, email_addresses, first_name, last_name, image_url } = evt.data;
     const email = email_addresses?.[0]?.email_address;
     const fullName = `${first_name ?? ""} ${last_name ?? ""}`.trim() || null;
 
-    console.log("Extracted user data:", {
+    logger.info({
       id,
       email,
       fullName,
       hasImage: !!image_url,
-    });
+    }, "Extracted user data");
 
     if (!id || !email) {
       const errorMessage = "Missing required user data in webhook payload";
-      console.error(errorMessage, { id, hasEmail: !!email });
+      logger.error({ id, hasEmail: !!email }, errorMessage);
       return new Response(errorMessage, { status: 400 });
     }
 
@@ -116,27 +121,23 @@ export async function POST(req: NextRequest) {
         ]);
 
       if (error) {
-        console.error("Failed to create profile in InsForge:", error);
+        logger.error({ error }, "Failed to create profile in InsForge");
         return new Response(`Error creating user: ${error.message}`, { status: 500 });
       }
 
-      console.log("Successfully created user profile in InsForge database:", id);
+      logger.info({ userId: id }, "Successfully created user profile in InsForge database");
     } catch (error) {
-      console.error("Unexpected error creating profile in database:", error);
+      logger.error({ error }, "Unexpected error creating profile in database");
       return new Response("Internal Server Error", { status: 500 });
     }
   }
 
   if (eventType === "user.updated") {
-    console.log("Processing user.updated event:", JSON.stringify(evt.data, null, 2));
+    logger.info({ userId: eventUserId }, "Processing user.updated event");
     
     const { id, email_addresses, first_name, last_name, image_url } = evt.data;
     const email = email_addresses?.[0]?.email_address;
     const fullName = `${first_name ?? ""} ${last_name ?? ""}`.trim() || null;
-
-    if (!id) {
-      return new Response("Error occurred -- missing user ID", { status: 400 });
-    }
 
     try {
       const { error } = await insforge.database
@@ -150,24 +151,20 @@ export async function POST(req: NextRequest) {
         .eq("id", id);
 
       if (error) {
-        console.error("Failed to update profile in InsForge:", error);
+        logger.error({ error }, "Failed to update profile in InsForge");
         return new Response("DB update failed", { status: 500 });
       }
 
-      console.log("Successfully updated user profile in InsForge database:", id);
+      logger.info({ userId: id }, "Successfully updated user profile in InsForge database");
     } catch (error) {
-      console.error("Unexpected error updating profile in database:", error);
+      logger.error({ error }, "Unexpected error updating profile in database");
       return new Response("Internal Server Error", { status: 500 });
     }
   }
 
   if (eventType === "user.deleted") {
-    console.log("Processing user.deleted event:", JSON.stringify(evt.data, null, 2));
+    logger.info({ userId: eventUserId }, "Processing user.deleted event");
     const { id } = evt.data;
-
-    if (!id) {
-      return new Response("Error occurred -- missing user ID", { status: 400 });
-    }
 
     try {
       const { error } = await insforge.database
@@ -176,13 +173,13 @@ export async function POST(req: NextRequest) {
         .eq("id", id);
 
       if (error) {
-        console.error("Failed to delete profile from InsForge:", error);
+        logger.error({ error }, "Failed to delete profile from InsForge");
         return new Response("DB delete failed", { status: 500 });
       }
 
-      console.log("Successfully deleted user profile from InsForge database:", id);
+      logger.info({ userId: id }, "Successfully deleted user profile from InsForge database");
     } catch (error) {
-      console.error("Unexpected error deleting profile in database:", error);
+      logger.error({ error }, "Unexpected error deleting profile in database");
       return new Response("Internal Server Error", { status: 500 });
     }
   }

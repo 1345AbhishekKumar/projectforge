@@ -17,8 +17,6 @@ const INITIAL_STICKIES: StickyNote[] = [
 ];
 
 export default function Hero() {
-  const isDarkMode = false;
-  const setIsDarkMode = () => {};
   const containerRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
   const cursorPriyaRef = useRef<HTMLDivElement>(null);
@@ -403,13 +401,9 @@ export default function Hero() {
   return (
     <div 
       ref={containerRef} 
-      className={`relative w-full min-h-[100dvh] flex flex-col justify-start select-none bg-dot-grid transition-colors duration-500 overflow-x-hidden ${
-        isDarkMode ? "bg-[#090C0C] text-[#FAF9F6]" : "bg-[#FAF9F6] text-primary"
-      }`}
+      className="relative w-full min-h-[100dvh] flex flex-col justify-start select-none bg-dot-grid transition-colors duration-500 overflow-x-hidden bg-[#FAF9F6] text-primary"
       style={{
-        backgroundImage: isDarkMode 
-          ? "radial-gradient(circle, rgba(255, 255, 255, 0.08) 1.5px, transparent 1.5px)" 
-          : "radial-gradient(circle, var(--color-neutral-dot) 1.5px, transparent 1.5px)"
+        backgroundImage: "radial-gradient(circle, var(--color-neutral-dot) 1.5px, transparent 1.5px)"
       }}
     >
       {/* Physical Paper Grain Overlay */}
@@ -417,7 +411,7 @@ export default function Hero() {
       
       <MarkerPen />
       
-      <HeroNav isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
+      <HeroNav />
 
       {/* Editorial Split Hero Container */}
       <main className="w-full max-w-7xl mx-auto px-6 pt-32 pb-24 md:pt-40 md:pb-32 flex-1 flex flex-col lg:flex-row items-center gap-16 lg:gap-12">
@@ -426,26 +420,18 @@ export default function Hero() {
         <div className="w-full lg:w-5/12 flex flex-col items-center lg:items-start text-center lg:text-left">
           
           {/* Eyebrow Micro-Tag */}
-          <div className={`hero-eyebrow opacity-0 border px-3.5 py-1.5 rounded-full text-[10px] uppercase tracking-[0.2em] font-bold shadow-flat-offset-sm mb-6 inline-block w-max ${
-            isDarkMode ? "bg-zinc-900 border-white text-white shadow-[2px_2px_0px_0px_rgba(255,255,255,0.15)]" : "bg-accent-yellow border-primary text-primary"
-          }`}>
+          <div className="hero-eyebrow opacity-0 border px-3.5 py-1.5 rounded-full text-[10px] uppercase tracking-[0.2em] font-bold shadow-flat-offset-sm mb-6 inline-block w-max bg-accent-yellow border-primary text-primary">
             ⚡ Welcome to Workspace 2.0
           </div>
           
           {/* Headline - 2-Line Iron Rule */}
-          <h1 className={`hero-heading opacity-0 font-cursive text-[3.2rem] sm:text-[4rem] md:text-[4.5rem] lg:text-[4.2rem] xl:text-[4.8rem] leading-[1.05] font-extrabold tracking-tight max-w-2xl mb-6 ${
-            isDarkMode ? "text-[#FAF9F6]" : "text-primary"
-          }`}>
-            Work, <span className={`inline-block w-14 h-7 sm:w-16 sm:h-8 md:w-20 md:h-10 rounded-full align-middle bg-cover bg-center border-2 shadow-flat-offset-sm mx-1 cursor-pointer transform hover:scale-105 active:scale-95 transition-all ${
-              isDarkMode ? "border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]" : "border-primary"
-            }`} style={{ backgroundImage: "url('https://picsum.photos/seed/forge/400/200')" }}></span> together, <br />
+          <h1 className="hero-heading opacity-0 font-cursive text-[3.2rem] sm:text-[4rem] md:text-[4.5rem] lg:text-[4.2rem] xl:text-[4.8rem] leading-[1.05] font-extrabold tracking-tight max-w-2xl mb-6 text-primary">
+            Work, <span className="inline-block w-14 h-7 sm:w-16 sm:h-8 md:w-20 md:h-10 rounded-full align-middle bg-cover bg-center border-2 shadow-flat-offset-sm mx-1 cursor-pointer transform hover:scale-105 active:scale-95 transition-all border-primary" style={{ backgroundImage: "url('https://picsum.photos/seed/forge/400/200')" }}></span> together, <br />
             right now.
           </h1>
           
           {/* Subheading */}
-          <p className={`hero-subtext opacity-0 font-sans text-lg md:text-xl max-w-lg mb-8 leading-relaxed ${
-            isDarkMode ? "text-[#FAF9F6]/80" : "text-secondary"
-          }`}>
+          <p className="hero-subtext opacity-0 font-sans text-lg md:text-xl max-w-lg mb-8 leading-relaxed text-secondary">
             ProjectForge is a sketchy, whiteboard-inspired work operating system. Grab a digital sticky note, drag tasks, and coordinate sprints in real-time.
           </p>
           
@@ -458,9 +444,7 @@ export default function Hero() {
               onMouseMove={(e) => handleButtonMouseMove(e, primaryBtnRef)}
               onMouseLeave={() => handleButtonMouseLeave(primaryBtnRef)}
               onClick={() => window.location.href = "/signup"}
-              className={`group relative w-full sm:w-auto bg-tertiary text-white border-2 font-sans text-base font-bold px-7 py-3 rounded-full flex items-center justify-center gap-3 hover:bg-tertiary-hover active:scale-[0.97] transition-all focus-visible:ring-2 focus-visible:ring-tertiary focus-visible:outline-none cursor-pointer will-change-transform ${
-                isDarkMode ? "border-white shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]" : "border-primary shadow-flat-offset"
-              }`}
+              className="group relative w-full sm:w-auto bg-tertiary text-white border-2 font-sans text-base font-bold px-7 py-3 rounded-full flex items-center justify-center gap-3 hover:bg-tertiary-hover active:scale-[0.97] transition-all focus-visible:ring-2 focus-visible:ring-tertiary focus-visible:outline-none cursor-pointer will-change-transform border-primary shadow-flat-offset"
             >
               Start Forging Free
               <span className="btn-arrow w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-sm font-semibold transition-transform">
@@ -473,17 +457,13 @@ export default function Hero() {
               ref={secondaryBtnRef}
               onMouseMove={(e) => handleButtonMouseMove(e, secondaryBtnRef)}
               onMouseLeave={() => handleButtonMouseLeave(secondaryBtnRef)}
-              className={`relative w-full sm:w-auto border-2 font-sans text-base font-semibold px-6 py-3 rounded-full flex items-center justify-center active:scale-[0.97] transition-all focus-visible:ring-2 focus-visible:ring-tertiary focus-visible:outline-none cursor-pointer will-change-transform ${
-                isDarkMode 
-                  ? "bg-[#121212] text-white border-white shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)] hover:bg-zinc-900" 
-                  : "bg-white text-primary border-primary shadow-flat-offset hover:bg-neutral-100"
-              }`}
+              className="relative w-full sm:w-auto border-2 font-sans text-base font-semibold px-6 py-3 rounded-full flex items-center justify-center active:scale-[0.97] transition-all focus-visible:ring-2 focus-visible:ring-tertiary focus-visible:outline-none cursor-pointer will-change-transform bg-white text-primary border-primary shadow-flat-offset hover:bg-neutral-100"
             >
               Watch Video
             </button>
           </div>
 
-          <PartnerMarquee isDarkMode={isDarkMode} />
+          <PartnerMarquee />
         </div>
 
         {/* Right Side: Mock Sandbox Whiteboard Board */}
@@ -492,9 +472,7 @@ export default function Hero() {
           {/* Double-Bezel Nested Shell */}
           <div className={`w-full border p-2.5 rounded-[2.2rem] transition-all duration-500 ${
             isBoardClosed ? "scale-95 opacity-50" : "scale-100"
-          } ${
-            isDarkMode ? "bg-white/5 border-white/10" : "bg-black/5 border-primary/10"
-          }`}>
+          } bg-black/5 border-primary/10`}>
             
             {/* Inner Core Content */}
             <div 
@@ -516,22 +494,14 @@ export default function Hero() {
               }}
               className={`w-full rounded-[calc(2.2rem-0.75rem)] border-2 bg-dot-grid relative overflow-hidden flex flex-col transition-all duration-500 custom-board-cursor ${
                 isBoardClosed ? "min-h-[60px] max-h-[60px]" : "min-h-[460px] md:min-h-[500px]"
-              } ${
-                isDarkMode 
-                  ? "border-white bg-[#121212] shadow-[4px_4px_0px_0px_rgba(255,255,255,0.15)]" 
-                  : "border-primary bg-neutral-bg shadow-flat-offset"
-              }`}
+              } border-primary bg-neutral-bg shadow-flat-offset`}
               style={{
-                backgroundImage: isDarkMode 
-                  ? "radial-gradient(circle, rgba(255, 255, 255, 0.08) 1.5px, transparent 1.5px)" 
-                  : "radial-gradient(circle, var(--color-neutral-dot) 1.5px, transparent 1.5px)"
+                backgroundImage: "radial-gradient(circle, var(--color-neutral-dot) 1.5px, transparent 1.5px)"
               }}
             >
               
               {/* Whiteboard Header */}
-              <div className={`border-b-2 px-4 py-3 backdrop-blur-md flex items-center justify-between transition-colors duration-300 ${
-                isDarkMode ? "border-white bg-black/60 text-white" : "border-primary bg-white/60 text-primary"
-              }`}>
+              <div className="border-b-2 px-4 py-3 backdrop-blur-md flex items-center justify-between transition-colors duration-300 border-primary bg-white/60 text-primary">
                 {/* Header Dots with Hover Interactions */}
                 <div className="flex items-center gap-2">
                   <button 
@@ -553,11 +523,7 @@ export default function Hero() {
                 </div>
                 
                 {/* Active Members Avatars & Counter */}
-                <div className={`flex items-center gap-1.5 border px-2 py-0.5 rounded-full text-xs font-bold font-sans ${
-                  isDarkMode 
-                    ? "bg-zinc-900 border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,0.15)]" 
-                    : "bg-white border-primary shadow-flat-offset-sm"
-                }`}>
+                <div className="flex items-center gap-1.5 border px-2 py-0.5 rounded-full text-xs font-bold font-sans bg-white border-primary shadow-flat-offset-sm">
                   <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                   3 Collaborating
                 </div>
@@ -567,43 +533,29 @@ export default function Hero() {
               {!isBoardClosed && (
                 <>
                   {/* Whiteboard Workspace Columns Grid */}
-                  <div className={`flex-1 grid grid-cols-3 divide-x-2 transition-colors duration-300 ${
-                    isDarkMode ? "divide-white" : "divide-primary"
-                  }`}>
+                  <div className="flex-1 grid grid-cols-3 divide-x-2 transition-colors duration-300 divide-primary">
                     
                     {/* Column: TO DO */}
                     <div className="p-3">
-                      <div className={`font-cursive text-lg font-bold border-b pb-2 tracking-wide flex items-center justify-between ${
-                        isDarkMode ? "border-white/15 text-white" : "border-primary/15 text-secondary"
-                      }`}>
+                      <div className="font-cursive text-lg font-bold border-b pb-2 tracking-wide flex items-center justify-between border-primary/15 text-secondary">
                         <span>TO DO</span>
-                        <span className={`text-xs border px-1.5 rounded font-sans ${
-                          isDarkMode ? "bg-zinc-800 border-white text-white" : "bg-accent-yellow/60 border-primary text-primary"
-                        }`}>{stickies.filter((s) => s.status === "todo").length}</span>
+                        <span className="text-xs border px-1.5 rounded font-sans bg-accent-yellow/60 border-primary text-primary">{stickies.filter((s) => s.status === "todo").length}</span>
                       </div>
                     </div>
 
                     {/* Column: DOING */}
                     <div className="p-3">
-                      <div className={`font-cursive text-lg font-bold border-b pb-2 tracking-wide flex items-center justify-between ${
-                        isDarkMode ? "border-white/15 text-white" : "border-primary/15 text-secondary"
-                      }`}>
+                      <div className="font-cursive text-lg font-bold border-b pb-2 tracking-wide flex items-center justify-between border-primary/15 text-secondary">
                         <span>DOING</span>
-                        <span className={`text-xs border px-1.5 rounded font-sans ${
-                          isDarkMode ? "bg-zinc-800 border-white text-white" : "bg-accent-pink/60 border-primary text-primary"
-                        }`}>{stickies.filter((s) => s.status === "doing").length}</span>
+                        <span className="text-xs border px-1.5 rounded font-sans bg-accent-pink/60 border-primary text-primary">{stickies.filter((s) => s.status === "doing").length}</span>
                       </div>
                     </div>
 
                     {/* Column: DONE */}
                     <div className="p-3">
-                      <div className={`font-cursive text-lg font-bold border-b pb-2 tracking-wide flex items-center justify-between ${
-                        isDarkMode ? "border-white/15 text-white" : "border-primary/15 text-secondary"
-                      }`}>
+                      <div className="font-cursive text-lg font-bold border-b pb-2 tracking-wide flex items-center justify-between border-primary/15 text-secondary">
                         <span>DONE</span>
-                        <span className={`text-xs border px-1.5 rounded font-sans ${
-                          isDarkMode ? "bg-zinc-800 border-white text-white" : "bg-accent-green/60 border-primary text-primary"
-                        }`}>{stickies.filter((s) => s.status === "done").length}</span>
+                        <span className="text-xs border px-1.5 rounded font-sans bg-accent-green/60 border-primary text-primary">{stickies.filter((s) => s.status === "done").length}</span>
                       </div>
                     </div>
                   </div>
@@ -613,7 +565,7 @@ export default function Hero() {
                     <path 
                       d="M 170 120 Q 230 140 280 200" 
                       fill="none" 
-                      stroke={isDarkMode ? "#FF9F70" : "#FF7F50"} 
+                      stroke="#FF7F50" 
                       strokeWidth="2.5" 
                       strokeDasharray="6 6"
                       style={{
@@ -628,7 +580,7 @@ export default function Hero() {
                         }
                       }
                     `}</style>
-                    <polygon points="280,200 274,194 278,203" fill={isDarkMode ? "#FF9F70" : "#FF7F50"} stroke={isDarkMode ? "#FF9F70" : "#FF7F50"} strokeWidth="1" />
+                    <polygon points="280,200 274,194 278,203" fill="#FF7F50" stroke="#FF7F50" strokeWidth="1" />
                   </svg>
 
                   {/* Draggable Sticky Notes rendered absolutely */}
@@ -638,7 +590,6 @@ export default function Hero() {
                       sticky={sticky}
                       draggedId={draggedId}
                       editingId={editingId}
-                      isDarkMode={isDarkMode}
                       onPointerDown={(e) => handlePointerDown(e, sticky.id)}
                       onPointerMove={(e) => handlePointerMove(e, sticky.id)}
                       onPointerUp={(e) => handlePointerUp(e, sticky.id)}
@@ -678,9 +629,7 @@ export default function Hero() {
                         <path d="M0 0V15.6L4.5 11.5L9.6 17.5L12.5 15.1L7.5 9.2L13.1 8L0 0Z" fill="#2BB7A8" stroke="black" strokeWidth="1.5" strokeLinejoin="round"/>
                       </svg>
                       {/* Username pill */}
-                      <div className={`border px-1.5 py-0.5 rounded text-[8px] sm:text-[10px] font-sans font-bold text-white mt-0.5 ml-2 bg-tertiary ${
-                        isDarkMode ? "border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,0.15)]" : "border-primary shadow-flat-offset-sm"
-                      }`}>
+                      <div className="border px-1.5 py-0.5 rounded text-[8px] sm:text-[10px] font-sans font-bold text-white mt-0.5 ml-2 bg-tertiary border-primary shadow-flat-offset-sm">
                         You
                       </div>
                     </div>
@@ -689,7 +638,6 @@ export default function Hero() {
                   {/* Collaborator Cursor Badges */}
                   <CollaboratorCursor
                     cursorRef={cursorPriyaRef}
-                    isDarkMode={isDarkMode}
                     name="Priya"
                     color="#6366F1"
                     bgClass="bg-accent-purple"
@@ -697,7 +645,6 @@ export default function Hero() {
 
                   <CollaboratorCursor
                     cursorRef={cursorJordanRef}
-                    isDarkMode={isDarkMode}
                     name="Jordan"
                     color="#FF7F50"
                     bgClass="bg-accent-orange"
@@ -712,11 +659,7 @@ export default function Hero() {
       </main>
       
       {/* Decorative Hand-Drawn Whiteboard Marker Pen Overlay */}
-      <div className={`absolute bottom-6 right-8 hidden lg:flex items-center gap-2 border px-3 py-1.5 rounded-full z-raised font-cursive text-sm font-bold ${
-        isDarkMode 
-          ? "bg-zinc-900 border-white text-white shadow-[4px_4px_0px_0px_rgba(255,255,255,0.15)]" 
-          : "bg-white border-primary text-primary shadow-flat-offset"
-      }`}>
+      <div className="absolute bottom-6 right-8 hidden lg:flex items-center gap-2 border px-3 py-1.5 rounded-full z-raised font-cursive text-sm font-bold bg-white border-primary text-primary shadow-flat-offset">
         <span>✏️ marker: ready</span>
         <div className="w-3 h-3 bg-tertiary rounded-full border border-primary"></div>
       </div>

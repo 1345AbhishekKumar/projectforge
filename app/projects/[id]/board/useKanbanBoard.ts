@@ -3,9 +3,12 @@
 import React, { useState, useEffect, useCallback, use } from "react";
 import { useRouter } from "next/navigation";
 import { useUser, useAuth } from "@clerk/nextjs";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
 import { getProjectDetails, updateProject, archiveProject } from "@/actions/project";
 import { getOrganizationMembers, type MemberListItem } from "@/actions/membership";
-import { createTask, getProjectTasks, updateTask, deleteTask, reorderTasks, type TaskWithAssignee } from "@/actions/task";
+import { createTask, getProjectTasks, type TaskWithAssignee } from "@/actions/task";
+import { updateTask, deleteTask, reorderTasks } from "@/actions/taskMutation";
 import { getSprints } from "@/actions/sprint";
 import { getLabels } from "@/actions/label";
 import { getSavedViews, createSavedView, deleteSavedView } from "@/actions/savedView";
@@ -24,6 +27,7 @@ export function useKanbanBoard({ params }: HookParams) {
   const { id: projectId } = use(params);
   const { user, isLoaded } = useUser();
   const { signOut } = useAuth();
+  const queryClient = useQueryClient();
 
   const { activeOrgId } = useOrgStore();
   const {
@@ -37,23 +41,85 @@ export function useKanbanBoard({ params }: HookParams) {
     closeCreateModal,
   } = useTaskStore();
 
-  const { filtersByProject, activeViewByProject, setActiveView } = useTaskFilterStore();
+  const { filtersByProject, activeViewByProject, setFilters, setActiveView, clearFilters } = useTaskFilterStore();
   const activeFilters = filtersByProject[projectId] || initialFilters;
   const activeViewName = activeViewByProject[projectId] || "";
 
-  const [project, setProject] = useState<Project | null>(null);
-  const [members, setMembers] = useState<MemberListItem[]>([]);
-  const [sprints, setSprints] = useState<Sprint[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [updatingStatus, setUpdatingStatus] = useState(false);
-  const [archiving, setArchiving] = useState(false);
-  const [error, setError] = useState("");
+  // React-Query Queries
+  const { data: project = null, isLoading: isProjectLoading, error: projectError } = useQuery<Project | null>({
+    queryKey: ["project", projectId, activeOrgId],
+    queryFn: async () => {
+      if (!activeOrgId || !projectId) return null;
+      const result = await getProjectDetails(projectId, activeOrgId);
+      if (!result.success) throw new Error(result.error || "Project not found");
+      return result.data || null;
+    },
+    enabled: !!activeOrgId && !!projectId,
+  });
 
-  const [tasks, setTasks] = useState<TaskWithAssignee[]>([]);
-  const [syncing, setSyncing] = useState(false);
+  const { data: tasksData = [] } = useQuery<TaskWithAssignee[]>({
+    queryKey: ["tasks", projectId, activeOrgId],
+    queryFn: async () => {
+      if (!activeOrgId || !projectId) return [];
+      const result = await getProjectTasks(projectId, activeOrgId);
+      if (!result.success) throw new Error(result.error || "Failed to load tasks");
+      return result.data || [];
+    },
+    enabled: !!activeOrgId && !!projectId,
+  });
 
-  const [labels, setLabels] = useState<Label[]>([]);
-  const [savedViews, setSavedViews] = useState<SavedView[]>([]);
+  const { data: members = [] } = useQuery<MemberListItem[]>({
+    queryKey: ["members", activeOrgId],
+    queryFn: async () => {
+      if (!activeOrgId) return [];
+      const result = await getOrganizationMembers(activeOrgId);
+      if (!result.success) throw new Error(result.error || "Failed to load members");
+      return result.data || [];
+    },
+    enabled: !!activeOrgId,
+  });
+
+  const { data: sprints = [] } = useQuery<Sprint[]>({
+    queryKey: ["sprints", activeOrgId],
+    queryFn: async () => {
+      if (!activeOrgId) return [];
+      const result = await getSprints(activeOrgId);
+      if (!result.success) throw new Error(result.error || "Failed to load sprints");
+      return result.data || [];
+    },
+    enabled: !!activeOrgId,
+  });
+
+  const { data: labels = [] } = useQuery<Label[]>({
+    queryKey: ["labels", activeOrgId],
+    queryFn: async () => {
+      if (!activeOrgId) return [];
+      const result = await getLabels(activeOrgId);
+      if (!result.success) throw new Error(result.error || "Failed to load labels");
+      return result.data || [];
+    },
+    enabled: !!activeOrgId,
+  });
+
+  const { data: savedViews = [] } = useQuery<SavedView[]>({
+    queryKey: ["savedViews", activeOrgId],
+    queryFn: async () => {
+      if (!activeOrgId) return [];
+      const result = await getSavedViews(activeOrgId);
+      if (!result.success) throw new Error(result.error || "Failed to load saved views");
+      return result.data || [];
+    },
+    enabled: !!activeOrgId,
+  });
+
+  // Local state for tasks (synced with React-Query) for immediate optimistic updates
+  const [prevTasksData, setPrevTasksData] = useState<TaskWithAssignee[]>(tasksData);
+  const [tasks, setTasks] = useState<TaskWithAssignee[]>(tasksData);
+
+  if (tasksData !== prevTasksData) {
+    setPrevTasksData(tasksData);
+    setTasks(tasksData);
+  }
 
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
   const [dragOverCounters, setDragOverCounters] = useState<Record<TaskStatus, number>>({
@@ -62,90 +128,120 @@ export function useKanbanBoard({ params }: HookParams) {
     DONE: 0,
   });
 
+  // Mutations
+  const updateProjectMutation = useMutation({
+    mutationFn: async (newStatus: ProjectStatus) => {
+      if (!project) throw new Error("No active project");
+      const result = await updateProject(project.id, project.name, project.description, newStatus, activeOrgId!);
+      if (!result.success) throw new Error(result.error || "Failed to update project status");
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId, activeOrgId] });
+    },
+  });
+
+  const archiveProjectMutation = useMutation({
+    mutationFn: async () => {
+      if (!project) throw new Error("No active project");
+      const result = await archiveProject(project.id, activeOrgId!);
+      if (!result.success) throw new Error(result.error || "Failed to archive project");
+      return result;
+    },
+    onSuccess: () => {
+      router.push("/projects");
+    },
+  });
+
+  const createTaskMutation = useMutation({
+    mutationFn: async ({ title, description, status, priority, assigneeId, dueDate, labelIds }: {
+      title: string;
+      description: string | null;
+      status: TaskStatus;
+      priority: TaskPriority;
+      assigneeId: string | null;
+      dueDate: string | null;
+      labelIds: string[];
+    }) => {
+      const result = await createTask(projectId, activeOrgId!, title, description, status, priority, assigneeId, dueDate, null, labelIds);
+      if (!result.success) throw new Error(result.error || "Failed to create task");
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", projectId, activeOrgId] });
+    },
+  });
+
+  const updateTaskMutation = useMutation({
+    mutationFn: async ({ taskId, updates }: {
+      taskId: string;
+      updates: Parameters<typeof updateTask>[3];
+    }) => {
+      const result = await updateTask(taskId, projectId, activeOrgId!, updates);
+      if (!result.success) throw new Error(result.error || "Failed to update task");
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", projectId, activeOrgId] });
+    },
+  });
+
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      const result = await deleteTask(taskId, projectId, activeOrgId!);
+      if (!result.success) throw new Error(result.error || "Failed to delete task");
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", projectId, activeOrgId] });
+    },
+  });
+
+  const reorderTasksMutation = useMutation({
+    mutationFn: async (payload: Parameters<typeof reorderTasks>[2]) => {
+      const result = await reorderTasks(projectId, activeOrgId!, payload);
+      if (!result.success) throw new Error(result.error || "Failed to save board reordering");
+      return result;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["tasks", projectId, activeOrgId] });
+    },
+    onError: (err) => {
+      alert(err.message);
+      queryClient.invalidateQueries({ queryKey: ["tasks", projectId, activeOrgId] });
+    }
+  });
+
+  const createSavedViewMutation = useMutation({
+    mutationFn: async (name: string) => {
+      const result = await createSavedView(activeOrgId!, name, activeFilters);
+      if (!result.success) throw new Error(result.error || "Failed to create saved view");
+      return result;
+    },
+    onSuccess: (res, name) => {
+      queryClient.invalidateQueries({ queryKey: ["savedViews", activeOrgId] });
+      setActiveView(projectId, name);
+    },
+  });
+
+  const deleteSavedViewMutation = useMutation({
+    mutationFn: async (viewId: string) => {
+      const result = await deleteSavedView(viewId, activeOrgId!);
+      if (!result.success) throw new Error(result.error || "Failed to delete saved view");
+      return result;
+    },
+    onSuccess: (res, viewId) => {
+      queryClient.invalidateQueries({ queryKey: ["savedViews", activeOrgId] });
+      if (activeViewName && savedViews.find((v) => v.id === viewId)?.name === activeViewName) {
+        setActiveView(projectId, "");
+      }
+    },
+  });
+
   const handleSignOut = async () => {
     await signOut();
     router.push("/sign-in");
   };
-
-  // Fetch project details
-  useEffect(() => {
-    if (!activeOrgId || !projectId) return;
-
-    async function loadProjectDetails() {
-      setLoading(true);
-      setError("");
-      
-      const result = await getProjectDetails(projectId, activeOrgId!);
-      if (result.success && result.data) {
-        setProject(result.data);
-      } else {
-        setError(result.error || "Project not found or unauthorized access.");
-      }
-      
-      setLoading(false);
-    }
-
-    loadProjectDetails();
-  }, [projectId, activeOrgId]);
-
-  // Load tasks callback
-  const loadTasks = useCallback(async () => {
-    if (!activeOrgId || !projectId) return;
-    const result = await getProjectTasks(projectId, activeOrgId);
-    if (result.success) {
-      setTasks(result.data);
-    }
-  }, [projectId, activeOrgId]);
-
-  // Fetch tasks on org/project change
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      loadTasks();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [loadTasks]);
-
-  // Fetch organization members and sprints
-  useEffect(() => {
-    if (!activeOrgId) return;
-
-    async function loadMembers() {
-      const result = await getOrganizationMembers(activeOrgId!);
-      if (result.success) {
-        setMembers(result.data);
-      }
-    }
-
-    async function loadSprints() {
-      const result = await getSprints(activeOrgId!);
-      if (result.success) {
-        setSprints(result.data);
-      }
-    }
-
-    loadMembers();
-    loadSprints();
-  }, [activeOrgId]);
-
-  // Fetch labels and saved views when active organization changes
-  useEffect(() => {
-    if (!activeOrgId) return;
-
-    async function loadFiltersData() {
-      const [labelsRes, viewsRes] = await Promise.all([
-        getLabels(activeOrgId!),
-        getSavedViews(activeOrgId!),
-      ]);
-      if (labelsRes.success) {
-        setLabels(labelsRes.data);
-      }
-      if (viewsRes.success) {
-        setSavedViews(viewsRes.data);
-      }
-    }
-
-    loadFiltersData();
-  }, [activeOrgId]);
 
   // Redirect to projects directory if activeOrgId changes
   const initialOrgIdRef = React.useRef(activeOrgId);
@@ -156,40 +252,28 @@ export function useKanbanBoard({ params }: HookParams) {
   }, [activeOrgId, router]);
 
   // Handle project status update dropdown
-  async function handleStatusChange(newStatus: ProjectStatus) {
-    if (!project || !activeOrgId) return;
-
-    setUpdatingStatus(true);
-    const res = await updateProject(project.id, project.name, project.description, newStatus, activeOrgId);
-    if (res.success) {
-      setProject({
-        ...project,
-        status: newStatus,
-        updated_at: new Date().toISOString(),
-      });
-    } else {
-      alert(res.error || "Failed to update project status");
+  const handleStatusChange = useCallback(async (newStatus: ProjectStatus) => {
+    try {
+      await updateProjectMutation.mutateAsync(newStatus);
+    } catch (e) {
+      const err = e instanceof Error ? e.message : "Failed to update status";
+      alert(err);
     }
-    setUpdatingStatus(false);
-  }
+  }, [updateProjectMutation]);
 
   // Handle project archiving
-  async function handleArchive() {
-    if (!project || !activeOrgId) return;
+  const handleArchive = useCallback(async () => {
     if (!confirm("Are you sure you want to archive this project board?")) return;
-
-    setArchiving(true);
-    const res = await archiveProject(project.id, activeOrgId);
-    if (res.success) {
-      router.push("/projects");
-    } else {
-      alert(res.error || "Failed to archive project");
-      setArchiving(false);
+    try {
+      await archiveProjectMutation.mutateAsync();
+    } catch (e) {
+      const err = e instanceof Error ? e.message : "Failed to archive project";
+      alert(err);
     }
-  }
+  }, [archiveProjectMutation]);
 
   // Task Handlers
-  async function handleCreateTask(
+  const handleCreateTask = useCallback(async (
     title: string,
     description: string | null,
     status: TaskStatus,
@@ -197,58 +281,53 @@ export function useKanbanBoard({ params }: HookParams) {
     assigneeId: string | null,
     dueDate: string | null,
     labelIds: string[] = []
-  ) {
-    if (!activeOrgId || !projectId) return { success: false, error: "Missing context" };
-    const res = await createTask(projectId, activeOrgId, title, description, status, priority, assigneeId, dueDate, null, labelIds);
-    if (res.success) {
-      loadTasks();
+  ) => {
+    try {
+      return await createTaskMutation.mutateAsync({
+        title,
+        description,
+        status,
+        priority,
+        assigneeId,
+        dueDate,
+        labelIds
+      });
+    } catch (e) {
+      const err = e instanceof Error ? e.message : "An error occurred";
+      return { success: false, error: err };
     }
-    return res;
-  }
+  }, [createTaskMutation]);
 
-  async function handleUpdateTask(
+  const handleUpdateTask = useCallback(async (
     taskId: string,
-    updates: {
-      title?: string;
-      description?: string | null;
-      status?: TaskStatus;
-      priority?: TaskPriority;
-      assignee_id?: string | null;
-      due_date?: string | null;
-      sprint_id?: string | null;
-      label_ids?: string[] | null;
+    updates: Parameters<typeof updateTask>[3]
+  ) => {
+    try {
+      return await updateTaskMutation.mutateAsync({ taskId, updates });
+    } catch (e) {
+      const err = e instanceof Error ? e.message : "An error occurred";
+      return { success: false, error: err };
     }
-  ) {
-    if (!activeOrgId || !projectId) return { success: false, error: "Missing context" };
-    const res = await updateTask(taskId, projectId, activeOrgId, updates);
-    if (res.success) {
-      loadTasks();
-    }
-    return res;
-  }
+  }, [updateTaskMutation]);
 
   // Saved Views Actions
-  const handleSaveView = async (name: string) => {
-    if (!activeOrgId) return { success: false, error: "No active workspace" };
-    const res = await createSavedView(activeOrgId, name, activeFilters);
-    if (res.success && res.data) {
-      setSavedViews((prev) => [res.data!, ...prev]);
-      setActiveView(projectId, name);
+  const handleSaveView = useCallback(async (name: string) => {
+    try {
+      return await createSavedViewMutation.mutateAsync(name);
+    } catch (e) {
+      const err = e instanceof Error ? e.message : "An error occurred";
+      return { success: false, error: err };
     }
-    return res;
-  };
+  }, [createSavedViewMutation]);
 
-  const handleDeleteView = async (viewId: string) => {
-    if (!activeOrgId) return { success: false, error: "No active workspace" };
-    const res = await deleteSavedView(viewId, activeOrgId);
-    if (res.success) {
-      setSavedViews((prev) => prev.filter((v) => v.id !== viewId));
-      if (activeViewName && savedViews.find((v) => v.id === viewId)?.name === activeViewName) {
-        setActiveView(projectId, "");
-      }
+  const handleDeleteView = useCallback(async (viewId: string) => {
+    try {
+      return await deleteSavedViewMutation.mutateAsync(viewId);
+    } catch (e) {
+      const err = e instanceof Error ? e.message : "An error occurred";
+      return { success: false, error: err };
     }
-    return res;
-  };
+  }, [deleteSavedViewMutation]);
 
   // Apply filters client-side
   const filteredTasks = tasks.filter((task) => {
@@ -272,52 +351,52 @@ export function useKanbanBoard({ params }: HookParams) {
     return true;
   });
 
-  async function handleDeleteTask(taskId: string) {
-    if (!activeOrgId || !projectId) return { success: false, error: "Missing context" };
-    const res = await deleteTask(taskId, projectId, activeOrgId);
-    if (res.success) {
-      loadTasks();
+  const handleDeleteTask = useCallback(async (taskId: string) => {
+    try {
+      return await deleteTaskMutation.mutateAsync(taskId);
+    } catch (e) {
+      const err = e instanceof Error ? e.message : "An error occurred";
+      return { success: false, error: err };
     }
-    return res;
-  }
+  }, [deleteTaskMutation]);
 
   // Drag and Drop Event Handlers
-  const handleDragStart = (e: React.DragEvent, taskId: string) => {
+  const handleDragStart = useCallback((e: React.DragEvent, taskId: string) => {
     setDraggedTaskId(taskId);
     e.dataTransfer.setData("text/plain", taskId);
     e.dataTransfer.effectAllowed = "move";
-  };
+  }, []);
 
-  const handleDragEnd = () => {
+  const handleDragEnd = useCallback(() => {
     setDraggedTaskId(null);
     setDragOverCounters({
       TODO: 0,
       IN_PROGRESS: 0,
       DONE: 0,
     });
-  };
+  }, []);
 
-  const handleDragOverColumn = (e: React.DragEvent) => {
+  const handleDragOverColumn = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-  };
+  }, []);
 
-  const handleDragEnterColumn = (e: React.DragEvent, status: TaskStatus) => {
+  const handleDragEnterColumn = useCallback((e: React.DragEvent, status: TaskStatus) => {
     e.preventDefault();
     setDragOverCounters((prev) => ({
       ...prev,
       [status]: prev[status] + 1,
     }));
-  };
+  }, []);
 
-  const handleDragLeaveColumn = (e: React.DragEvent, status: TaskStatus) => {
+  const handleDragLeaveColumn = useCallback((e: React.DragEvent, status: TaskStatus) => {
     e.preventDefault();
     setDragOverCounters((prev) => ({
       ...prev,
       [status]: Math.max(0, prev[status] - 1),
     }));
-  };
+  }, []);
 
-  const handleDrop = async (e: React.DragEvent, targetStatus: TaskStatus, targetTaskId?: string) => {
+  const handleDrop = useCallback(async (e: React.DragEvent, targetStatus: TaskStatus, targetTaskId?: string) => {
     e.preventDefault();
     const taskId = e.dataTransfer.getData("text/plain") || draggedTaskId;
     if (!taskId) return;
@@ -365,12 +444,6 @@ export function useKanbanBoard({ params }: HookParams) {
       return t;
     });
 
-    const reorderPayload = reindexedTargetColumn.map((t) => ({
-      id: t.id,
-      status: targetStatus,
-      board_index: t.board_index,
-    }));
-
     if (draggedTask.status !== targetStatus) {
       const sourceColumnTasks = newTasks
         .filter((t) => t.status === draggedTask.status && t.id !== taskId)
@@ -386,31 +459,54 @@ export function useKanbanBoard({ params }: HookParams) {
         return t;
       });
 
-      reorderPayload.push(
-        ...sourceColumnTasks.map((t) => ({
+      // Optimistically set the state
+      setTasks(newTasks);
+
+      // Create payload only with changed items to minimize database writes
+      const changedTasks = [...reindexedTargetColumn, ...sourceColumnTasks];
+      const reorderPayload = changedTasks
+        .filter((t) => {
+          const original = tasks.find((ot) => ot.id === t.id);
+          if (!original) return true;
+          return original.status !== t.status || original.board_index !== t.board_index;
+        })
+        .map((t) => ({
           id: t.id,
-          status: draggedTask.status,
+          status: t.status,
           board_index: t.board_index,
-        }))
-      );
+        }));
+
+      if (reorderPayload.length > 0) {
+        reorderTasksMutation.mutate(reorderPayload);
+      }
+    } else {
+      // Optimistically set the state
+      setTasks(newTasks);
+
+      // Same status reorder: only reindexedTargetColumn tasks can be affected
+      const reorderPayload = reindexedTargetColumn
+        .filter((t) => {
+          const original = tasks.find((ot) => ot.id === t.id);
+          if (!original) return true;
+          return original.board_index !== t.board_index;
+        })
+        .map((t) => ({
+          id: t.id,
+          status: targetStatus,
+          board_index: t.board_index,
+        }));
+
+      if (reorderPayload.length > 0) {
+        reorderTasksMutation.mutate(reorderPayload);
+      }
     }
+  }, [tasks, draggedTaskId, reorderTasksMutation]);
 
-    setTasks(newTasks);
-    setSyncing(true);
-
-    const res = await reorderTasks(projectId, activeOrgId!, reorderPayload);
-    if (!res.success) {
-      alert(res.error || "Failed to save board reordering");
-      loadTasks();
-    }
-    setSyncing(false);
-  };
-
-  const openCreateTaskAtStatus = (status: TaskStatus) => {
+  const openCreateTaskAtStatus = useCallback((status: TaskStatus) => {
     openCreateModal(status);
-  };
+  }, [openCreateModal]);
 
-  const getRotation = (id: string) => {
+  const getRotation = useCallback((id: string) => {
     let hash = 0;
     for (let i = 0; i < id.length; i++) {
       hash = id.charCodeAt(i) + ((hash << 5) - hash);
@@ -418,7 +514,14 @@ export function useKanbanBoard({ params }: HookParams) {
     const degs = (hash % 25) / 10;
     const clamped = Math.max(-1.5, Math.min(1.5, degs));
     return `rotate(${clamped}deg)`;
-  };
+  }, []);
+
+  // State calculations & aliases
+  const loading = isProjectLoading || updateProjectMutation.isPending || archiveProjectMutation.isPending;
+  const updatingStatus = updateProjectMutation.isPending;
+  const archiving = archiveProjectMutation.isPending;
+  const error = projectError ? (projectError as Error).message : "";
+  const syncing = reorderTasksMutation.isPending;
 
   return {
     projectId,
@@ -435,6 +538,8 @@ export function useKanbanBoard({ params }: HookParams) {
     savedViews,
     activeFilters,
     activeViewName,
+    setFilters,
+    clearFilters,
     draggedTaskId,
     dragOverCounters,
     isCreateTaskModalOpen,

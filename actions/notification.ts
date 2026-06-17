@@ -5,6 +5,7 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { Notification, NotificationType, NotificationPreference } from "@/types";
 import { orgIdSchema, notificationIdSchema } from "@/lib/utils";
+import { verifyMembership } from "@/lib/auth-helpers";
 
 const ALL_NOTIFICATION_TYPES: NotificationType[] = [
   "GENERAL",
@@ -47,7 +48,7 @@ export async function createNotification(
   type: NotificationType
 ): Promise<void> {
   try {
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(targetUserId);
 
     // Check in_app preference — only block if an explicit "false" row exists
     const { data: pref } = await insforge.database
@@ -91,17 +92,11 @@ export async function checkOverdueTasks(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     // Verify caller is a member
-    const { data: membership } = await insforge.database
-      .from("memberships")
-      .select("id")
-      .eq("organization_id", validated.data.orgId)
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    if (!membership) return { success: false, error: "Not a member of this workspace" };
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
+    if (!isMember) return { success: false, error: "Not a member of this workspace" };
 
     const now = new Date().toISOString();
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
@@ -163,7 +158,7 @@ export async function getNotifications(): Promise<{
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     const { data, error } = await insforge.database
       .from("notifications")
@@ -191,7 +186,7 @@ export async function markNotificationRead(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     const { error } = await insforge.database
       .from("notifications")
@@ -215,7 +210,7 @@ export async function markAllNotificationsRead(): Promise<{
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     const { error } = await insforge.database
       .from("notifications")
@@ -239,7 +234,7 @@ export async function deleteOldNotifications(): Promise<{
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
@@ -271,7 +266,7 @@ export async function getNotificationPreferences(): Promise<{
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     const { data, error } = await insforge.database
       .from("notification_preferences")
@@ -317,7 +312,7 @@ export async function upsertNotificationPreference(
       return { success: false, error: validated.error.issues[0].message };
     }
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     // Check if a row exists
     const { data: existing } = await insforge.database

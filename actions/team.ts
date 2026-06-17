@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { TeamMember } from "@/types";
-import { verifyMembership } from "@/lib/auth-helpers";
+import { verifyMembership, getOrganizationMemberships } from "@/lib/auth-helpers";
 
 const teamSchema = z.object({
   orgId: z.string().uuid("Invalid organization ID"),
@@ -23,28 +23,15 @@ export async function getTeamDirectory(
       return { success: false, error: validated.error.issues[0].message };
     }
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     const isMember = await verifyMembership(insforge, orgId, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace" };
     }
 
-    // Fetch all memberships with profile data
-    const { data: memberships, error: membershipsError } = await insforge.database
-      .from("memberships")
-      .select(
-        `
-        user_id,
-        role,
-        profiles (
-          full_name,
-          avatar_url,
-          email
-        )
-      `
-      )
-      .eq("organization_id", orgId);
+    // Fetch all memberships with profile data using helper
+    const { data: memberships, error: membershipsError } = await getOrganizationMemberships(insforge, orgId);
 
     if (membershipsError) {
       console.error("Failed to fetch team memberships:", membershipsError);

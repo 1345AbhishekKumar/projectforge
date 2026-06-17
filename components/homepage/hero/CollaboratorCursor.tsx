@@ -4,7 +4,6 @@ import React from "react";
 
 interface CollaboratorCursorProps {
   cursorRef: React.RefObject<HTMLDivElement | null>;
-  isDarkMode: boolean;
   name: string;
   color: string;
   bgClass: string;
@@ -12,7 +11,6 @@ interface CollaboratorCursorProps {
 
 export default function CollaboratorCursor({
   cursorRef,
-  isDarkMode,
   name,
   color,
   bgClass,
@@ -34,11 +32,7 @@ export default function CollaboratorCursor({
       </svg>
       {/* Username pill */}
       <div
-        className={`border px-1.5 py-0.5 rounded text-[8px] sm:text-[10px] font-sans font-bold text-white mt-0.5 ml-2 ${bgClass} ${
-          isDarkMode
-            ? "border-white shadow-[2px_2px_0px_0px_rgba(255,255,255,0.15)]"
-            : "border-primary shadow-flat-offset-sm"
-        }`}
+        className={`border px-1.5 py-0.5 rounded text-[8px] sm:text-[10px] font-sans font-bold text-white mt-0.5 ml-2 ${bgClass} border-primary shadow-flat-offset-sm`}
       >
         {name}
       </div>

@@ -35,3 +35,31 @@ export async function verifyAdminOrOwnerRole(
   if (!data) return false;
   return data.role === "OWNER" || data.role === "ADMIN";
 }
+
+/**
+ * Fetches all memberships with their nested profiles for a given organization.
+ */
+export async function getOrganizationMemberships(
+  insforge: ReturnType<typeof createInsforgeServer>,
+  orgId: string,
+  limit?: number
+) {
+  let query = insforge.database
+    .from("memberships")
+    .select(`
+      user_id,
+      role,
+      profiles (
+        full_name,
+        avatar_url,
+        email
+      )
+    `)
+    .eq("organization_id", orgId);
+
+  if (limit !== undefined) {
+    query = query.limit(limit);
+  }
+  return query;
+}
+

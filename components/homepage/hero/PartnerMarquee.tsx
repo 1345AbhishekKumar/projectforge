@@ -2,17 +2,11 @@
 
 import React from "react";
 
-interface PartnerMarqueeProps {
-  isDarkMode: boolean;
-}
-
-export default function PartnerMarquee({ isDarkMode }: PartnerMarqueeProps) {
+export default function PartnerMarquee() {
   return (
     <div className="hero-subtext opacity-0 mt-12 w-full pt-8 border-t border-primary/10 flex flex-col items-center lg:items-start gap-4 overflow-hidden">
       <span
-        className={`text-xs uppercase tracking-[0.15em] font-semibold ${
-          isDarkMode ? "text-[#FAF9F6]/40" : "text-secondary/60"
-        }`}
+        className="text-xs uppercase tracking-[0.15em] font-semibold text-secondary/60"
       >
         TRUSTED BY DYNAMIC CREATIVE TEAMS
       </span>
@@ -25,9 +19,7 @@ export default function PartnerMarquee({ isDarkMode }: PartnerMarqueeProps) {
         }}
       >
         <div
-          className={`animate-marquee flex gap-16 py-2 ${
-            isDarkMode ? "text-[#FAF9F6]/30" : "text-secondary/40"
-          }`}
+          className="animate-marquee flex gap-16 py-2 text-secondary/40"
         >
           {/* Marquee loop group 1 */}
           <div className="flex items-center gap-16 text-sm font-bold font-cursive whitespace-nowrap">

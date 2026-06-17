@@ -37,7 +37,7 @@ export async function createOrganization(
       return { success: false, error: validated.error.issues[0].message };
     }
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     const { data: org, error: orgError } = await insforge.database
       .from("organizations")
@@ -93,7 +93,8 @@ export async function checkSlugAvailability(
     const validated = slugSchema.safeParse(slug);
     if (!validated.success) return { available: false };
 
-    const insforge = createInsforgeServer();
+    const { userId } = await auth();
+    const insforge = createInsforgeServer(userId || undefined);
     const { data } = await insforge.database
       .from("organizations")
       .select("id")
@@ -115,7 +116,7 @@ export async function getUserOrganizations(): Promise<{
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
     const { data, error } = await insforge.database
       .from("memberships")
       .select("role, organizations(id, name, slug, created_at, updated_at)")
@@ -150,7 +151,7 @@ export async function setActiveOrganization(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
     const { data } = await insforge.database
       .from("memberships")
       .select("id")
@@ -169,6 +170,52 @@ export async function setActiveOrganization(
       httpOnly: false,
       sameSite: "lax",
     });
+
+    revalidatePath("/dashboard");
+    return { success: true };
+  } catch {
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+export async function deleteOrganization(
+  orgId: string
+): Promise<{ success: boolean; error?: string }> {
+  const validated = setActiveOrganizationInputSchema.safeParse({ orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const insforge = createInsforgeServer(userId);
+
+    // Verify requester is the OWNER
+    const { data: membership } = await insforge.database
+      .from("memberships")
+      .select("role")
+      .eq("organization_id", validated.data.orgId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!membership || membership.role !== "OWNER") {
+      return { success: false, error: "Only the workspace owner can dissolve the organization." };
+    }
+
+    const { error } = await insforge.database
+      .from("organizations")
+      .delete()
+      .eq("id", validated.data.orgId);
+
+    if (error) {
+      return { success: false, error: "Failed to dissolve organization" };
+    }
+
+    // Clear active organization cookie
+    const cookieStore = await cookies();
+    cookieStore.delete("active_org_id");
 
     revalidatePath("/dashboard");
     return { success: true };

@@ -8,7 +8,7 @@ import type { Project, ProjectStatus } from "@/types";
 import { logActivity } from "@/actions/activity";
 import { createNotification } from "@/actions/notification";
 import { orgIdSchema, projectIdSchema } from "@/lib/utils";
-import { verifyMembership } from "@/lib/auth-helpers";
+import { verifyMembership, verifyAdminOrOwnerRole } from "@/lib/auth-helpers";
 
 const projectSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(50),
@@ -54,7 +54,7 @@ export async function createProject(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
@@ -101,7 +101,7 @@ export async function getUserProjects(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
@@ -137,7 +137,7 @@ export async function getProjectDetails(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
@@ -177,11 +177,11 @@ export async function updateProject(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
-    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
-    if (!isMember) {
-      return { success: false, error: "Not a member of this workspace" };
+    const isAdminOrOwner = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
+    if (!isAdminOrOwner) {
+      return { success: false, error: "Only owners and admins can update projects." };
     }
 
     const { error } = await insforge.database
@@ -240,11 +240,11 @@ export async function archiveProject(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
-    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
-    if (!isMember) {
-      return { success: false, error: "Not a member of this workspace" };
+    const isAdminOrOwner = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
+    if (!isAdminOrOwner) {
+      return { success: false, error: "Only owners and admins can archive projects." };
     }
 
     const { data: projData } = await insforge.database
@@ -273,6 +273,60 @@ export async function archiveProject(
 
     revalidatePath("/projects");
     revalidatePath(`/projects/${validated.data.projectId}`);
+    return { success: true };
+  } catch {
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+const deleteProjectInputSchema = z.object({
+  projectId: projectIdSchema,
+  orgId: orgIdSchema,
+});
+
+export async function deleteProject(
+  projectId: string,
+  orgId: string
+): Promise<{ success: boolean; error?: string }> {
+  const validated = deleteProjectInputSchema.safeParse({ projectId, orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const insforge = createInsforgeServer(userId);
+
+    const isAdminOrOwner = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
+    if (!isAdminOrOwner) {
+      return { success: false, error: "Only owners and admins can delete projects." };
+    }
+
+    // Fetch project details for logging
+    const { data: projData } = await insforge.database
+      .from("projects")
+      .select("name")
+      .eq("id", validated.data.projectId)
+      .single();
+    const projectName = projData?.name || "Unknown Project";
+
+    const { error } = await insforge.database
+      .from("projects")
+      .delete()
+      .eq("id", validated.data.projectId)
+      .eq("organization_id", validated.data.orgId);
+
+    if (error) {
+      return { success: false, error: "Failed to delete project" };
+    }
+
+    await logActivity(validated.data.orgId, null, userId, "PROJECT_DELETED", {
+      projectName,
+    });
+
+    revalidatePath("/projects");
     return { success: true };
   } catch {
     return { success: false, error: "An unexpected error occurred" };

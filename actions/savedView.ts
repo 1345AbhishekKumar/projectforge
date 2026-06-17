@@ -36,11 +36,11 @@ export async function getSavedViews(orgId: string): Promise<{ success: boolean; 
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
     const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) return { success: false, error: "Not a member of this workspace", data: [] };
 
-    const { data, error } = await (await insforge).database
+    const { data, error } = await insforge.database
       .from("saved_views")
       .select("*")
       .eq("organization_id", validated.data.orgId)
@@ -67,11 +67,11 @@ export async function createSavedView(orgId: string, name: string, filters: Save
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
     const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) return { success: false, error: "Not a member of this workspace" };
 
-    const { data, error } = await (await insforge).database
+    const { data, error } = await insforge.database
       .from("saved_views")
       .insert([
         {
@@ -107,11 +107,11 @@ export async function deleteSavedView(viewId: string, orgId: string): Promise<{ 
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
     const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) return { success: false, error: "Not a member of this workspace" };
 
-    const { error } = await (await insforge).database
+    const { error } = await insforge.database
       .from("saved_views")
       .delete()
       .eq("id", validated.data.viewId)
@@ -123,6 +123,57 @@ export async function deleteSavedView(viewId: string, orgId: string): Promise<{ 
     }
 
     return { success: true };
+  } catch {
+    return { success: false, error: "An unexpected error occurred" };
+  }
+}
+
+const updateSavedViewInputSchema = z.object({
+  viewId: viewIdSchema,
+  orgId: orgIdSchema,
+  name: z.string().min(3, "Saved view name must be at least 3 characters").max(50),
+  filters: z.record(z.string(), z.any()),
+});
+
+export async function updateSavedView(
+  viewId: string,
+  orgId: string,
+  name: string,
+  filters: SavedView["filters"]
+): Promise<{ success: boolean; data?: SavedView; error?: string }> {
+  const validated = updateSavedViewInputSchema.safeParse({ viewId, orgId, name, filters });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const insforge = createInsforgeServer(userId);
+    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
+    if (!isMember) return { success: false, error: "Not a member of this workspace" };
+
+    const { data, error } = await insforge.database
+      .from("saved_views")
+      .update({
+        name: validated.data.name,
+        filters: validated.data.filters,
+      })
+      .eq("id", validated.data.viewId)
+      .eq("organization_id", validated.data.orgId)
+      .eq("user_id", userId)
+      .select("*")
+      .single();
+
+    if (error) {
+      if (error.message?.includes("unique") || error.details?.includes("already exists")) {
+        return { success: false, error: "A saved view with this name already exists in this workspace" };
+      }
+      return { success: false, error: "Failed to update saved view" };
+    }
+
+    return { success: true, data };
   } catch {
     return { success: false, error: "An unexpected error occurred" };
   }

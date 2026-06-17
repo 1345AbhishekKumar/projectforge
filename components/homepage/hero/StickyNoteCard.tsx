@@ -17,7 +17,6 @@ interface StickyNoteCardProps {
   sticky: StickyNote;
   draggedId: number | null;
   editingId: number | null;
-  isDarkMode: boolean;
   onPointerDown: (e: React.PointerEvent<HTMLDivElement>) => void;
   onPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   onPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void;
@@ -31,7 +30,6 @@ export default function StickyNoteCard({
   sticky,
   draggedId,
   editingId,
-  isDarkMode,
   onPointerDown,
   onPointerMove,
   onPointerUp,
@@ -60,8 +58,6 @@ export default function StickyNoteCard({
       } ${
         isDragged
           ? "z-dropdown cursor-grabbing shadow-lg"
-          : isDarkMode
-          ? "z-raised cursor-grab shadow-[2px_2px_0px_0px_rgba(255,255,255,0.15)]"
           : "z-raised cursor-grab shadow-flat-offset-sm hover:scale-105 hover:rotate-0"
       } transition-all duration-200 select-none`}
     >

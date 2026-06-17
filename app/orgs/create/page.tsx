@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createOrganization, checkSlugAvailability } from "@/actions/org";
 import { CheckCircle, XCircle, Loader2, ArrowLeft, Building2 } from "lucide-react";
+import { InvitationBanner } from "@/components/invitations/InvitationBanner";
 
 function slugify(text: string): string {
   return text
@@ -67,6 +68,8 @@ export default function CreateOrgPage() {
   return (
     <main className="min-h-screen w-full flex items-center justify-center bg-neutral-bg bg-dot-grid text-primary relative py-12 px-4">
       <div className="w-full max-w-lg">
+        <InvitationBanner />
+
         <button
           onClick={() => router.push("/dashboard")}
           className="flex items-center gap-1 font-sans text-sm text-secondary hover:text-primary mb-6 transition-colors cursor-pointer"

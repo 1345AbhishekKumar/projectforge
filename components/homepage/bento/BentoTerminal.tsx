@@ -8,11 +8,7 @@ const COMMAND_TEMPLATES = [
   "projectforge audit-security --scope auth-flow",
 ];
 
-interface BentoTerminalProps {
-  isDarkMode: boolean;
-}
-
-export default function BentoTerminal({ isDarkMode }: BentoTerminalProps) {
+export default function BentoTerminal() {
   const [commandText, setCommandText] = useState("");
   const [commandIndex, setCommandIndex] = useState(0);
   const [isTyping, setIsTyping] = useState(true);
@@ -47,9 +43,7 @@ export default function BentoTerminal({ isDarkMode }: BentoTerminalProps) {
 
   return (
     <div
-      className={`bg-black text-zinc-100 rounded-lg p-5 border-2 transition-colors duration-300 font-mono text-sm overflow-hidden relative ${
-        isDarkMode ? "border-white" : "border-black"
-      }`}
+      className="bg-black text-zinc-100 rounded-lg p-5 border-2 transition-colors duration-300 font-mono text-sm overflow-hidden relative border-black"
     >
       <div className="flex items-center gap-2 text-zinc-500 mb-3 border-b border-zinc-800 pb-2">
         <span className="text-xs">projectforge-cli</span>

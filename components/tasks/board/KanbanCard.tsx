@@ -25,7 +25,7 @@ const handleDragOverCard = (e: React.DragEvent) => {
   e.preventDefault();
 };
 
-export function KanbanCard({
+export const KanbanCard = React.memo(function KanbanCard({
   task,
   sprints,
   draggedTaskId,
@@ -146,4 +146,4 @@ export function KanbanCard({
       </div>
     </div>
   );
-}
+});

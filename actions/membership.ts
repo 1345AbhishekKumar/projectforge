@@ -5,22 +5,10 @@ import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { MembershipRole } from "@/types";
-import { logActivity } from "@/actions/activity";
-import { createNotification } from "@/actions/notification";
 import { orgIdSchema, membershipIdSchema } from "@/lib/utils";
-import { verifyAdminOrOwnerRole } from "@/lib/auth-helpers";
 
-
-const inviteSchema = z.object({
-  email: z.string().email("Invalid email format"),
-  role: z.enum(["ADMIN", "MEMBER"]),
-});
 
 const getOrganizationMembersInputSchema = z.object({
-  orgId: orgIdSchema,
-});
-
-const inviteMemberInputSchema = inviteSchema.extend({
   orgId: orgIdSchema,
 });
 
@@ -57,7 +45,7 @@ export async function getOrganizationMembers(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
     // Verify requester is a member of the organization
     const { data: requesterMember } = await insforge.database
@@ -111,96 +99,7 @@ export async function getOrganizationMembers(
   }
 }
 
-export async function inviteMember(
-  orgId: string,
-  email: string,
-  role: "ADMIN" | "MEMBER"
-): Promise<{ success: boolean; error?: string }> {
-  const validated = inviteMemberInputSchema.safeParse({ orgId, email, role });
-  if (!validated.success) {
-    return { success: false, error: validated.error.issues[0].message };
-  }
 
-  try {
-    const { userId } = await auth();
-    if (!userId) return { success: false, error: "Unauthorized" };
-
-    const insforge = createInsforgeServer();
-
-    // Check requester role (must be OWNER or ADMIN)
-    const isAdminOrOwner = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
-    if (!isAdminOrOwner) {
-      return { success: false, error: "Only owners and admins can invite members." };
-    }
-
-    // Check if invitee profile exists
-    const { data: inviteeProfile } = await insforge.database
-      .from("profiles")
-      .select("id, full_name")
-      .eq("email", validated.data.email)
-      .maybeSingle();
-
-    if (!inviteeProfile) {
-      return {
-        success: false,
-        error: "This user is not registered on ProjectForge. They must sign up first.",
-      };
-    }
-
-    // Check if target user is already a member
-    const { data: existingMember } = await insforge.database
-      .from("memberships")
-      .select("id")
-      .eq("organization_id", validated.data.orgId)
-      .eq("user_id", inviteeProfile.id)
-      .maybeSingle();
-
-    if (existingMember) {
-      return { success: false, error: "User is already a member of this workspace." };
-    }
-
-    // Insert new membership
-    const { error: insertError } = await insforge.database
-      .from("memberships")
-      .insert([
-        {
-          organization_id: validated.data.orgId,
-          user_id: inviteeProfile.id,
-          role: validated.data.role,
-        },
-      ]);
-
-    if (insertError) {
-      return { success: false, error: "Failed to add member." };
-    }
-
-    await logActivity(validated.data.orgId, null, userId, "MEMBER_JOINED", {
-      joinedUserId: inviteeProfile.id,
-      joinedUserName: inviteeProfile.full_name || "Unknown Member",
-      joinedUserEmail: validated.data.email,
-    });
-
-    // Notify the invited user
-    const { data: orgRow } = await insforge.database
-      .from("organizations")
-      .select("name")
-      .eq("id", validated.data.orgId)
-      .maybeSingle();
-
-    const orgName = orgRow?.name || "your workspace";
-    await createNotification(
-      inviteeProfile.id,
-      `🎉 You've been added to "${orgName}" as ${validated.data.role}.`,
-      "MEMBER_INVITED"
-    );
-
-    revalidatePath("/organizations/settings");
-    revalidatePath("/dashboard");
-    return { success: true };
-  } catch {
-    return { success: false, error: "An unexpected error occurred" };
-  }
-}
 
 export async function updateMemberRole(
   membershipId: string,
@@ -216,11 +115,17 @@ export async function updateMemberRole(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
-    // Check requester role
-    const isAdminOrOwner = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
-    if (!isAdminOrOwner) {
+    // Fetch requester membership
+    const { data: requester } = await insforge.database
+      .from("memberships")
+      .select("role")
+      .eq("organization_id", validated.data.orgId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!requester || (requester.role !== "OWNER" && requester.role !== "ADMIN")) {
       return { success: false, error: "Only owners and admins can update roles." };
     }
 
@@ -277,11 +182,17 @@ export async function removeMember(
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer();
+    const insforge = createInsforgeServer(userId);
 
-    // Check requester role
-    const isAdminOrOwner = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
-    if (!isAdminOrOwner) {
+    // Fetch requester membership
+    const { data: requester } = await insforge.database
+      .from("memberships")
+      .select("role")
+      .eq("organization_id", validated.data.orgId)
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (!requester || (requester.role !== "OWNER" && requester.role !== "ADMIN")) {
       return { success: false, error: "Only owners and admins can remove members." };
     }
 
