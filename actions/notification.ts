@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { Notification, NotificationType, NotificationPreference } from "@/types";
 import { orgIdSchema, notificationIdSchema } from "@/lib/utils";
 import { verifyMembership } from "@/lib/auth-helpers";
+import { logger } from "@/lib/logger";
 
 const ALL_NOTIFICATION_TYPES: NotificationType[] = [
   "GENERAL",
@@ -70,7 +71,7 @@ export async function createNotification(
       },
     ]);
   } catch (err) {
-    console.error("createNotification failed silently:", { targetUserId, type, err });
+    logger.error({ error: err, targetUserId, type }, "createNotification failed silently");
   }
 }
 
@@ -141,7 +142,7 @@ export async function checkOverdueTasks(
 
     return { success: true, count };
   } catch (err) {
-    console.error("checkOverdueTasks error:", err);
+    logger.error({ error: err }, "checkOverdueTasks error");
     return { success: false, error: "An unexpected error occurred" };
   }
 }

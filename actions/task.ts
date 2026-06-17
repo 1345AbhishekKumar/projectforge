@@ -8,6 +8,7 @@ import type { Task, TaskStatus, TaskPriority, Label } from "@/types";
 import { logActivity } from "@/actions/activity";
 import { orgIdSchema, projectIdSchema } from "@/lib/utils";
 import { verifyMembership } from "@/lib/auth-helpers";
+import { logger } from "@/lib/logger";
 
 const taskSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(100),
@@ -141,7 +142,7 @@ export async function createTask(
         .insert(mappings);
 
       if (mappingError) {
-        console.error("Failed to map labels to task:", mappingError);
+        logger.error({ error: mappingError }, "Failed to map labels to task");
       }
     }
 

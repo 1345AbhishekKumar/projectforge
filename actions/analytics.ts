@@ -4,6 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { orgIdSchema } from "@/lib/utils";
 import { verifyMembership, getOrganizationMemberships } from "@/lib/auth-helpers";
+import { logger } from "@/lib/logger";
 
 
 export type MemberWorkload = {
@@ -54,7 +55,7 @@ export async function getAnalyticsData(
       .eq("organization_id", orgId);
 
     if (projectsError) {
-      console.error("Failed to fetch projects for analytics:", projectsError);
+      logger.error({ error: projectsError }, "Failed to fetch projects for analytics");
       return { success: false, error: "Failed to fetch project metrics" };
     }
 
@@ -65,7 +66,7 @@ export async function getAnalyticsData(
       .eq("organization_id", orgId);
 
     if (tasksError) {
-      console.error("Failed to fetch tasks for analytics:", tasksError);
+      logger.error({ error: tasksError }, "Failed to fetch tasks for analytics");
       return { success: false, error: "Failed to fetch task metrics" };
     }
 
@@ -73,7 +74,7 @@ export async function getAnalyticsData(
     const { data: memberships, error: membershipsError } = await getOrganizationMemberships(insforge, orgId);
 
     if (membershipsError) {
-      console.error("Failed to fetch members for analytics:", membershipsError);
+      logger.error({ error: membershipsError }, "Failed to fetch members for analytics");
       return { success: false, error: "Failed to fetch membership metrics" };
     }
 
@@ -89,7 +90,7 @@ export async function getAnalyticsData(
       .gte("created_at", sevenDaysAgo.toISOString());
 
     if (activitiesError) {
-      console.error("Failed to fetch completion trend activities:", activitiesError);
+      logger.error({ error: activitiesError }, "Failed to fetch completion trend activities");
       // Fallback but don't crash the whole analytics query
     }
 
@@ -193,7 +194,7 @@ export async function getAnalyticsData(
       },
     };
   } catch (err) {
-    console.error("Unexpected error in getAnalyticsData:", err);
+    logger.error({ error: err }, "Unexpected error in getAnalyticsData");
     return { success: false, error: "An unexpected error occurred" };
   }
 }

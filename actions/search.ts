@@ -5,6 +5,7 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { SearchResult } from "@/types";
 import { verifyMembership, getOrganizationMemberships } from "@/lib/auth-helpers";
+import { logger } from "@/lib/logger";
 
 const searchSchema = z.object({
   query: z
@@ -59,17 +60,17 @@ export async function globalSearch(
     ]);
 
     if (projectsRes.error) {
-      console.error("Search projects error:", projectsRes.error);
+      logger.error({ error: projectsRes.error }, "Search projects error");
       return { success: false, error: "Failed to search projects" };
     }
 
     if (tasksRes.error) {
-      console.error("Search tasks error:", tasksRes.error);
+      logger.error({ error: tasksRes.error }, "Search tasks error");
       return { success: false, error: "Failed to search tasks" };
     }
 
     if (membersRes.error) {
-      console.error("Search members error:", membersRes.error);
+      logger.error({ error: membersRes.error }, "Search members error");
       return { success: false, error: "Failed to search members" };
     }
 
@@ -104,7 +105,7 @@ export async function globalSearch(
       },
     };
   } catch (err) {
-    console.error("Unexpected error in globalSearch:", err);
+    logger.error({ error: err }, "Unexpected error in globalSearch");
     return { success: false, error: "An unexpected error occurred" };
   }
 }

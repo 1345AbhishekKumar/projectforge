@@ -5,6 +5,7 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { TeamMember } from "@/types";
 import { verifyMembership, getOrganizationMemberships } from "@/lib/auth-helpers";
+import { logger } from "@/lib/logger";
 
 const teamSchema = z.object({
   orgId: z.string().uuid("Invalid organization ID"),
@@ -34,7 +35,7 @@ export async function getTeamDirectory(
     const { data: memberships, error: membershipsError } = await getOrganizationMemberships(insforge, orgId);
 
     if (membershipsError) {
-      console.error("Failed to fetch team memberships:", membershipsError);
+      logger.error({ error: membershipsError }, "Failed to fetch team memberships");
       return { success: false, error: "Failed to fetch team members" };
     }
 
@@ -46,7 +47,7 @@ export async function getTeamDirectory(
       .neq("status", "DONE");
 
     if (tasksError) {
-      console.error("Failed to fetch tasks for team directory:", tasksError);
+      logger.error({ error: tasksError }, "Failed to fetch tasks for team directory");
       return { success: false, error: "Failed to fetch task workloads" };
     }
 
@@ -91,7 +92,7 @@ export async function getTeamDirectory(
 
     return { success: true, data: teamMembers };
   } catch (err) {
-    console.error("Unexpected error in getTeamDirectory:", err);
+    logger.error({ error: err }, "Unexpected error in getTeamDirectory");
     return { success: false, error: "An unexpected error occurred" };
   }
 }

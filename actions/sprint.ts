@@ -8,6 +8,7 @@ import type { Sprint, SprintStatus } from "@/types";
 import { createNotification } from "@/actions/notification";
 import { orgIdSchema, sprintIdSchema } from "@/lib/utils";
 import { verifyMembership, verifyAdminOrOwnerRole } from "@/lib/auth-helpers";
+import { logger } from "@/lib/logger";
 
 const sprintSchema = z.object({
   name: z.string().min(3, "Sprint name must be at least 3 characters").max(100),
@@ -122,7 +123,7 @@ export async function createSprint(
     revalidatePath("/sprints");
     return { success: true, data: { sprintId: sprint.id } };
   } catch (error) {
-    console.error("Error creating sprint:", error);
+    logger.error({ error }, "Error creating sprint");
     return { success: false, error: "An unexpected error occurred" };
   }
 }
@@ -159,7 +160,7 @@ export async function getSprints(
 
     return { success: true, data: data as Sprint[] };
   } catch (error) {
-    console.error("Error fetching sprints:", error);
+    logger.error({ error }, "Error fetching sprints");
     return { success: false, error: "An unexpected error occurred", data: [] };
   }
 }
@@ -255,7 +256,7 @@ export async function updateSprint(
     revalidatePath("/sprints");
     return { success: true };
   } catch (error) {
-    console.error("Error updating sprint:", error);
+    logger.error({ error }, "Error updating sprint");
     return { success: false, error: "An unexpected error occurred" };
   }
 }
@@ -353,7 +354,7 @@ export async function updateSprintStatus(
     revalidatePath("/sprints");
     return { success: true };
   } catch (error) {
-    console.error("Error updating sprint status:", error);
+    logger.error({ error }, "Error updating sprint status");
     return { success: false, error: "An unexpected error occurred" };
   }
 }

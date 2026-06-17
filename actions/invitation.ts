@@ -8,6 +8,7 @@ import { logActivity } from "@/actions/activity";
 import { createNotification } from "@/actions/notification";
 import { orgIdSchema } from "@/lib/utils";
 import { verifyAdminOrOwnerRole, verifyMembership } from "@/lib/auth-helpers";
+import { logger } from "@/lib/logger";
 
 const inviteSchema = z.object({
   orgId: orgIdSchema,
@@ -141,7 +142,7 @@ export async function inviteMember(
     revalidatePath("/organizations/settings");
     return { success: true };
   } catch (error) {
-    console.error("inviteMember error:", error);
+    logger.error({ error }, "inviteMember error");
     return { success: false, error: "An unexpected error occurred" };
   }
 }
@@ -186,7 +187,7 @@ export async function getPendingInvitations(): Promise<{
       .eq("status", "PENDING");
 
     if (error) {
-      console.error("Failed to fetch pending invitations:", error);
+      logger.error({ error }, "Failed to fetch pending invitations");
       return { success: false, error: "Failed to fetch invitations", data: [] };
     }
 
@@ -207,7 +208,7 @@ export async function getPendingInvitations(): Promise<{
 
     return { success: true, data: invitations };
   } catch (error) {
-    console.error("getPendingInvitations error:", error);
+    logger.error({ error }, "getPendingInvitations error");
     return { success: false, error: "An unexpected error occurred", data: [] };
   }
 }
@@ -269,7 +270,7 @@ export async function acceptInvitation(
       ]);
 
     if (memberError) {
-      console.error("acceptInvitation memberError:", memberError);
+      logger.error({ error: memberError }, "acceptInvitation memberError");
       return { success: false, error: "Failed to join organization." };
     }
 
@@ -290,7 +291,7 @@ export async function acceptInvitation(
     revalidatePath("/organizations/settings");
     return { success: true };
   } catch (error) {
-    console.error("acceptInvitation error:", error);
+    logger.error({ error }, "acceptInvitation error");
     return { success: false, error: "An unexpected error occurred" };
   }
 }
@@ -353,7 +354,7 @@ export async function declineInvitation(
     revalidatePath("/dashboard");
     return { success: true };
   } catch (error) {
-    console.error("declineInvitation error:", error);
+    logger.error({ error }, "declineInvitation error");
     return { success: false, error: "An unexpected error occurred" };
   }
 }
@@ -394,7 +395,7 @@ export async function getOrganizationInvitations(
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Failed to fetch organization invitations:", error);
+      logger.error({ error }, "Failed to fetch organization invitations");
       return { success: false, error: "Failed to fetch invitations", data: [] };
     }
 
@@ -412,7 +413,7 @@ export async function getOrganizationInvitations(
 
     return { success: true, data: formatted };
   } catch (error) {
-    console.error("getOrganizationInvitations error:", error);
+    logger.error({ error }, "getOrganizationInvitations error");
     return { success: false, error: "An unexpected error occurred", data: [] };
   }
 }
@@ -449,14 +450,14 @@ export async function cancelInvitation(
       .eq("status", "PENDING");
 
     if (error) {
-      console.error("cancelInvitation error:", error);
+      logger.error({ error }, "cancelInvitation error");
       return { success: false, error: "Failed to cancel invitation." };
     }
 
     revalidatePath("/organizations/settings");
     return { success: true };
   } catch (error) {
-    console.error("cancelInvitation error:", error);
+    logger.error({ error }, "cancelInvitation unexpected error");
     return { success: false, error: "An unexpected error occurred" };
   }
 }

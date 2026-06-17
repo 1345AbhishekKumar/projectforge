@@ -6,6 +6,7 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import { orgIdSchema, projectIdSchema } from "@/lib/utils";
 import { verifyMembership } from "@/lib/auth-helpers";
+import { logger } from "@/lib/logger";
 
 const logActivityInputSchema = z.object({
   orgId: orgIdSchema,
@@ -43,7 +44,7 @@ export async function logActivity(
       ]);
 
     if (error) {
-      console.error("Failed to insert activity:", error);
+      logger.error({ error }, "Failed to insert activity");
       return { success: false, error: "Failed to insert activity log" };
     }
 
@@ -52,7 +53,7 @@ export async function logActivity(
     }
     return { success: true };
   } catch (err) {
-    console.error("Failed to log activity:", err);
+    logger.error({ error: err }, "Failed to log activity");
     return { success: false, error: "An unexpected error occurred" };
   }
 }
@@ -117,13 +118,13 @@ export async function getProjectActivities(
       .range(from, to);
 
     if (error) {
-      console.error("Failed to fetch activities:", error);
+      logger.error({ error }, "Failed to fetch activities");
       return { success: false, error: "Failed to fetch activities", data: [] };
     }
 
     return { success: true, data: data as unknown as ActivityWithActor[] };
   } catch (err) {
-    console.error("Error fetching activities:", err);
+    logger.error({ error: err }, "Error fetching activities");
     return { success: false, error: "An unexpected error occurred", data: [] };
   }
 }
@@ -169,13 +170,13 @@ export async function getOrganizationActivities(
       .range(from, to);
 
     if (error) {
-      console.error("Failed to fetch organization activities:", error);
+      logger.error({ error }, "Failed to fetch organization activities");
       return { success: false, error: "Failed to fetch activities", data: [] };
     }
 
     return { success: true, data: data as unknown as ActivityWithActor[] };
   } catch (err) {
-    console.error("Error fetching organization activities:", err);
+    logger.error({ error: err }, "Error fetching organization activities");
     return { success: false, error: "An unexpected error occurred", data: [] };
   }
 }
