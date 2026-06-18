@@ -148,10 +148,11 @@ export async function deleteAttachment(
   }
 
   try {
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const insforge = createInsforgeServer(userId);
+    const token = (await getToken({ template: "insforge" })) || undefined;
+    const insforge = createInsforgeServer(userId, token);
 
     const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {

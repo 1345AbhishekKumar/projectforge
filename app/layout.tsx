@@ -6,6 +6,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { PostHogProvider } from "@/components/providers/PostHogProvider";
 import { WorkspaceGate } from "@/components/layout/WorkspaceGate";
+import { InsforgeAuthProvider } from "@/components/providers/InsforgeAuthProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -42,9 +43,11 @@ export default function RootLayout({
         <ClerkProvider dynamic>
           <PostHogProvider>
             <QueryProvider>
-              <WorkspaceGate>
-                {children}
-              </WorkspaceGate>
+              <InsforgeAuthProvider>
+                <WorkspaceGate>
+                  {children}
+                </WorkspaceGate>
+              </InsforgeAuthProvider>
             </QueryProvider>
           </PostHogProvider>
         </ClerkProvider>

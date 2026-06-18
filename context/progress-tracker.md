@@ -8,8 +8,8 @@ We are building Version 2
 ---
 
 ## Current Status
-- **Status:** **Sentry Manual Error Tracking & Segment boundaries Integrated**. Enabled Row-Level Security (RLS) policies on all 15 tables. Integrated Sentry error tracking inside catch blocks across all 17 Server Actions and API route handlers. Created a segment-level client error boundary `app/error.tsx` with Sentry reporting and a custom whiteboard-themed alert UI.
-- **Active Sprint:** Verification and final audit verification.
+- **Status:** **Resolved 14 Backend Advisor database security and performance issues**. Hardened RLS policies by restricting SELECT on `public.profiles`. Moved RLS helper `SECURITY DEFINER` functions (`is_org_member`, `is_org_admin_or_owner`, `is_task_org_member`) into a private `security` schema to prevent PostgREST RPC exposures. Created 10 missing indexes on foreign key columns.
+- **Active Sprint:** Security and performance hardening complete.
 - **Target Milestones:** Version 2 complete.
  
  ## Progress
