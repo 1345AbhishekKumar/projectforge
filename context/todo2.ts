@@ -1,4 +1,4 @@
-//  implementing Resend 
+//  implementing Resend alternative for sending emails 
 
 
 // refactoring code 
@@ -9,7 +9,6 @@
 
 // check duplicate code or fuction that can be used in the another code file , but you created same function for each code files
 
-// pino
 // add posthog 
 // sentry
 
