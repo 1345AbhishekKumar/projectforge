@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { SavedView } from "@/types";
 import { orgIdSchema, viewIdSchema } from "@/lib/utils";
 import { verifyMembership } from "@/lib/auth-helpers";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 const savedViewSchema = z.object({
   name: z.string().min(3, "Saved view name must be at least 3 characters").max(50),
@@ -48,12 +49,16 @@ export async function getSavedViews(orgId: string): Promise<{ success: boolean; 
       .order("created_at", { ascending: false });
 
     if (error) {
+      logger.error({ error, orgId: validated.data.orgId }, "Failed to fetch saved views");
       return { success: false, error: "Failed to fetch saved views", data: [] };
     }
 
     return { success: true, data: data || [] };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, orgId }, "Unexpected error in getSavedViews Server Action");
     return { success: false, error: "An unexpected error occurred", data: [] };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -88,12 +93,16 @@ export async function createSavedView(orgId: string, name: string, filters: Save
       if (error.message?.includes("unique") || error.details?.includes("already exists")) {
         return { success: false, error: "A saved view with this name already exists in this workspace" };
       }
+      logger.error({ error, orgId: validated.data.orgId, name: validated.data.name }, "Failed to create saved view");
       return { success: false, error: "Failed to create saved view" };
     }
 
     return { success: true, data };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, orgId, name }, "Unexpected error in createSavedView Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -119,12 +128,16 @@ export async function deleteSavedView(viewId: string, orgId: string): Promise<{ 
       .eq("user_id", userId);
 
     if (error) {
+      logger.error({ error, viewId: validated.data.viewId, orgId: validated.data.orgId }, "Failed to delete saved view");
       return { success: false, error: "Failed to delete saved view" };
     }
 
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, viewId, orgId }, "Unexpected error in deleteSavedView Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -170,11 +183,16 @@ export async function updateSavedView(
       if (error.message?.includes("unique") || error.details?.includes("already exists")) {
         return { success: false, error: "A saved view with this name already exists in this workspace" };
       }
+      logger.error({ error, viewId: validated.data.viewId, orgId: validated.data.orgId }, "Failed to update saved view");
       return { success: false, error: "Failed to update saved view" };
     }
 
     return { success: true, data };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, viewId, orgId, name }, "Unexpected error in updateSavedView Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
+

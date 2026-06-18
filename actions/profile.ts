@@ -3,6 +3,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 /**
  * Ensures the current Clerk user has a matching row in InsForge `profiles`.
@@ -49,12 +50,16 @@ export async function syncProfile(): Promise<{
       if (error.message?.includes("duplicate") || error.message?.includes("unique")) {
         return { success: true };
       }
+      logger.error({ error, userId }, "Failed to sync profiles in database");
       return { success: false, error: "Failed to sync profile" };
     }
 
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err }, "Unexpected error in syncProfile Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -88,11 +93,16 @@ export async function updateProfile(
       .eq("id", userId);
 
     if (error) {
+      logger.error({ error, userId }, "Failed to update profile in database");
       return { success: false, error: "Failed to update profile" };
     }
 
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, userId }, "Unexpected error in updateProfile Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
+

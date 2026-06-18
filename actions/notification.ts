@@ -6,7 +6,7 @@ import { z } from "zod";
 import type { Notification, NotificationType, NotificationPreference } from "@/types";
 import { orgIdSchema, notificationIdSchema } from "@/lib/utils";
 import { verifyMembership } from "@/lib/auth-helpers";
-import { logger } from "@/lib/logger";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 const ALL_NOTIFICATION_TYPES: NotificationType[] = [
   "GENERAL",
@@ -72,6 +72,8 @@ export async function createNotification(
     ]);
   } catch (err) {
     logger.error({ error: err, targetUserId, type }, "createNotification failed silently");
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -144,6 +146,8 @@ export async function checkOverdueTasks(
   } catch (err) {
     logger.error({ error: err }, "checkOverdueTasks error");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -167,11 +171,17 @@ export async function getNotifications(): Promise<{
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
-    if (error) return { success: false, error: "Failed to fetch notifications", data: [] };
+    if (error) {
+      logger.error({ error }, "Failed to fetch notifications");
+      return { success: false, error: "Failed to fetch notifications", data: [] };
+    }
 
     return { success: true, data: (data as unknown as Notification[]) || [] };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err }, "Failed to get notifications");
     return { success: false, error: "An unexpected error occurred", data: [] };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -195,11 +205,17 @@ export async function markNotificationRead(
       .eq("id", validated.data.notificationId)
       .eq("user_id", userId);
 
-    if (error) return { success: false, error: "Failed to update notification" };
+    if (error) {
+      logger.error({ error, notificationId: validated.data.notificationId }, "Failed to mark notification read");
+      return { success: false, error: "Failed to update notification" };
+    }
 
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, notificationId }, "markNotificationRead error");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -219,11 +235,17 @@ export async function markAllNotificationsRead(): Promise<{
       .eq("user_id", userId)
       .eq("is_read", false);
 
-    if (error) return { success: false, error: "Failed to update notifications" };
+    if (error) {
+      logger.error({ error }, "Failed to mark all notifications read");
+      return { success: false, error: "Failed to update notifications" };
+    }
 
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err }, "markAllNotificationsRead error");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -246,11 +268,17 @@ export async function deleteOldNotifications(): Promise<{
       .eq("user_id", userId)
       .lt("created_at", cutoff.toISOString());
 
-    if (error) return { success: false, error: "Failed to delete old notifications" };
+    if (error) {
+      logger.error({ error }, "Failed to delete old notifications");
+      return { success: false, error: "Failed to delete old notifications" };
+    }
 
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err }, "deleteOldNotifications error");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -274,7 +302,10 @@ export async function getNotificationPreferences(): Promise<{
       .select("*")
       .eq("user_id", userId);
 
-    if (error) return { success: false, error: "Failed to fetch preferences" };
+    if (error) {
+      logger.error({ error }, "Failed to fetch notification preferences");
+      return { success: false, error: "Failed to fetch preferences" };
+    }
 
     const saved = (data as NotificationPreference[]) || [];
     const savedByType = new Map(saved.map((p) => [p.type, p]));
@@ -294,8 +325,11 @@ export async function getNotificationPreferences(): Promise<{
     });
 
     return { success: true, data: full };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err }, "getNotificationPreferences error");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -330,7 +364,10 @@ export async function upsertNotificationPreference(
         .eq("user_id", userId)
         .eq("type", type);
 
-      if (error) return { success: false, error: "Failed to update preference" };
+      if (error) {
+        logger.error({ error, type }, "Failed to update notification preference");
+        return { success: false, error: "Failed to update preference" };
+      }
     } else {
       const { error } = await insforge.database.from("notification_preferences").insert([
         {
@@ -341,11 +378,17 @@ export async function upsertNotificationPreference(
         },
       ]);
 
-      if (error) return { success: false, error: "Failed to save preference" };
+      if (error) {
+        logger.error({ error, type }, "Failed to save notification preference");
+        return { success: false, error: "Failed to save preference" };
+      }
     }
 
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, type }, "upsertNotificationPreference error");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }

@@ -9,6 +9,7 @@ import { logActivity } from "@/actions/activity";
 import { orgIdSchema, projectIdSchema, taskIdSchema, uuidSchema } from "@/lib/utils";
 import { verifyMembership } from "@/lib/auth-helpers";
 import { createNotification } from "@/actions/notification";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 const createCommentInputSchema = z.object({
   taskId: taskIdSchema,
@@ -57,6 +58,7 @@ export async function createComment(
       ]);
 
     if (commentError) {
+      logger.error({ error: commentError, taskId: validated.data.taskId }, "Failed to post comment");
       return { success: false, error: "Failed to post comment" };
     }
 
@@ -95,8 +97,11 @@ export async function createComment(
 
     revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, taskId }, "Unexpected error in createComment Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -130,12 +135,16 @@ export async function getTaskComments(
       .order("created_at", { ascending: true });
 
     if (error) {
+      logger.error({ error, taskId: validated.data.taskId }, "Failed to fetch comments");
       return { success: false, error: "Failed to fetch comments", data: [] };
     }
 
     return { success: true, data: data as unknown as CommentWithUser[] };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, taskId }, "Unexpected error in getTaskComments Server Action");
     return { success: false, error: "An unexpected error occurred", data: [] };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -187,12 +196,16 @@ export async function updateComment(
       .eq("id", validated.data.commentId);
 
     if (error) {
+      logger.error({ error, commentId: validated.data.commentId }, "Failed to update comment");
       return { success: false, error: "Failed to update comment" };
     }
 
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, commentId }, "Unexpected error in updateComment Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -231,11 +244,16 @@ export async function deleteComment(
       .eq("id", validated.data.commentId);
 
     if (error) {
+      logger.error({ error, commentId: validated.data.commentId }, "Failed to delete comment");
       return { success: false, error: "Failed to delete comment" };
     }
 
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, commentId }, "Unexpected error in deleteComment Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
+

@@ -8,6 +8,7 @@ import type { TaskStatus, TaskPriority } from "@/types";
 import { logActivity } from "@/actions/activity";
 import { orgIdSchema, projectIdSchema, taskIdSchema } from "@/lib/utils";
 import { verifyMembership } from "@/lib/auth-helpers";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 const updateTaskInputSchema = z.object({
   taskId: taskIdSchema,
@@ -92,6 +93,7 @@ export async function updateTask(
       .single();
 
     if (fetchError || !currentTask) {
+      logger.error({ error: fetchError, taskId: validated.data.taskId }, "Task not found for updating");
       return { success: false, error: "Task not found" };
     }
 
@@ -134,6 +136,7 @@ export async function updateTask(
         .eq("task_id", validated.data.taskId);
 
       if (deleteError) {
+        logger.error({ error: deleteError, taskId: validated.data.taskId }, "Failed to delete task label mappings");
         return { success: false, error: "Failed to update task labels" };
       }
 
@@ -148,6 +151,7 @@ export async function updateTask(
           .insert(mappings);
 
         if (insertError) {
+          logger.error({ error: insertError, taskId: validated.data.taskId }, "Failed to insert task label mappings");
           return { success: false, error: "Failed to update task labels" };
         }
       }
@@ -189,6 +193,7 @@ export async function updateTask(
       .eq("organization_id", validated.data.orgId);
 
     if (error) {
+      logger.error({ error, taskId: validated.data.taskId }, "Failed to update task record");
       return { success: false, error: "Failed to update task" };
     }
 
@@ -226,8 +231,11 @@ export async function updateTask(
 
     revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, taskId }, "Unexpected error in updateTask Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -259,13 +267,17 @@ export async function deleteTask(
       .eq("organization_id", validated.data.orgId);
 
     if (error) {
+      logger.error({ error, taskId: validated.data.taskId }, "Failed to delete task from database");
       return { success: false, error: "Failed to delete task" };
     }
 
     revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, taskId }, "Unexpected error in deleteTask Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -300,7 +312,7 @@ export async function reorderTasks(
     // Run updates in parallel
     const promises = validated.data.taskUpdates.map((update) =>
       insforge.database
-        .from("tasks")
+         .from("tasks")
         .update({
           status: update.status,
           board_index: update.board_index,
@@ -314,6 +326,8 @@ export async function reorderTasks(
     const hasError = results.some((r) => r.error);
 
     if (hasError) {
+      const errorDetails = results.filter((r) => r.error).map((r) => r.error);
+      logger.error({ errorDetails, projectId: validated.data.projectId }, "Failed to update some tasks ordering");
       return { success: false, error: "Failed to update some tasks ordering" };
     }
 
@@ -341,7 +355,11 @@ export async function reorderTasks(
 
     revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, projectId }, "Unexpected error in reorderTasks Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
+

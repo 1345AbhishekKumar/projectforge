@@ -7,6 +7,7 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { OrganizationWithRole } from "@/types";
 import { orgIdSchema } from "@/lib/utils";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 const createOrgSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(50),
@@ -49,6 +50,7 @@ export async function createOrganization(
       if (orgError.message?.includes("duplicate") || orgError.message?.includes("unique")) {
         return { success: false, error: "This slug is already taken" };
       }
+      logger.error({ error: orgError, name: validated.data.name, slug: validated.data.slug }, "Failed to create organization in database");
       return { success: false, error: "Failed to create organization" };
     }
 
@@ -63,6 +65,7 @@ export async function createOrganization(
       ]);
 
     if (memberError) {
+      logger.error({ error: memberError, orgId: org.id }, "Failed to assign ownership for new organization");
       return { success: false, error: "Failed to assign ownership" };
     }
 
@@ -76,8 +79,11 @@ export async function createOrganization(
 
     revalidatePath("/dashboard");
     return { success: true, data: { orgId: org.id } };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, name, slug }, "Unexpected error in createOrganization Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -102,8 +108,11 @@ export async function checkSlugAvailability(
       .maybeSingle();
 
     return { available: !data };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, slug }, "Unexpected error in checkSlugAvailability Server Action");
     return { available: false };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -123,6 +132,7 @@ export async function getUserOrganizations(): Promise<{
       .eq("user_id", userId);
 
     if (error) {
+      logger.error({ error }, "Failed to fetch user organizations memberships");
       return { success: false, error: "Failed to fetch organizations", data: [] };
     }
 
@@ -134,8 +144,11 @@ export async function getUserOrganizations(): Promise<{
     ) as OrganizationWithRole[];
 
     return { success: true, data: orgs };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err }, "Unexpected error in getUserOrganizations Server Action");
     return { success: false, error: "An unexpected error occurred", data: [] };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -173,8 +186,11 @@ export async function setActiveOrganization(
 
     revalidatePath("/dashboard");
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, orgId }, "Unexpected error in setActiveOrganization Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -210,6 +226,7 @@ export async function deleteOrganization(
       .eq("id", validated.data.orgId);
 
     if (error) {
+      logger.error({ error, orgId: validated.data.orgId }, "Failed to dissolve organization");
       return { success: false, error: "Failed to dissolve organization" };
     }
 
@@ -219,7 +236,11 @@ export async function deleteOrganization(
 
     revalidatePath("/dashboard");
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, orgId }, "Unexpected error in deleteOrganization Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
+

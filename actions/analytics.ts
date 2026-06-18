@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { orgIdSchema } from "@/lib/utils";
 import { verifyMembership, getOrganizationMemberships } from "@/lib/auth-helpers";
-import { logger } from "@/lib/logger";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 
 export type MemberWorkload = {
@@ -111,16 +111,16 @@ export async function getAnalyticsData(
     // --- Workload Breakdown ---
     const workloadMap = new Map<string, MemberWorkload>();
 
-    // Initialize map with all organization members
-    memberships.forEach((m: {
+    type RawMembership = {
       user_id: string;
-      profiles: {
-        full_name: string | null;
-        email: string;
-        avatar_url: string | null;
-      } | null;
-    }) => {
-      const prof = m.profiles || { full_name: null, email: "", avatar_url: null };
+      role: string;
+      profiles: { full_name: string | null; avatar_url: string | null; email: string }[] | null;
+    };
+
+    // Initialize map with all organization members
+    (memberships as unknown as RawMembership[] || []).forEach((m) => {
+      const profile = m.profiles && m.profiles.length > 0 ? m.profiles[0] : null;
+      const prof = profile || { full_name: null, email: "", avatar_url: null };
       workloadMap.set(m.user_id, {
         userId: m.user_id,
         name: prof.full_name || "Unknown Member",
@@ -196,5 +196,8 @@ export async function getAnalyticsData(
   } catch (err) {
     logger.error({ error: err }, "Unexpected error in getAnalyticsData");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
+

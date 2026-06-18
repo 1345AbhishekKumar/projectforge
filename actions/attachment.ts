@@ -7,6 +7,7 @@ import type { AttachmentWithUser } from "@/types";
 import { z } from "zod";
 import { orgIdSchema, projectIdSchema, taskIdSchema, attachmentIdSchema } from "@/lib/utils";
 import { verifyMembership } from "@/lib/auth-helpers";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 const createAttachmentSchema = z.object({
   taskId: taskIdSchema,
@@ -76,13 +77,17 @@ export async function createAttachment(
       ]);
 
     if (error) {
+      logger.error({ error, taskId: validated.data.taskId, fileName: validated.data.fileName }, "Failed to save attachment metadata");
       return { success: false, error: "Failed to save attachment metadata" };
     }
 
     revalidatePath(`/projects/${projectId}`);
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, taskId, fileName }, "Unexpected error in createAttachment Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -116,12 +121,16 @@ export async function getTaskAttachments(
       .order("created_at", { ascending: false });
 
     if (error) {
+      logger.error({ error, taskId: validated.data.taskId }, "Failed to fetch attachments");
       return { success: false, error: "Failed to fetch attachments", data: [] };
     }
 
     return { success: true, data: data as unknown as AttachmentWithUser[] };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, taskId }, "Unexpected error in getTaskAttachments Server Action");
     return { success: false, error: "An unexpected error occurred", data: [] };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -153,16 +162,18 @@ export async function deleteAttachment(
       .eq("id", validated.data.attachmentId)
       .single();
 
-    if (fetchError || !attachment) {
+    if (fetchError || !attachment || !attachment.storage_path) {
+      logger.error({ error: fetchError, attachmentId: validated.data.attachmentId }, "Attachment not found during deletion");
       return { success: false, error: "Attachment not found" };
     }
 
     // Remove file object from storage bucket
     const { error: storageError } = await insforge.storage
       .from("attachments")
-      .remove([attachment.storage_path]);
+      .remove(attachment.storage_path as string);
 
     if (storageError) {
+      logger.error({ error: storageError, attachmentId: validated.data.attachmentId, path: attachment.storage_path }, "Failed to delete file from storage bucket");
       return { success: false, error: "Failed to delete file from storage" };
     }
 
@@ -173,12 +184,17 @@ export async function deleteAttachment(
       .eq("id", validated.data.attachmentId);
 
     if (dbError) {
+      logger.error({ error: dbError, attachmentId: validated.data.attachmentId }, "Failed to delete attachment metadata from database");
       return { success: false, error: "Failed to delete attachment metadata" };
     }
 
     revalidatePath(`/projects/${projectId}`);
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, attachmentId }, "Unexpected error in deleteAttachment Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
+

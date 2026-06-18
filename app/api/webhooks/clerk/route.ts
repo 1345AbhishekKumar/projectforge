@@ -3,10 +3,11 @@ import { headers } from "next/headers";
 import { NextRequest } from "next/server";
 import { WebhookEvent } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
-import { logger } from "@/lib/logger";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 export async function POST(req: NextRequest) {
-  logger.info("Webhook endpoint hit");
+  try {
+    logger.info("Webhook endpoint hit");
   
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 
@@ -185,4 +186,7 @@ export async function POST(req: NextRequest) {
   }
 
   return new Response("OK", { status: 200 });
+  } finally {
+    flushLogsAfterResponse();
+  }
 }

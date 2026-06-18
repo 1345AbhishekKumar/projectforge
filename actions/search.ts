@@ -5,7 +5,7 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { SearchResult } from "@/types";
 import { verifyMembership, getOrganizationMemberships } from "@/lib/auth-helpers";
-import { logger } from "@/lib/logger";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 const searchSchema = z.object({
   query: z
@@ -77,23 +77,27 @@ export async function globalSearch(
     type RawMembership = {
       user_id: string;
       role: string;
-      profiles: { full_name: string | null; avatar_url: string | null; email: string } | null;
+      profiles: { full_name: string | null; avatar_url: string | null; email: string }[] | null;
     };
 
     // Filter members by query against name and email
     const lowerQuery = searchTerm.toLowerCase();
-    const filteredMembers = (membersRes.data as RawMembership[] || [])
+    const filteredMembers = (membersRes.data as unknown as RawMembership[] || [])
       .filter((m) => {
-        const name = m.profiles?.full_name?.toLowerCase() || "";
-        const email = m.profiles?.email?.toLowerCase() || "";
+        const profile = m.profiles && m.profiles.length > 0 ? m.profiles[0] : null;
+        const name = profile?.full_name?.toLowerCase() || "";
+        const email = profile?.email?.toLowerCase() || "";
         return name.includes(lowerQuery) || email.includes(lowerQuery);
       })
-      .map((m) => ({
-        user_id: m.user_id,
-        full_name: m.profiles?.full_name ?? null,
-        avatar_url: m.profiles?.avatar_url ?? null,
-        role: m.role as "OWNER" | "ADMIN" | "MEMBER",
-      }))
+      .map((m) => {
+        const profile = m.profiles && m.profiles.length > 0 ? m.profiles[0] : null;
+        return {
+          user_id: m.user_id,
+          full_name: profile?.full_name ?? null,
+          avatar_url: profile?.avatar_url ?? null,
+          role: m.role as "OWNER" | "ADMIN" | "MEMBER",
+        };
+      })
       .slice(0, 10);
 
     return {
@@ -107,5 +111,7 @@ export async function globalSearch(
   } catch (err) {
     logger.error({ error: err }, "Unexpected error in globalSearch");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }

@@ -8,7 +8,7 @@ import { logActivity } from "@/actions/activity";
 import { createNotification } from "@/actions/notification";
 import { orgIdSchema } from "@/lib/utils";
 import { verifyAdminOrOwnerRole, verifyMembership } from "@/lib/auth-helpers";
-import { logger } from "@/lib/logger";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 const inviteSchema = z.object({
   orgId: orgIdSchema,
@@ -144,6 +144,8 @@ export async function inviteMember(
   } catch (error) {
     logger.error({ error }, "inviteMember error");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -210,6 +212,8 @@ export async function getPendingInvitations(): Promise<{
   } catch (error) {
     logger.error({ error }, "getPendingInvitations error");
     return { success: false, error: "An unexpected error occurred", data: [] };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -293,6 +297,8 @@ export async function acceptInvitation(
   } catch (error) {
     logger.error({ error }, "acceptInvitation error");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -356,6 +362,8 @@ export async function declineInvitation(
   } catch (error) {
     logger.error({ error }, "declineInvitation error");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -415,6 +423,8 @@ export async function getOrganizationInvitations(
   } catch (error) {
     logger.error({ error }, "getOrganizationInvitations error");
     return { success: false, error: "An unexpected error occurred", data: [] };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -459,5 +469,8 @@ export async function cancelInvitation(
   } catch (error) {
     logger.error({ error }, "cancelInvitation unexpected error");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
+

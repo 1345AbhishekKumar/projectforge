@@ -5,7 +5,7 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { TeamMember } from "@/types";
 import { verifyMembership, getOrganizationMemberships } from "@/lib/auth-helpers";
-import { logger } from "@/lib/logger";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 const teamSchema = z.object({
   orgId: z.string().uuid("Invalid organization ID"),
@@ -54,7 +54,7 @@ export async function getTeamDirectory(
     type RawMembership = {
       user_id: string;
       role: string;
-      profiles: { full_name: string | null; avatar_url: string | null; email: string } | null;
+      profiles: { full_name: string | null; avatar_url: string | null; email: string }[] | null;
     };
 
     type RawTask = {
@@ -67,15 +67,16 @@ export async function getTeamDirectory(
     const taskList = (tasks as RawTask[]) || [];
 
     // Build per-member workload stats
-    const teamMembers: TeamMember[] = (memberships as RawMembership[] || []).map((m) => {
+    const teamMembers: TeamMember[] = (memberships as unknown as RawMembership[] || []).map((m) => {
       const memberTasks = taskList.filter((t) => t.assignee_id === m.user_id);
       const activeProjectIds = new Set(memberTasks.map((t) => t.project_id));
+      const profile = m.profiles && m.profiles.length > 0 ? m.profiles[0] : null;
 
       return {
         user_id: m.user_id,
-        full_name: m.profiles?.full_name ?? null,
-        avatar_url: m.profiles?.avatar_url ?? null,
-        email: m.profiles?.email ?? "",
+        full_name: profile?.full_name ?? null,
+        avatar_url: profile?.avatar_url ?? null,
+        email: profile?.email ?? "",
         role: m.role as "OWNER" | "ADMIN" | "MEMBER",
         assigned_task_count: memberTasks.length,
         active_project_count: activeProjectIds.size,
@@ -94,5 +95,7 @@ export async function getTeamDirectory(
   } catch (err) {
     logger.error({ error: err }, "Unexpected error in getTeamDirectory");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }

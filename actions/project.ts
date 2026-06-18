@@ -9,6 +9,7 @@ import { logActivity } from "@/actions/activity";
 import { createNotification } from "@/actions/notification";
 import { orgIdSchema, projectIdSchema } from "@/lib/utils";
 import { verifyMembership, verifyAdminOrOwnerRole } from "@/lib/auth-helpers";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 const projectSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(50),
@@ -75,6 +76,7 @@ export async function createProject(
       .single();
 
     if (error) {
+      logger.error({ error, orgId: validated.data.orgId, name: validated.data.name }, "Failed to create project");
       return { success: false, error: "Failed to create project" };
     }
 
@@ -84,8 +86,11 @@ export async function createProject(
 
     revalidatePath("/projects");
     return { success: true, data: { projectId: project.id } };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, orgId, name }, "Unexpected error in createProject Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -115,12 +120,16 @@ export async function getUserProjects(
       .order("updated_at", { ascending: false });
 
     if (error) {
+      logger.error({ error, orgId: validated.data.orgId }, "Failed to fetch user projects");
       return { success: false, error: "Failed to fetch projects", data: [] };
     }
 
     return { success: true, data: data as Project[] };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, orgId }, "Unexpected error in getUserProjects Server Action");
     return { success: false, error: "An unexpected error occurred", data: [] };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -152,12 +161,16 @@ export async function getProjectDetails(
       .maybeSingle();
 
     if (error || !data) {
+      logger.error({ error, projectId: validated.data.projectId }, "Project not found in database query");
       return { success: false, error: "Project not found" };
     }
 
     return { success: true, data: data as Project };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, projectId, orgId }, "Unexpected error in getProjectDetails Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -196,6 +209,7 @@ export async function updateProject(
       .eq("organization_id", validated.data.orgId);
 
     if (error) {
+      logger.error({ error, projectId: validated.data.projectId }, "Failed to update project details");
       return { success: false, error: "Failed to update project" };
     }
 
@@ -222,8 +236,11 @@ export async function updateProject(
     revalidatePath("/projects");
     revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, projectId }, "Unexpected error in updateProject Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -264,6 +281,7 @@ export async function archiveProject(
       .eq("organization_id", validated.data.orgId);
 
     if (error) {
+      logger.error({ error, projectId: validated.data.projectId }, "Failed to archive project");
       return { success: false, error: "Failed to archive project" };
     }
 
@@ -274,8 +292,11 @@ export async function archiveProject(
     revalidatePath("/projects");
     revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, projectId }, "Unexpected error in archiveProject Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -319,6 +340,7 @@ export async function deleteProject(
       .eq("organization_id", validated.data.orgId);
 
     if (error) {
+      logger.error({ error, projectId: validated.data.projectId }, "Failed to delete project from database");
       return { success: false, error: "Failed to delete project" };
     }
 
@@ -328,7 +350,11 @@ export async function deleteProject(
 
     revalidatePath("/projects");
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, projectId }, "Unexpected error in deleteProject Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
+

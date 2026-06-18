@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { Label } from "@/types";
 import { orgIdSchema, labelIdSchema } from "@/lib/utils";
 import { verifyMembership, verifyAdminOrOwnerRole } from "@/lib/auth-helpers";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 const labelSchema = z.object({
   name: z.string().min(2, "Label name must be at least 2 characters").max(30),
@@ -47,12 +48,16 @@ export async function getLabels(orgId: string): Promise<{ success: boolean; data
       .order("name", { ascending: true });
 
     if (error) {
+      logger.error({ error, orgId: validated.data.orgId }, "Failed to fetch labels");
       return { success: false, error: "Failed to fetch labels", data: [] };
     }
 
     return { success: true, data: data || [] };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, orgId }, "Unexpected error in getLabels Server Action");
     return { success: false, error: "An unexpected error occurred", data: [] };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -86,12 +91,16 @@ export async function createLabel(orgId: string, name: string, color: string): P
       if (error.message?.includes("unique") || error.details?.includes("already exists")) {
         return { success: false, error: "A label with this name already exists in this workspace" };
       }
+      logger.error({ error, orgId: validated.data.orgId, name: validated.data.name }, "Failed to create label");
       return { success: false, error: "Failed to create label" };
     }
 
     return { success: true, data };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, orgId, name }, "Unexpected error in createLabel Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -116,12 +125,16 @@ export async function deleteLabel(labelId: string, orgId: string): Promise<{ suc
       .eq("organization_id", validated.data.orgId);
 
     if (error) {
+      logger.error({ error, labelId: validated.data.labelId, orgId: validated.data.orgId }, "Failed to delete label");
       return { success: false, error: "Failed to delete label" };
     }
 
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, labelId, orgId }, "Unexpected error in deleteLabel Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -166,11 +179,16 @@ export async function updateLabel(
       if (error.message?.includes("unique") || error.details?.includes("already exists")) {
         return { success: false, error: "A label with this name already exists in this workspace" };
       }
+      logger.error({ error, labelId: validated.data.labelId, orgId: validated.data.orgId }, "Failed to update label");
       return { success: false, error: "Failed to update label" };
     }
 
     return { success: true, data };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, labelId, orgId, name }, "Unexpected error in updateLabel Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
+

@@ -6,14 +6,14 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import { orgIdSchema, projectIdSchema } from "@/lib/utils";
 import { verifyMembership } from "@/lib/auth-helpers";
-import { logger } from "@/lib/logger";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 const logActivityInputSchema = z.object({
   orgId: orgIdSchema,
   projectId: projectIdSchema.nullable(),
   userId: z.string().min(1),
   actionType: z.string().min(1),
-  metadata: z.record(z.any()),
+  metadata: z.record(z.string(), z.any()),
 });
 
 
@@ -55,6 +55,8 @@ export async function logActivity(
   } catch (err) {
     logger.error({ error: err }, "Failed to log activity");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -126,6 +128,8 @@ export async function getProjectActivities(
   } catch (err) {
     logger.error({ error: err }, "Error fetching activities");
     return { success: false, error: "An unexpected error occurred", data: [] };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -178,6 +182,9 @@ export async function getOrganizationActivities(
   } catch (err) {
     logger.error({ error: err }, "Error fetching organization activities");
     return { success: false, error: "An unexpected error occurred", data: [] };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
+
 

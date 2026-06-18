@@ -8,7 +8,7 @@ import type { Task, TaskStatus, TaskPriority, Label } from "@/types";
 import { logActivity } from "@/actions/activity";
 import { orgIdSchema, projectIdSchema } from "@/lib/utils";
 import { verifyMembership } from "@/lib/auth-helpers";
-import { logger } from "@/lib/logger";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 const taskSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(100),
@@ -153,8 +153,11 @@ export async function createTask(
 
     revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true, data: { taskId: task.id } };
-  } catch {
+  } catch (error) {
+    logger.error({ error }, "createTask unexpected error");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -228,8 +231,11 @@ export async function getProjectTasks(
     const formattedTasks = tasksData.map(formatDbTask);
 
     return { success: true, data: formattedTasks };
-  } catch {
+  } catch (error) {
+    logger.error({ error }, "getProjectTasks unexpected error");
     return { success: false, error: "An unexpected error occurred", data: [] };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -270,7 +276,10 @@ export async function getOrganizationTasks(
     const formattedTasks = tasksData.map(formatDbTask);
 
     return { success: true, data: formattedTasks };
-  } catch {
+  } catch (error) {
+    logger.error({ error }, "getOrganizationTasks unexpected error");
     return { success: false, error: "An unexpected error occurred", data: [] };
+  } finally {
+    flushLogsAfterResponse();
   }
 }

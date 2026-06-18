@@ -6,6 +6,7 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { MembershipRole } from "@/types";
 import { orgIdSchema, membershipIdSchema } from "@/lib/utils";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 
 const getOrganizationMembersInputSchema = z.object({
@@ -77,6 +78,7 @@ export async function getOrganizationMembers(
       .eq("organization_id", validated.data.orgId);
 
     if (error) {
+      logger.error({ error, orgId: validated.data.orgId }, "Failed to fetch organization members");
       return { success: false, error: "Failed to fetch members", data: [] };
     }
 
@@ -94,8 +96,11 @@ export async function getOrganizationMembers(
     });
 
     return { success: true, data: members };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, orgId }, "Unexpected error in getOrganizationMembers Server Action");
     return { success: false, error: "An unexpected error occurred", data: [] };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -158,14 +163,18 @@ export async function updateMemberRole(
       .eq("organization_id", validated.data.orgId);
 
     if (error) {
+      logger.error({ error, membershipId: validated.data.membershipId, newRole: validated.data.newRole }, "Failed to update member role");
       return { success: false, error: "Failed to update role." };
     }
 
     revalidatePath("/organizations/settings");
     revalidatePath("/dashboard");
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, membershipId, newRole }, "Unexpected error in updateMemberRole Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -225,13 +234,18 @@ export async function removeMember(
       .eq("organization_id", validated.data.orgId);
 
     if (error) {
+      logger.error({ error, membershipId: validated.data.membershipId }, "Failed to remove member");
       return { success: false, error: "Failed to remove member." };
     }
 
     revalidatePath("/organizations/settings");
     revalidatePath("/dashboard");
     return { success: true };
-  } catch {
+  } catch (err) {
+    logger.error({ error: err, membershipId }, "Unexpected error in removeMember Server Action");
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
+
