@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { SearchResult } from "@/types";
 import { verifyMembership, getOrganizationMemberships } from "@/lib/auth-helpers";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
+import * as Sentry from "@sentry/nextjs";
 
 const searchSchema = z.object({
   query: z
@@ -110,6 +111,7 @@ export async function globalSearch(
     };
   } catch (err) {
     logger.error({ error: err }, "Unexpected error in globalSearch");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();

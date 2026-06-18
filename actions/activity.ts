@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import * as Sentry from "@sentry/nextjs";
 import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
@@ -54,6 +55,7 @@ export async function logActivity(
     return { success: true };
   } catch (err) {
     logger.error({ error: err }, "Failed to log activity");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -127,6 +129,7 @@ export async function getProjectActivities(
     return { success: true, data: data as unknown as ActivityWithActor[] };
   } catch (err) {
     logger.error({ error: err }, "Error fetching activities");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred", data: [] };
   } finally {
     flushLogsAfterResponse();
@@ -181,6 +184,7 @@ export async function getOrganizationActivities(
     return { success: true, data: data as unknown as ActivityWithActor[] };
   } catch (err) {
     logger.error({ error: err }, "Error fetching organization activities");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred", data: [] };
   } finally {
     flushLogsAfterResponse();

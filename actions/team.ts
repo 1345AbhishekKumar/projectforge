@@ -6,6 +6,7 @@ import { z } from "zod";
 import type { TeamMember } from "@/types";
 import { verifyMembership, getOrganizationMemberships } from "@/lib/auth-helpers";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
+import * as Sentry from "@sentry/nextjs";
 
 const teamSchema = z.object({
   orgId: z.string().uuid("Invalid organization ID"),
@@ -94,6 +95,7 @@ export async function getTeamDirectory(
     return { success: true, data: teamMembers };
   } catch (err) {
     logger.error({ error: err }, "Unexpected error in getTeamDirectory");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();

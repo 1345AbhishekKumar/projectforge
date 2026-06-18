@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import * as Sentry from "@sentry/nextjs";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { Label } from "@/types";
@@ -55,6 +56,7 @@ export async function getLabels(orgId: string): Promise<{ success: boolean; data
     return { success: true, data: data || [] };
   } catch (err) {
     logger.error({ error: err, orgId }, "Unexpected error in getLabels Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred", data: [] };
   } finally {
     flushLogsAfterResponse();
@@ -98,6 +100,7 @@ export async function createLabel(orgId: string, name: string, color: string): P
     return { success: true, data };
   } catch (err) {
     logger.error({ error: err, orgId, name }, "Unexpected error in createLabel Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -132,6 +135,7 @@ export async function deleteLabel(labelId: string, orgId: string): Promise<{ suc
     return { success: true };
   } catch (err) {
     logger.error({ error: err, labelId, orgId }, "Unexpected error in deleteLabel Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -186,6 +190,7 @@ export async function updateLabel(
     return { success: true, data };
   } catch (err) {
     logger.error({ error: err, labelId, orgId, name }, "Unexpected error in updateLabel Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();

@@ -9,6 +9,7 @@ import { logActivity } from "@/actions/activity";
 import { orgIdSchema, projectIdSchema } from "@/lib/utils";
 import { verifyMembership } from "@/lib/auth-helpers";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
+import * as Sentry from "@sentry/nextjs";
 
 const taskSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(100),
@@ -155,6 +156,7 @@ export async function createTask(
     return { success: true, data: { taskId: task.id } };
   } catch (error) {
     logger.error({ error }, "createTask unexpected error");
+    Sentry.captureException(error);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -233,6 +235,7 @@ export async function getProjectTasks(
     return { success: true, data: formattedTasks };
   } catch (error) {
     logger.error({ error }, "getProjectTasks unexpected error");
+    Sentry.captureException(error);
     return { success: false, error: "An unexpected error occurred", data: [] };
   } finally {
     flushLogsAfterResponse();
@@ -278,6 +281,7 @@ export async function getOrganizationTasks(
     return { success: true, data: formattedTasks };
   } catch (error) {
     logger.error({ error }, "getOrganizationTasks unexpected error");
+    Sentry.captureException(error);
     return { success: false, error: "An unexpected error occurred", data: [] };
   } finally {
     flushLogsAfterResponse();

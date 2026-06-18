@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import * as Sentry from "@sentry/nextjs";
 import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import type { AttachmentWithUser } from "@/types";
@@ -85,6 +86,7 @@ export async function createAttachment(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, taskId, fileName }, "Unexpected error in createAttachment Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -128,6 +130,7 @@ export async function getTaskAttachments(
     return { success: true, data: data as unknown as AttachmentWithUser[] };
   } catch (err) {
     logger.error({ error: err, taskId }, "Unexpected error in getTaskAttachments Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred", data: [] };
   } finally {
     flushLogsAfterResponse();
@@ -192,6 +195,7 @@ export async function deleteAttachment(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, attachmentId }, "Unexpected error in deleteAttachment Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();

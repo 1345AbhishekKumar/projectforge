@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import * as Sentry from "@sentry/nextjs";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { orgIdSchema } from "@/lib/utils";
 import { verifyMembership, getOrganizationMemberships } from "@/lib/auth-helpers";
@@ -195,6 +196,7 @@ export async function getAnalyticsData(
     };
   } catch (err) {
     logger.error({ error: err }, "Unexpected error in getAnalyticsData");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();

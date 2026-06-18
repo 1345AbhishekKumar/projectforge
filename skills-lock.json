@@ -97,6 +97,42 @@
       "skillPath": "skills/review/SKILL.md",
       "computedHash": "8838f4c248a8145dc9758a477ec4d6e9889b4a5ce96a60f85e5b54470bf0ff27"
     },
+    "sentry-code-review": {
+      "source": "getsentry/sentry-for-ai",
+      "sourceType": "github",
+      "skillPath": "skills/sentry-code-review/SKILL.md",
+      "computedHash": "5f7d4418a3010e3033af6663fadb859a75d8b8446bf598103f0f5c14b56118f2"
+    },
+    "sentry-fix-issues": {
+      "source": "getsentry/sentry-for-ai",
+      "sourceType": "github",
+      "skillPath": "skills/sentry-fix-issues/SKILL.md",
+      "computedHash": "d8f04b1844eb6ae5721d58507a69be1f880a7cd231560de5097b3e40d8d11e1c"
+    },
+    "sentry-instrumentation-guide": {
+      "source": "getsentry/sentry-for-ai",
+      "sourceType": "github",
+      "skillPath": "skills/sentry-instrumentation-guide/SKILL.md",
+      "computedHash": "d475a29003e314bb8a753913753628991bb26a62477fdd4b592cef0da1a42589"
+    },
+    "sentry-nextjs-sdk": {
+      "source": "getsentry/sentry-for-ai",
+      "sourceType": "github",
+      "skillPath": "skills/sentry-nextjs-sdk/SKILL.md",
+      "computedHash": "9d1aaf454064223d4185a03d897cfb1c0f9fdef88edba5b3699b14819188665e"
+    },
+    "sentry-pr-code-review": {
+      "source": "getsentry/sentry-for-ai",
+      "sourceType": "github",
+      "skillPath": "skills/sentry-pr-code-review/SKILL.md",
+      "computedHash": "fa7f6a970e26ffdea45ee3be3aa0db3c701e5c4beb534eb033c67e7a8a3adcd6"
+    },
+    "sentry-workflow": {
+      "source": "getsentry/sentry-for-ai",
+      "sourceType": "github",
+      "skillPath": "skills/sentry-workflow/SKILL.md",
+      "computedHash": "3384bbf87660a1e633ad72e56f0fb520c4d93956e41eb4ef8d70187a29955fb8"
+    },
     "teach": {
       "source": "mattpocock/skills",
       "sourceType": "github",

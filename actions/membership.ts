@@ -1,5 +1,6 @@
 "use server";
 
+import * as Sentry from "@sentry/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
@@ -98,6 +99,7 @@ export async function getOrganizationMembers(
     return { success: true, data: members };
   } catch (err) {
     logger.error({ error: err, orgId }, "Unexpected error in getOrganizationMembers Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred", data: [] };
   } finally {
     flushLogsAfterResponse();
@@ -172,6 +174,7 @@ export async function updateMemberRole(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, membershipId, newRole }, "Unexpected error in updateMemberRole Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -243,6 +246,7 @@ export async function removeMember(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, membershipId }, "Unexpected error in removeMember Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();

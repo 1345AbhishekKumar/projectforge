@@ -9,6 +9,7 @@ import { logActivity } from "@/actions/activity";
 import { orgIdSchema, projectIdSchema, taskIdSchema } from "@/lib/utils";
 import { verifyMembership } from "@/lib/auth-helpers";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
+import * as Sentry from "@sentry/nextjs";
 
 const updateTaskInputSchema = z.object({
   taskId: taskIdSchema,
@@ -233,6 +234,7 @@ export async function updateTask(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, taskId }, "Unexpected error in updateTask Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -275,6 +277,7 @@ export async function deleteTask(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, taskId }, "Unexpected error in deleteTask Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -357,6 +360,7 @@ export async function reorderTasks(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, projectId }, "Unexpected error in reorderTasks Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();

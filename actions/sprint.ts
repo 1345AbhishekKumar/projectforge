@@ -9,6 +9,7 @@ import { createNotification } from "@/actions/notification";
 import { orgIdSchema, sprintIdSchema } from "@/lib/utils";
 import { verifyMembership, verifyAdminOrOwnerRole } from "@/lib/auth-helpers";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
+import * as Sentry from "@sentry/nextjs";
 
 const sprintSchema = z.object({
   name: z.string().min(3, "Sprint name must be at least 3 characters").max(100),
@@ -124,6 +125,7 @@ export async function createSprint(
     return { success: true, data: { sprintId: sprint.id } };
   } catch (error) {
     logger.error({ error }, "Error creating sprint");
+    Sentry.captureException(error);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -163,6 +165,7 @@ export async function getSprints(
     return { success: true, data: data as Sprint[] };
   } catch (error) {
     logger.error({ error }, "Error fetching sprints");
+    Sentry.captureException(error);
     return { success: false, error: "An unexpected error occurred", data: [] };
   } finally {
     flushLogsAfterResponse();
@@ -261,6 +264,7 @@ export async function updateSprint(
     return { success: true };
   } catch (error) {
     logger.error({ error }, "Error updating sprint");
+    Sentry.captureException(error);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -361,6 +365,7 @@ export async function updateSprintStatus(
     return { success: true };
   } catch (error) {
     logger.error({ error }, "Error updating sprint status");
+    Sentry.captureException(error);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();

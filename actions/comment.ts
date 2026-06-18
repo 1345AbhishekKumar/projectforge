@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import * as Sentry from "@sentry/nextjs";
 import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
@@ -99,6 +100,7 @@ export async function createComment(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, taskId }, "Unexpected error in createComment Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -142,6 +144,7 @@ export async function getTaskComments(
     return { success: true, data: data as unknown as CommentWithUser[] };
   } catch (err) {
     logger.error({ error: err, taskId }, "Unexpected error in getTaskComments Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred", data: [] };
   } finally {
     flushLogsAfterResponse();
@@ -203,6 +206,7 @@ export async function updateComment(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, commentId }, "Unexpected error in updateComment Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -251,6 +255,7 @@ export async function deleteComment(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, commentId }, "Unexpected error in deleteComment Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();

@@ -1,5 +1,6 @@
 "use server";
 
+import * as Sentry from "@sentry/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
@@ -72,6 +73,7 @@ export async function createNotification(
     ]);
   } catch (err) {
     logger.error({ error: err, targetUserId, type }, "createNotification failed silently");
+    Sentry.captureException(err);
   } finally {
     flushLogsAfterResponse();
   }
@@ -145,6 +147,7 @@ export async function checkOverdueTasks(
     return { success: true, count };
   } catch (err) {
     logger.error({ error: err }, "checkOverdueTasks error");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -179,6 +182,7 @@ export async function getNotifications(): Promise<{
     return { success: true, data: (data as unknown as Notification[]) || [] };
   } catch (err) {
     logger.error({ error: err }, "Failed to get notifications");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred", data: [] };
   } finally {
     flushLogsAfterResponse();
@@ -213,6 +217,7 @@ export async function markNotificationRead(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, notificationId }, "markNotificationRead error");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -243,6 +248,7 @@ export async function markAllNotificationsRead(): Promise<{
     return { success: true };
   } catch (err) {
     logger.error({ error: err }, "markAllNotificationsRead error");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -276,6 +282,7 @@ export async function deleteOldNotifications(): Promise<{
     return { success: true };
   } catch (err) {
     logger.error({ error: err }, "deleteOldNotifications error");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -327,6 +334,7 @@ export async function getNotificationPreferences(): Promise<{
     return { success: true, data: full };
   } catch (err) {
     logger.error({ error: err }, "getNotificationPreferences error");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -387,6 +395,7 @@ export async function upsertNotificationPreference(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, type }, "upsertNotificationPreference error");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();

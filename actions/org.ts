@@ -1,5 +1,6 @@
 "use server";
 
+import * as Sentry from "@sentry/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
@@ -81,6 +82,7 @@ export async function createOrganization(
     return { success: true, data: { orgId: org.id } };
   } catch (err) {
     logger.error({ error: err, name, slug }, "Unexpected error in createOrganization Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -110,6 +112,7 @@ export async function checkSlugAvailability(
     return { available: !data };
   } catch (err) {
     logger.error({ error: err, slug }, "Unexpected error in checkSlugAvailability Server Action");
+    Sentry.captureException(err);
     return { available: false };
   } finally {
     flushLogsAfterResponse();
@@ -146,6 +149,7 @@ export async function getUserOrganizations(): Promise<{
     return { success: true, data: orgs };
   } catch (err) {
     logger.error({ error: err }, "Unexpected error in getUserOrganizations Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred", data: [] };
   } finally {
     flushLogsAfterResponse();
@@ -188,6 +192,7 @@ export async function setActiveOrganization(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, orgId }, "Unexpected error in setActiveOrganization Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -238,6 +243,7 @@ export async function deleteOrganization(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, orgId }, "Unexpected error in deleteOrganization Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();

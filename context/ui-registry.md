@@ -295,3 +295,12 @@ After building any component — update this file with the component name, file 
 - **File Path:** [InvitationBanner.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/invitations/InvitationBanner.tsx)
 - **Banner Wrapper:** `bg-accent-purple border-2 border-black rounded-sketchy p-5 shadow-flat-offset flex flex-col md:flex-row md:items-center justify-between gap-4 rotate-[0.5deg] text-primary`
 
+### Error Boundaries & Fallback Pages
+
+#### Root Segment Error Boundary
+- **File Path:** [error.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/error.tsx)
+- **Container Classes:** `min-h-[60vh] w-full flex items-center justify-center bg-neutral-bg bg-dot-grid text-primary p-6`
+- **Card Wrapper Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8 md:p-10 text-center max-w-md w-full rotate-[-0.5deg]`
+- **Retry Button Classes:** `px-6 py-2.5 bg-accent-yellow border-2 border-black rounded-full text-sm font-bold shadow-flat-offset-sm hover:-translate-y-0.5 active:translate-y-0.5 transition-all cursor-pointer`
+- **Icon Badge Classes:** `w-16 h-16 bg-accent-pink border-2 border-black rounded-full flex items-center justify-center mx-auto mb-6 shadow-flat-offset-sm animate-bounce`
+

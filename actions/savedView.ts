@@ -1,5 +1,6 @@
 "use server";
 
+import * as Sentry from "@sentry/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
@@ -56,6 +57,7 @@ export async function getSavedViews(orgId: string): Promise<{ success: boolean; 
     return { success: true, data: data || [] };
   } catch (err) {
     logger.error({ error: err, orgId }, "Unexpected error in getSavedViews Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred", data: [] };
   } finally {
     flushLogsAfterResponse();
@@ -100,6 +102,7 @@ export async function createSavedView(orgId: string, name: string, filters: Save
     return { success: true, data };
   } catch (err) {
     logger.error({ error: err, orgId, name }, "Unexpected error in createSavedView Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -135,6 +138,7 @@ export async function deleteSavedView(viewId: string, orgId: string): Promise<{ 
     return { success: true };
   } catch (err) {
     logger.error({ error: err, viewId, orgId }, "Unexpected error in deleteSavedView Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -190,6 +194,7 @@ export async function updateSavedView(
     return { success: true, data };
   } catch (err) {
     logger.error({ error: err, viewId, orgId, name }, "Unexpected error in updateSavedView Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();

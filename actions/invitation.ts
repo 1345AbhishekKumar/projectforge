@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import * as Sentry from "@sentry/nextjs";
 import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
@@ -143,6 +144,7 @@ export async function inviteMember(
     return { success: true };
   } catch (error) {
     logger.error({ error }, "inviteMember error");
+    Sentry.captureException(error);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -211,6 +213,7 @@ export async function getPendingInvitations(): Promise<{
     return { success: true, data: invitations };
   } catch (error) {
     logger.error({ error }, "getPendingInvitations error");
+    Sentry.captureException(error);
     return { success: false, error: "An unexpected error occurred", data: [] };
   } finally {
     flushLogsAfterResponse();
@@ -296,6 +299,7 @@ export async function acceptInvitation(
     return { success: true };
   } catch (error) {
     logger.error({ error }, "acceptInvitation error");
+    Sentry.captureException(error);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -361,6 +365,7 @@ export async function declineInvitation(
     return { success: true };
   } catch (error) {
     logger.error({ error }, "declineInvitation error");
+    Sentry.captureException(error);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -422,6 +427,7 @@ export async function getOrganizationInvitations(
     return { success: true, data: formatted };
   } catch (error) {
     logger.error({ error }, "getOrganizationInvitations error");
+    Sentry.captureException(error);
     return { success: false, error: "An unexpected error occurred", data: [] };
   } finally {
     flushLogsAfterResponse();
@@ -468,6 +474,7 @@ export async function cancelInvitation(
     return { success: true };
   } catch (error) {
     logger.error({ error }, "cancelInvitation unexpected error");
+    Sentry.captureException(error);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();

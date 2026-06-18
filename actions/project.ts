@@ -1,5 +1,6 @@
 "use server";
 
+import * as Sentry from "@sentry/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
@@ -88,6 +89,7 @@ export async function createProject(
     return { success: true, data: { projectId: project.id } };
   } catch (err) {
     logger.error({ error: err, orgId, name }, "Unexpected error in createProject Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -127,6 +129,7 @@ export async function getUserProjects(
     return { success: true, data: data as Project[] };
   } catch (err) {
     logger.error({ error: err, orgId }, "Unexpected error in getUserProjects Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred", data: [] };
   } finally {
     flushLogsAfterResponse();
@@ -168,6 +171,7 @@ export async function getProjectDetails(
     return { success: true, data: data as Project };
   } catch (err) {
     logger.error({ error: err, projectId, orgId }, "Unexpected error in getProjectDetails Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -238,6 +242,7 @@ export async function updateProject(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, projectId }, "Unexpected error in updateProject Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -294,6 +299,7 @@ export async function archiveProject(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, projectId }, "Unexpected error in archiveProject Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -352,6 +358,7 @@ export async function deleteProject(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, projectId }, "Unexpected error in deleteProject Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();

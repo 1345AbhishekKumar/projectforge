@@ -4,6 +4,7 @@ import { NextRequest } from "next/server";
 import { WebhookEvent } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
+import * as Sentry from "@sentry/nextjs";
 
 export async function POST(req: NextRequest) {
   try {
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
     payload = JSON.parse(body);
   } catch (err) {
     logger.error({ err }, "Failed to parse webhook JSON body");
+    Sentry.captureException(err);
     return new Response("Invalid JSON", { status: 400 });
   }
 
@@ -73,6 +75,7 @@ export async function POST(req: NextRequest) {
       svixTimestamp: svix_timestamp,
       svixSignature: svix_signature ? "present" : "missing",
     }, "Error verifying webhook");
+    Sentry.captureException(err);
     return new Response(`Error verifying webhook: ${errorMessage}`, {
       status: 400,
     });
@@ -129,6 +132,7 @@ export async function POST(req: NextRequest) {
       logger.info({ userId: id }, "Successfully created user profile in InsForge database");
     } catch (error) {
       logger.error({ error }, "Unexpected error creating profile in database");
+      Sentry.captureException(error);
       return new Response("Internal Server Error", { status: 500 });
     }
   }
@@ -159,6 +163,7 @@ export async function POST(req: NextRequest) {
       logger.info({ userId: id }, "Successfully updated user profile in InsForge database");
     } catch (error) {
       logger.error({ error }, "Unexpected error updating profile in database");
+      Sentry.captureException(error);
       return new Response("Internal Server Error", { status: 500 });
     }
   }
@@ -181,6 +186,7 @@ export async function POST(req: NextRequest) {
       logger.info({ userId: id }, "Successfully deleted user profile from InsForge database");
     } catch (error) {
       logger.error({ error }, "Unexpected error deleting profile in database");
+      Sentry.captureException(error);
       return new Response("Internal Server Error", { status: 500 });
     }
   }

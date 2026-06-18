@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
+import * as Sentry from "@sentry/nextjs";
 
 export async function GET() {
   logger.info(
@@ -20,6 +21,7 @@ export async function GET() {
       { error, context: "verification test" },
       "Logs verification caught an error"
     );
+    Sentry.captureException(error);
   }
 
   // Ensure logs are flushed before the serverless function freezes

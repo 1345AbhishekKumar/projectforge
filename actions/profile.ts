@@ -1,5 +1,6 @@
 "use server";
 
+import * as Sentry from "@sentry/nextjs";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
@@ -57,6 +58,7 @@ export async function syncProfile(): Promise<{
     return { success: true };
   } catch (err) {
     logger.error({ error: err }, "Unexpected error in syncProfile Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
@@ -100,6 +102,7 @@ export async function updateProfile(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, userId }, "Unexpected error in updateProfile Server Action");
+    Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
     flushLogsAfterResponse();
