@@ -4,6 +4,7 @@ import "./globals.css";
 
 import { ClerkProvider } from "@clerk/nextjs";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { PostHogProvider } from "@/components/providers/PostHogProvider";
 import { WorkspaceGate } from "@/components/layout/WorkspaceGate";
 
 const geistSans = Geist({
@@ -39,11 +40,13 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <ClerkProvider dynamic>
-          <QueryProvider>
-            <WorkspaceGate>
-              {children}
-            </WorkspaceGate>
-          </QueryProvider>
+          <PostHogProvider>
+            <QueryProvider>
+              <WorkspaceGate>
+                {children}
+              </WorkspaceGate>
+            </QueryProvider>
+          </PostHogProvider>
         </ClerkProvider>
       </body>
     </html>
