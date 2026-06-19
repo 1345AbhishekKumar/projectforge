@@ -1,7 +1,7 @@
 "use client";
 
 import React, { use } from "react";
-import { User as UserIcon, LogOut, ArrowLeft, Loader2, Calendar, Archive, ClipboardList, FolderKanban, Users, Activity } from "lucide-react";
+import { User as UserIcon, LogOut, ArrowLeft, Loader2, Calendar, Archive, ClipboardList, FolderKanban, Users, Activity, Settings } from "lucide-react";
 
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
@@ -10,6 +10,7 @@ import { TaskDetailsSheet } from "@/components/tasks/TaskDetailsSheet";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { BacklogTab } from "@/components/projects/BacklogTab";
 import { MembersTab } from "@/components/projects/MembersTab";
+import { SettingsTab } from "@/components/projects/SettingsTab";
 import { useProjectDetails } from "./useProjectDetails";
 import type { ProjectStatus } from "@/types";
 
@@ -78,6 +79,9 @@ export default function ProjectDetailsPage({ params }: Props) {
   };
 
   const statusBadgeColor = project ? statusColors[project.status] : "";
+
+  const currentUserMember = members.find((m) => m.userId === user?.id);
+  const isAdminOrOwner = currentUserMember?.role === "OWNER" || currentUserMember?.role === "ADMIN";
 
   return (
     <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
@@ -269,6 +273,21 @@ export default function ProjectDetailsPage({ params }: Props) {
                       Activity
                     </span>
                   </button>
+                  {isAdminOrOwner && (
+                    <button
+                      onClick={() => setActiveTab("settings")}
+                      className={`px-6 py-2.5 text-sm font-bold font-cursive transition-all -mb-0.5 cursor-pointer ${
+                        activeTab === "settings"
+                          ? "bg-accent-blue border-2 border-black border-b-0 rounded-t-lg shadow-[0_-2px_0_rgba(0,0,0,1)]"
+                          : "border-b-2 border-transparent hover:bg-neutral-bg/50 px-6 py-2.5 text-secondary"
+                      }`}
+                    >
+                      <span className="flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
+                        Settings
+                      </span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Tab Content Body */}
@@ -305,6 +324,11 @@ export default function ProjectDetailsPage({ params }: Props) {
                       currentUserId={user?.id}
                     />
                   )}
+
+                  {/* Settings Tab Content */}
+                  {activeTab === "settings" && isAdminOrOwner && activeOrgId && (
+                    <SettingsTab project={project} orgId={activeOrgId} />
+                  )}
                 </div>
               </div>
             </div>
@@ -318,6 +342,7 @@ export default function ProjectDetailsPage({ params }: Props) {
           members={members}
           orgId={activeOrgId || ""}
           onCreate={handleCreateTask}
+          customStatuses={project?.custom_statuses}
         />
 
         {/* Task Details Sheet */}
@@ -329,6 +354,7 @@ export default function ProjectDetailsPage({ params }: Props) {
           sprints={sprints}
           onUpdate={handleUpdateTask}
           onDelete={handleDeleteTask}
+          customStatuses={project?.custom_statuses}
         />
       </div>
     </div>

@@ -16,6 +16,15 @@ const projectSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(50),
   description: z.string().max(250).nullable().optional(),
   status: z.enum(["PLANNING", "ACTIVE", "COMPLETED", "ARCHIVED"]),
+  custom_statuses: z
+    .array(z.string().trim().min(1, "Status cannot be empty").max(30))
+    .min(2, "Must specify at least 2 statuses")
+    .max(10, "Cannot specify more than 10 statuses")
+    .refine((items) => new Set(items).size === items.length, {
+      message: "Statuses must be unique",
+    })
+    .nullable()
+    .optional(),
 });
 
 const createProjectInputSchema = projectSchema.extend({
@@ -45,9 +54,10 @@ export async function createProject(
   name: string,
   description: string | null,
   status: ProjectStatus,
-  orgId: string
+  orgId: string,
+  customStatuses: string[] | null = null
 ): Promise<{ success: boolean; data?: { projectId: string }; error?: string }> {
-  const validated = createProjectInputSchema.safeParse({ name, description, status, orgId });
+  const validated = createProjectInputSchema.safeParse({ name, description, status, orgId, custom_statuses: customStatuses });
   if (!validated.success) {
     return { success: false, error: validated.error.issues[0].message };
   }
@@ -71,6 +81,7 @@ export async function createProject(
           description: validated.data.description || null,
           status: validated.data.status,
           organization_id: validated.data.orgId,
+          custom_statuses: validated.data.custom_statuses || null,
         },
       ])
       .select("id")
@@ -183,9 +194,17 @@ export async function updateProject(
   name: string,
   description: string | null,
   status: ProjectStatus,
-  orgId: string
+  orgId: string,
+  customStatuses?: string[] | null
 ): Promise<{ success: boolean; error?: string }> {
-  const validated = updateProjectInputSchema.safeParse({ projectId, name, description, status, orgId });
+  const validated = updateProjectInputSchema.safeParse({
+    projectId,
+    name,
+    description,
+    status,
+    orgId,
+    custom_statuses: customStatuses === undefined ? undefined : customStatuses,
+  });
   if (!validated.success) {
     return { success: false, error: validated.error.issues[0].message };
   }
@@ -201,14 +220,45 @@ export async function updateProject(
       return { success: false, error: "Only owners and admins can update projects." };
     }
 
+    // Task conflict guard if custom_statuses is updated/cleared
+    if (validated.data.custom_statuses !== undefined) {
+      const allowedStatuses = validated.data.custom_statuses || ["TODO", "IN_PROGRESS", "DONE"];
+      
+      const { data: tasks, error: tasksError } = await insforge.database
+        .from("tasks")
+        .select("id, title, status")
+        .eq("project_id", validated.data.projectId);
+
+      if (tasksError) {
+        logger.error({ error: tasksError, projectId: validated.data.projectId }, "Failed to fetch project tasks for custom statuses validation");
+        return { success: false, error: "Failed to validate tasks against custom statuses" };
+      }
+
+      const invalidTasks = tasks?.filter((t) => !allowedStatuses.includes(t.status)) || [];
+      if (invalidTasks.length > 0) {
+        const taskList = invalidTasks.slice(0, 3).map(t => `"${t.title}" (${t.status})`).join(", ");
+        const suffix = invalidTasks.length > 3 ? ` and ${invalidTasks.length - 3} more` : "";
+        return {
+          success: false,
+          error: `Cannot update workflow: some tasks have statuses not in the new list. Check tasks: ${taskList}${suffix}. Please update them first.`
+        };
+      }
+    }
+
+    const updatePayload: Record<string, any> = {
+      name: validated.data.name,
+      description: validated.data.description || null,
+      status: validated.data.status,
+      updated_at: new Date().toISOString(),
+    };
+
+    if (validated.data.custom_statuses !== undefined) {
+      updatePayload.custom_statuses = validated.data.custom_statuses;
+    }
+
     const { error } = await insforge.database
       .from("projects")
-      .update({
-        name: validated.data.name,
-        description: validated.data.description || null,
-        status: validated.data.status,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updatePayload)
       .eq("id", validated.data.projectId)
       .eq("organization_id", validated.data.orgId);
 

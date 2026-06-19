@@ -49,11 +49,17 @@ export default function KanbanBoardPage({ params }: Props) {
     );
   }
 
-  const columns: { title: string; status: TaskStatus }[] = [
-    { title: "To Do", status: "TODO" },
-    { title: "In Progress", status: "IN_PROGRESS" },
-    { title: "Done", status: "DONE" },
-  ];
+  const customStatuses = board.project?.custom_statuses;
+  const columns: { title: string; status: TaskStatus }[] = customStatuses && customStatuses.length > 0
+    ? customStatuses.map((status) => ({
+        title: status.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase()),
+        status: status,
+      }))
+    : [
+        { title: "To Do", status: "TODO" },
+        { title: "In Progress", status: "IN_PROGRESS" },
+        { title: "Done", status: "DONE" },
+      ];
 
   return (
     <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
@@ -171,10 +177,14 @@ export default function KanbanBoardPage({ params }: Props) {
                   onDeleteView={board.handleDeleteView}
                   activeViewName={board.activeViewName}
                   onClearViewName={() => board.clearFilters(board.projectId)}
+                  customStatuses={customStatuses}
                 />
 
                 {/* Board Columns Grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-4 items-start min-h-[60vh]">
+                <div
+                  className="grid grid-cols-1 lg:grid-cols-[repeat(var(--cols),_minmax(0,_1fr))] gap-8 mt-4 items-start min-h-[60vh]"
+                  style={{ "--cols": columns.length } as React.CSSProperties}
+                >
                   {columns.map((col) => {
                     const colTasks = board.filteredTasks.filter((t) => t.status === col.status);
                     return (
@@ -223,6 +233,7 @@ export default function KanbanBoardPage({ params }: Props) {
           orgId={board.activeOrgId || ""}
           onCreate={board.handleCreateTask}
           defaultStatus={board.preselectedStatus}
+          customStatuses={customStatuses}
         />
 
         {/* Task Details Sheet */}
@@ -234,6 +245,7 @@ export default function KanbanBoardPage({ params }: Props) {
           sprints={board.sprints}
           onUpdate={board.handleUpdateTask}
           onDelete={board.handleDeleteTask}
+          customStatuses={customStatuses}
         />
       </div>
     </div>

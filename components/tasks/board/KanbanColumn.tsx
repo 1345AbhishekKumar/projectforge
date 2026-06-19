@@ -29,7 +29,7 @@ export function KanbanColumn({
   openCreateTaskAtStatus,
   children,
 }: Props) {
-  const isDragOver = dragOverCounters[status] > 0;
+  const isDragOver = (dragOverCounters[status] || 0) > 0;
 
   return (
     <div

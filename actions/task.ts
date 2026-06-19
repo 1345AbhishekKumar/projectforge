@@ -16,7 +16,7 @@ import { triggerWorkflowEvent } from "@/lib/workflows/engine";
 const taskSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(100),
   description: z.string().max(500).nullable().optional(),
-  status: z.enum(["TODO", "IN_PROGRESS", "DONE"]),
+  status: z.string().min(1, "Status is required"),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
   assigneeId: z.string().nullable().optional(),
   dueDate: z.string().nullable().optional(),
@@ -76,6 +76,23 @@ export async function createTask(
     const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
     if (!isMember) {
       return { success: false, error: "Not a member of this workspace" };
+    }
+
+    // Fetch project's custom statuses and validate the status value
+    const { data: targetProject, error: projectFetchError } = await insforge.database
+      .from("projects")
+      .select("custom_statuses")
+      .eq("id", validated.data.projectId)
+      .eq("organization_id", validated.data.orgId)
+      .single();
+
+    if (projectFetchError || !targetProject) {
+      return { success: false, error: "Project not found" };
+    }
+
+    const allowedStatuses = targetProject.custom_statuses || ["TODO", "IN_PROGRESS", "DONE"];
+    if (!allowedStatuses.includes(validated.data.status)) {
+      return { success: false, error: `Invalid status "${validated.data.status}". Must be one of: ${allowedStatuses.join(", ")}` };
     }
 
     if (validated.data.assigneeId) {

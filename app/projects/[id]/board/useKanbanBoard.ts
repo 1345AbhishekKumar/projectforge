@@ -122,11 +122,7 @@ export function useKanbanBoard({ params }: HookParams) {
   }
 
   const [draggedTaskId, setDraggedTaskId] = useState<string | null>(null);
-  const [dragOverCounters, setDragOverCounters] = useState<Record<TaskStatus, number>>({
-    TODO: 0,
-    IN_PROGRESS: 0,
-    DONE: 0,
-  });
+  const [dragOverCounters, setDragOverCounters] = useState<Record<string, number>>({});
 
   // Mutations
   const updateProjectMutation = useMutation({
@@ -369,11 +365,7 @@ export function useKanbanBoard({ params }: HookParams) {
 
   const handleDragEnd = useCallback(() => {
     setDraggedTaskId(null);
-    setDragOverCounters({
-      TODO: 0,
-      IN_PROGRESS: 0,
-      DONE: 0,
-    });
+    setDragOverCounters({});
   }, []);
 
   const handleDragOverColumn = useCallback((e: React.DragEvent) => {
@@ -384,7 +376,7 @@ export function useKanbanBoard({ params }: HookParams) {
     e.preventDefault();
     setDragOverCounters((prev) => ({
       ...prev,
-      [status]: prev[status] + 1,
+      [status]: (prev[status] || 0) + 1,
     }));
   }, []);
 
@@ -392,7 +384,7 @@ export function useKanbanBoard({ params }: HookParams) {
     e.preventDefault();
     setDragOverCounters((prev) => ({
       ...prev,
-      [status]: Math.max(0, prev[status] - 1),
+      [status]: Math.max(0, (prev[status] || 0) - 1),
     }));
   }, []);
 
@@ -401,11 +393,7 @@ export function useKanbanBoard({ params }: HookParams) {
     const taskId = e.dataTransfer.getData("text/plain") || draggedTaskId;
     if (!taskId) return;
 
-    setDragOverCounters({
-      TODO: 0,
-      IN_PROGRESS: 0,
-      DONE: 0,
-    });
+    setDragOverCounters({});
 
     const draggedTask = tasks.find((t) => t.id === taskId);
     if (!draggedTask) return;
@@ -539,6 +527,7 @@ export function useKanbanBoard({ params }: HookParams) {
     activeFilters,
     activeViewName,
     setFilters,
+    setActiveView,
     clearFilters,
     draggedTaskId,
     dragOverCounters,

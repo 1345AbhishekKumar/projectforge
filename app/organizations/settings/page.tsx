@@ -11,7 +11,9 @@ import { SettingsForm } from "@/components/orgs/SettingsForm";
 import { getOrganizationMembers, type MemberListItem } from "@/actions/membership";
 import { getOrganizationInvitations, type OrgInvitationItem } from "@/actions/invitation";
 import { getUserOrganizations } from "@/actions/org";
+import { getWorkflows } from "@/actions/workflow";
 import type { MembershipRole } from "@/types";
+import type { WorkflowRow } from "@/components/orgs/WorkflowsTab";
 
 export default async function SettingsPage() {
   const { userId } = await auth();
@@ -27,14 +29,16 @@ export default async function SettingsPage() {
 
   let initialMembers: MemberListItem[] = [];
   let initialInvitations: OrgInvitationItem[] = [];
+  let initialWorkflows: WorkflowRow[] = [];
   let activeOrgName = "";
   let currentUserRole: MembershipRole = "MEMBER";
 
   if (activeOrgId) {
-    const [membersRes, invitesRes, orgsRes] = await Promise.all([
+    const [membersRes, invitesRes, orgsRes, workflowsRes] = await Promise.all([
       getOrganizationMembers(activeOrgId),
       getOrganizationInvitations(activeOrgId),
       getUserOrganizations(),
+      getWorkflows(activeOrgId),
     ]);
 
     if (membersRes.success) {
@@ -42,6 +46,9 @@ export default async function SettingsPage() {
     }
     if (invitesRes.success) {
       initialInvitations = invitesRes.data;
+    }
+    if (workflowsRes.success) {
+      initialWorkflows = workflowsRes.data as WorkflowRow[];
     }
     if (orgsRes.success && orgsRes.data) {
       const activeOrg = orgsRes.data.find((o) => o.id === activeOrgId);
@@ -123,9 +130,10 @@ export default async function SettingsPage() {
               </Link>
             </div>
           ) : (
-            <SettingsForm
+          <SettingsForm
               initialMembers={initialMembers}
               initialInvitations={initialInvitations}
+              initialWorkflows={initialWorkflows}
               activeOrgId={activeOrgId}
               activeOrgName={activeOrgName}
               currentUserId={userId}

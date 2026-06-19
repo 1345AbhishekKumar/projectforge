@@ -37,11 +37,12 @@ export type Project = {
   name: string;
   description: string | null;
   status: ProjectStatus;
+  custom_statuses: string[] | null;
   created_at: string;
   updated_at: string;
 };
 
-export type TaskStatus = "TODO" | "IN_PROGRESS" | "DONE";
+export type TaskStatus = string;
 export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 
 export type SprintStatus = "PLANNED" | "ACTIVE" | "COMPLETED" | "CANCELLED";

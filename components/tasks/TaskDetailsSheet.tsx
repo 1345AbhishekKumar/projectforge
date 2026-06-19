@@ -23,7 +23,7 @@ const taskDetailsSchema = z.object({
     .min(3, "Title must be at least 3 characters")
     .max(100, "Title must be at most 100 characters"),
   description: z.string().trim().max(500, "Description must be at most 500 characters").optional(),
-  status: z.enum(["TODO", "IN_PROGRESS", "DONE"]),
+  status: z.string().min(1, "Status is required"),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
   assigneeId: z.string().optional(),
   dueDate: z.string().optional(),
@@ -51,9 +51,10 @@ type Props = {
     }
   ) => Promise<{ success: boolean; error?: string }>;
   onDelete: (taskId: string) => Promise<{ success: boolean; error?: string }>;
+  customStatuses?: string[] | null;
 };
 
-export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, sprints = [], onUpdate, onDelete }: Props) {
+export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, sprints = [], onUpdate, onDelete, customStatuses }: Props) {
   const task = propTask;
 
   const {
@@ -322,9 +323,19 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
                   {...registerDetails("status")}
                   className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer"
                 >
-                  <option value="TODO">TODO</option>
-                  <option value="IN_PROGRESS">IN PROGRESS</option>
-                  <option value="DONE">DONE</option>
+                  {customStatuses && customStatuses.length > 0 ? (
+                    customStatuses.map((s) => (
+                      <option key={s} value={s}>
+                        {s.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+                      </option>
+                    ))
+                  ) : (
+                    <>
+                      <option value="TODO">TODO</option>
+                      <option value="IN_PROGRESS">IN PROGRESS</option>
+                      <option value="DONE">DONE</option>
+                    </>
+                  )}
                 </select>
               </div>
 

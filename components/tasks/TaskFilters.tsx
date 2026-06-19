@@ -42,6 +42,7 @@ type Props = {
   onDeleteView: (viewId: string) => Promise<{ success: boolean; error?: string }>;
   activeViewName?: string;
   onClearViewName?: () => void;
+  customStatuses?: string[] | null;
 };
 
 export function TaskFilters({
@@ -53,7 +54,8 @@ export function TaskFilters({
   onSaveView,
   onDeleteView,
   activeViewName,
-  onClearViewName
+  onClearViewName,
+  customStatuses
 }: Props) {
   const [openDropdown, setOpenDropdown] = useState<"priority" | "status" | "assignee" | "label" | "views" | null>(null);
   const [isSavingView, setIsSavingView] = useState(false);
@@ -214,7 +216,7 @@ export function TaskFilters({
             </button>
             {openDropdown === "status" && (
               <div className="absolute left-0 mt-2 w-48 bg-white border-2 border-black rounded-sketchy-sm shadow-flat-offset z-50 p-2 flex flex-col gap-1">
-                {(["TODO", "IN_PROGRESS", "DONE"] as TaskStatus[]).map((s) => {
+                {(customStatuses && customStatuses.length > 0 ? customStatuses : (["TODO", "IN_PROGRESS", "DONE"] as TaskStatus[])).map((s) => {
                   const isChecked = activeFilters.statuses.includes(s);
                   return (
                     <button
@@ -222,7 +224,7 @@ export function TaskFilters({
                       onClick={() => toggleStatus(s)}
                       className="w-full flex items-center justify-between px-2 py-1 text-left hover:bg-neutral-bg rounded-md text-xs font-bold font-sans cursor-pointer"
                     >
-                      <span>{s === "IN_PROGRESS" ? "IN PROGRESS" : s}</span>
+                      <span>{s.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}</span>
                       {isChecked && <Check className="h-3.5 w-3.5 text-tertiary" />}
                     </button>
                   );

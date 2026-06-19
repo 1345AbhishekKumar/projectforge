@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import { orgIdSchema } from "@/lib/utils";
-import { verifyAdminOrOwnerRole } from "@/lib/auth-helpers";
+import { verifyMembership, verifyAdminOrOwnerRole } from "@/lib/auth-helpers";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
 import * as Sentry from "@sentry/nextjs";
 import { invalidateTriggerCache } from "@/lib/workflows/cache";
@@ -189,6 +189,46 @@ export async function deleteWorkflow(
     logger.error({ error, id }, "deleteWorkflow unexpected error");
     Sentry.captureException(error);
     return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
+  }
+}
+
+export async function getWorkflows(
+  orgId: string
+): Promise<{ success: boolean; data: any[]; error?: string }> {
+  const validated = orgIdSchema.safeParse(orgId);
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message, data: [] };
+  }
+
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized", data: [] };
+
+    const insforge = createInsforgeServer(userId);
+
+    const isMember = await verifyMembership(insforge, validated.data, userId);
+    if (!isMember) {
+      return { success: false, error: "Not a member of this workspace", data: [] };
+    }
+
+    const { data, error } = await insforge.database
+      .from("workflows")
+      .select("*")
+      .eq("organization_id", validated.data)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      logger.error({ error, orgId: validated.data }, "Failed to fetch workflows");
+      return { success: false, error: "Failed to fetch workflows", data: [] };
+    }
+
+    return { success: true, data: data || [] };
+  } catch (error) {
+    logger.error({ error, orgId }, "getWorkflows unexpected error");
+    Sentry.captureException(error);
+    return { success: false, error: "An unexpected error occurred", data: [] };
   } finally {
     flushLogsAfterResponse();
   }

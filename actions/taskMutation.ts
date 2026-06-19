@@ -20,7 +20,7 @@ const updateTaskInputSchema = z.object({
   updates: z.object({
     title: z.string().min(3, "Title must be at least 3 characters").max(100).optional(),
     description: z.string().max(500).nullable().optional(),
-    status: z.enum(["TODO", "IN_PROGRESS", "DONE"]).optional(),
+    status: z.string().min(1).optional(),
     priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
     assignee_id: z.string().nullable().optional(),
     due_date: z.string().nullable().optional(),
@@ -42,7 +42,7 @@ const reorderTasksInputSchema = z.object({
   taskUpdates: z.array(
     z.object({
       id: taskIdSchema,
-      status: z.enum(["TODO", "IN_PROGRESS", "DONE"]),
+      status: z.string().min(1),
       board_index: z.number().int().min(0),
     })
   ),
@@ -98,6 +98,39 @@ export async function updateTask(
     if (fetchError || !currentTask) {
       logger.error({ error: fetchError, taskId: validated.data.taskId }, "Task not found for updating");
       return { success: false, error: "Task not found" };
+    }
+
+    // Validate status transition if status is changing
+    if (validated.data.updates.status !== undefined && validated.data.updates.status !== currentTask.status) {
+      const { data: projectData, error: projectError } = await insforge.database
+        .from("projects")
+        .select("custom_statuses")
+        .eq("id", validated.data.projectId)
+        .eq("organization_id", validated.data.orgId)
+        .single();
+
+      if (projectError || !projectData) {
+        logger.error({ error: projectError, projectId: validated.data.projectId }, "Project not found for status transition validation");
+        return { success: false, error: "Failed to validate status transition" };
+      }
+
+      const allowedStatuses = projectData.custom_statuses || ["TODO", "IN_PROGRESS", "DONE"];
+      const newStatus = validated.data.updates.status;
+      const oldStatus = currentTask.status;
+
+      if (!allowedStatuses.includes(newStatus)) {
+        return { success: false, error: `Invalid status "${newStatus}". Must be one of: ${allowedStatuses.join(", ")}` };
+      }
+
+      const oldIdx = allowedStatuses.indexOf(oldStatus);
+      const newIdx = allowedStatuses.indexOf(newStatus);
+
+      if (oldIdx !== -1) {
+        // Enforce linear rule: forward 1 step or back to backlog (index 0)
+        if (!(newIdx === oldIdx + 1 || newIdx === 0)) {
+          return { success: false, error: `Invalid status transition from "${oldStatus}" to "${newStatus}". You can only move a task forward one column or back to the first column.` };
+        }
+      }
     }
 
     // Enforce Completed Sprint Lock constraints on sprint_id changes
@@ -199,6 +232,9 @@ export async function updateTask(
 
     if (error || !updatedTask) {
       logger.error({ error, taskId: validated.data.taskId }, "Failed to update task record");
+      if (error && error.message && (error.message.includes("Transition") || error.message.includes("status"))) {
+        return { success: false, error: error.message };
+      }
       return { success: false, error: "Failed to update task" };
     }
 
@@ -335,6 +371,41 @@ export async function reorderTasks(
       .from("tasks")
       .select("id, title, status")
       .in("id", taskIds);
+
+    // Validate status transitions for taskUpdates
+    const { data: projectData, error: projectError } = await insforge.database
+      .from("projects")
+      .select("custom_statuses")
+      .eq("id", validated.data.projectId)
+      .eq("organization_id", validated.data.orgId)
+      .single();
+
+    if (projectError || !projectData) {
+      logger.error({ error: projectError, projectId: validated.data.projectId }, "Project not found for reorder status transition validation");
+      return { success: false, error: "Failed to validate status transition" };
+    }
+
+    const allowedStatuses = projectData.custom_statuses || ["TODO", "IN_PROGRESS", "DONE"];
+    
+    if (prevTasks) {
+      for (const update of validated.data.taskUpdates) {
+        const prev = prevTasks.find((t) => t.id === update.id);
+        if (prev && prev.status !== update.status) {
+          if (!allowedStatuses.includes(update.status)) {
+            return { success: false, error: `Invalid status "${update.status}". Must be one of: ${allowedStatuses.join(", ")}` };
+          }
+          
+          const oldIdx = allowedStatuses.indexOf(prev.status);
+          const newIdx = allowedStatuses.indexOf(update.status);
+          
+          if (oldIdx !== -1) {
+            if (!(newIdx === oldIdx + 1 || newIdx === 0)) {
+              return { success: false, error: `Invalid status transition for task "${prev.title}" from "${prev.status}" to "${update.status}".` };
+            }
+          }
+        }
+      }
+    }
 
     // Run updates in parallel
     const promises = validated.data.taskUpdates.map((update) =>

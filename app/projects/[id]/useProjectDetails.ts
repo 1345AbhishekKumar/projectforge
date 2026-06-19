@@ -215,16 +215,16 @@ export function useProjectDetails(projectId: string) {
   const updatingStatus = updateProjectMutation.isPending;
   const archiving = archiveProjectMutation.isPending;
 
-  const [activeTab, setActiveTab] = useState<"backlog" | "members">("backlog");
+  const [activeTab, setActiveTab] = useState<"backlog" | "members" | "settings">("backlog");
 
   // Synchronize tab from URL search parameters on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get("tab");
-      if (tab === "members" || tab === "backlog") {
+      if (tab === "members" || tab === "backlog" || tab === "settings") {
         const timer = setTimeout(() => {
-          setActiveTab(tab as "backlog" | "members");
+          setActiveTab(tab as "backlog" | "members" | "settings");
         }, 0);
         return () => clearTimeout(timer);
       }
@@ -374,7 +374,10 @@ export function useProjectDetails(projectId: string) {
 
   async function handleStatusToggle(task: TaskWithAssignee) {
     if (!activeOrgId || !projectId) return;
-    const newStatus: TaskStatus = task.status === "DONE" ? "TODO" : "DONE";
+    const allowedStatuses = project?.custom_statuses || ["TODO", "IN_PROGRESS", "DONE"];
+    const backlogStatus = allowedStatuses[0];
+    const completedStatus = allowedStatuses[allowedStatuses.length - 1];
+    const newStatus: TaskStatus = task.status === completedStatus ? backlogStatus : completedStatus;
     try {
       await updateTaskMutation.mutateAsync({
         taskId: task.id,

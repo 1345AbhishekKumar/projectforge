@@ -17,7 +17,7 @@ const createTaskSchema = z.object({
     .max(100, "Task title must be at most 100 characters"),
   description: z.string().trim().max(500, "Description must be at most 500 characters").optional(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
-  status: z.enum(["TODO", "IN_PROGRESS", "DONE"]),
+  status: z.string().min(1, "Status is required"),
   assigneeId: z.string().optional(),
   dueDate: z.string().optional(),
 });
@@ -39,6 +39,7 @@ type Props = {
     labelIds: string[]
   ) => Promise<{ success: boolean; error?: string }>;
   defaultStatus?: TaskStatus;
+  customStatuses?: string[] | null;
 };
 
 const labelColors = [
@@ -50,7 +51,7 @@ const labelColors = [
   "#FF7F50", // Coral/Orange
 ];
 
-export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, defaultStatus }: Props) {
+export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, defaultStatus, customStatuses }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -74,11 +75,26 @@ export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, def
       title: "",
       description: "",
       priority: "MEDIUM",
-      status: defaultStatus || "TODO",
+      status: defaultStatus || (customStatuses && customStatuses.length > 0 ? customStatuses[0] : "TODO"),
       assigneeId: "",
       dueDate: "",
     },
   });
+
+  // Reset form when modal opens with new status context
+  useEffect(() => {
+    if (isOpen) {
+      const defaultStatusVal = defaultStatus || (customStatuses && customStatuses.length > 0 ? customStatuses[0] : "TODO");
+      reset({
+        title: "",
+        description: "",
+        priority: "MEDIUM",
+        status: defaultStatusVal,
+        assigneeId: "",
+        dueDate: "",
+      });
+    }
+  }, [isOpen, defaultStatus, customStatuses, reset]);
 
   // Fetch labels on open
   useEffect(() => {
@@ -227,9 +243,19 @@ export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, def
                 {...register("status")}
                 className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer"
               >
-                <option value="TODO">TODO</option>
-                <option value="IN_PROGRESS">IN PROGRESS</option>
-                <option value="DONE">DONE</option>
+                {customStatuses && customStatuses.length > 0 ? (
+                  customStatuses.map((s) => (
+                    <option key={s} value={s}>
+                      {s.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
+                    </option>
+                  ))
+                ) : (
+                  <>
+                    <option value="TODO">TODO</option>
+                    <option value="IN_PROGRESS">IN PROGRESS</option>
+                    <option value="DONE">DONE</option>
+                  </>
+                )}
               </select>
             </div>
           </div>

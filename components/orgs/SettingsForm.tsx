@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Trash2, ShieldAlert, XCircle } from "lucide-react";
+import { Loader2, Trash2, ShieldAlert, XCircle, Users, Zap } from "lucide-react";
 import { MemberList } from "@/components/orgs/MemberList";
 import { InviteModal } from "@/components/orgs/InviteModal";
 import { NotificationPreferences } from "@/components/notifications/NotificationPreferences";
+import { WorkflowsTab, type WorkflowRow } from "@/components/orgs/WorkflowsTab";
 import {
   updateMemberRole,
   removeMember,
@@ -24,6 +25,7 @@ import type { MembershipRole } from "@/types";
 type Props = {
   initialMembers: MemberListItem[];
   initialInvitations: OrgInvitationItem[];
+  initialWorkflows: WorkflowRow[];
   activeOrgId: string;
   activeOrgName: string;
   currentUserId: string;
@@ -33,12 +35,14 @@ type Props = {
 export function SettingsForm({
   initialMembers,
   initialInvitations,
+  initialWorkflows,
   activeOrgId,
   activeOrgName,
   currentUserId,
   currentUserRole
 }: Props) {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<"members" | "workflows">("members");
   const [members, setMembers] = useState<MemberListItem[]>(initialMembers);
   const [invitations, setInvitations] = useState<OrgInvitationItem[]>(initialInvitations);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
@@ -169,8 +173,41 @@ export function SettingsForm({
         </div>
       </div>
 
-      {/* Content panels */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      {/* Tab navigation */}
+      <div className="flex border-b-2 border-black gap-2">
+        <button
+          onClick={() => setActiveTab("members")}
+          className={`px-6 py-2.5 text-sm font-bold font-cursive transition-all -mb-0.5 cursor-pointer ${
+            activeTab === "members"
+              ? "bg-accent-yellow border-2 border-black border-b-0 rounded-t-lg shadow-[0_-2px_0_rgba(0,0,0,1)]"
+              : "border-b-2 border-transparent hover:bg-neutral-bg/50 text-secondary"
+          }`}
+        >
+          <span className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Members
+          </span>
+        </button>
+        {isOwnerOrAdmin && (
+          <button
+            onClick={() => setActiveTab("workflows")}
+            className={`px-6 py-2.5 text-sm font-bold font-cursive transition-all -mb-0.5 cursor-pointer ${
+              activeTab === "workflows"
+                ? "bg-accent-blue border-2 border-black border-b-0 rounded-t-lg shadow-[0_-2px_0_rgba(0,0,0,1)]"
+                : "border-b-2 border-transparent hover:bg-neutral-bg/50 text-secondary"
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <Zap className="h-4 w-4" />
+              Workflows
+            </span>
+          </button>
+        )}
+      </div>
+
+      {/* Members tab */}
+      {activeTab === "members" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* Members List (Left panel) */}
         <div className="lg:col-span-2 flex flex-col gap-8">
           <MemberList
@@ -247,12 +284,22 @@ export function SettingsForm({
         </div>
 
         {/* Invite panel (Right panel) - only shown to owners & admins */}
-        {isOwnerOrAdmin && (
-          <div className="lg:col-span-1">
-            <InviteModal onInvite={handleInvite} />
-          </div>
-        )}
-      </div>
+          {isOwnerOrAdmin && (
+            <div className="lg:col-span-1">
+              <InviteModal onInvite={handleInvite} />
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Workflows tab */}
+      {activeTab === "workflows" && isOwnerOrAdmin && (
+        <WorkflowsTab
+          initialWorkflows={initialWorkflows}
+          orgId={activeOrgId}
+          isAdminOrOwner={isOwnerOrAdmin}
+        />
+      )}
 
       {/* Notification Preferences */}
       <NotificationPreferences />

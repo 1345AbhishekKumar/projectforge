@@ -7,7 +7,7 @@ import { createNotification } from "@/actions/notification";
 
 // Simple validation schemas for workflow actions
 const taskUpdateSchema = z.object({
-  status: z.enum(["TODO", "IN_PROGRESS", "DONE"]).optional(),
+  status: z.string().min(1).optional(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
   assignee_id: z.string().nullable().optional(),
   due_date: z.string().nullable().optional(),
@@ -16,7 +16,7 @@ const taskUpdateSchema = z.object({
 const taskCreateSchema = z.object({
   title: z.string().min(3).max(100),
   description: z.string().max(500).nullable().optional(),
-  status: z.enum(["TODO", "IN_PROGRESS", "DONE"]).optional(),
+  status: z.string().min(1).optional(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
   assignee_id: z.string().nullable().optional(),
   due_date: z.string().nullable().optional(),
@@ -128,11 +128,32 @@ async function executeAction(
       return;
     }
 
+    // Fetch the project to get custom_statuses
+    const { data: project, error: projectError } = await insforge.database
+      .from("projects")
+      .select("custom_statuses")
+      .eq("id", projectId)
+      .eq("organization_id", orgId)
+      .single();
+
+    if (projectError || !project) {
+      logger.warn({ action, projectId, projectError }, "create_task action skipped: project not found");
+      return;
+    }
+
+    const allowedStatuses = project.custom_statuses || ["TODO", "IN_PROGRESS", "DONE"];
+    const targetStatus = validated.data.status || allowedStatuses[0] || "TODO";
+
+    if (!allowedStatuses.includes(targetStatus)) {
+      logger.error({ status: targetStatus, allowedStatuses }, "create_task action skipped: target status not allowed for project");
+      return;
+    }
+
     const taskData: Record<string, unknown> = {
       ...validated.data,
       project_id: projectId,
       organization_id: orgId,
-      status: validated.data.status || "TODO",
+      status: targetStatus,
       priority: validated.data.priority || "MEDIUM",
     };
 
