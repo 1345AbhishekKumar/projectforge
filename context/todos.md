@@ -214,30 +214,30 @@ we are building version 3 (prd_versions/v3.md)
 - [x] **Toggle Workflow State:** Enable/disable a workflow. Verify execution blocks when state is disabled.
 
 ### Feature 3.2: Custom Task Workflows Verification
-- [ ] **Status Sequence Definition:** Configure custom statuses `[Draft, Review, Approved, Published]` for a project. Verify tasks in this project are constrained to these statuses.
-- [ ] **Status Transition Rules:** Set task status updates. Verify only permitted transitions are allowed and invalid moves are rejected.
-- [ ] **Kanban Column Alignment:** Verify Kanban Board columns dynamically update to match the custom status configurations of the project.
+- [x] **Status Sequence Definition:** Configure custom statuses `[Draft, Review, Approved, Published]` for a project. Verify tasks in this project are constrained to these statuses.
+- [x] **Status Transition Rules:** Set task status updates. Verify only permitted transitions are allowed and invalid moves are rejected.
+- [x] **Kanban Column Alignment:** Verify Kanban Board columns dynamically update to match the custom status configurations of the project.
 
 ### Feature 3.3: Time Tracking Verification
-- [ ] **Live Timer Lifecycle:** Start timer on a task. Verify `time_entries` inserts record with null `end_time`. Stop timer. Verify `end_time` and `duration` compute and save.
-- [ ] **Manual Time Log:** Enter manual log (e.g. 2 hours on yesterday's task). Verify validation rules reject negative/future dates.
-- [ ] **Task Time Accumulator:** Verify task details view aggregates total hours tracked from all users on that task.
-- [ ] **Reporting Exports:** Generate project time report. Verify CSV/PDF export formats correctly.
+- [x] **Live Timer Lifecycle:** Start timer on a task. Verify `time_entries` inserts record with null `end_time`. Stop timer. Verify `end_time` and `duration` compute and save.
+- [x] **Manual Time Log:** Enter manual log (e.g. 2 hours on yesterday's task). Verify validation rules reject negative/future dates.
+- [x] **Task Time Accumulator:** Verify task details view aggregates total hours tracked from all users on that task.
+- [x] **Reporting Exports:** Generate project time report. Verify CSV/PDF export formats correctly.
 
 ### Feature 3.4: Audit Logs Verification
-- [ ] **Critical Action Logging:** Delete a project or update a member role. Verify an audit log record is created with accurate metadata and actor details.
-- [ ] **Audit Logs Pagination:** Verify that log list handles filtering and pagination under high volume.
-- [ ] **Immutability Check:** Attempt to modify or delete an audit log entry via API. Verify access is blocked (read-only enforcement).
+- [x] **Critical Action Logging:** Delete a project or update a member role. Verify an audit log record is created with accurate metadata and actor details.
+- [x] **Audit Logs Pagination:** Verify that log list handles filtering and pagination under high volume.
+- [x] **Immutability Check:** Attempt to modify or delete an audit log entry via API. Verify access is blocked (read-only enforcement).
 
 ### Feature 3.5: AI Assistant Verification
 
 #### Backend / API Verification
-- [ ] **AI Assistant Router / Actions:** Verify that the Server Action `actions/ai.ts` successfully connects to NVIDIA GPT OSS 120B via OpenAI client with temperature 0.7 for summaries and 0.3 for structured suggestions.
-- [ ] **Project Summarization Prompt & Payload:** Verify that the project summarization action correctly compiles project name, current status, active sprint name/goal, list of tasks, and milestones before querying the model.
-- [ ] **Task Breakdown Suggestions (JSON validation):** Verify that the task breakdown suggestion action requests a JSON output containing an array of subtasks, validates the structure via Zod, and successfully inserts the subtasks into the database.
-- [ ] **Risk Detection Algorithm:** Verify that risk detection logic combines overdue tasks and task dependency mappings, identifies blocker loops, and prompts the LLM to summarize high-risk tasks.
-- [ ] **AI Quota & Rate-Limiting:** Verify that every AI query inserts a record into the `ai_usages` table and checks if the count exceeds 10 queries/day per user/org, returning a `429 Rate Limit Exceeded` error if blocked.
-- [ ] **Error Catch-Blocks & Logger:** Verify that all AI endpoints are wrapped in try/catch, log errors to Pino, capture exceptions in Sentry, and record failed/successful runs in `agent_logs`.
+- [x] **AI Assistant Router / Actions:** Verify that the Server Action `actions/ai.ts` successfully connects to NVIDIA GPT OSS 120B via OpenAI client with temperature 0.7 for summaries and 0.3 for structured suggestions.
+- [x] **Project Summarization Prompt & Payload:** Verify that the project summarization action correctly compiles project name, current status, active sprint name/goal, list of tasks, and milestones before querying the model.
+- [x] **Task Breakdown Suggestions (JSON validation):** Verify that the task breakdown suggestion action requests a JSON output containing an array of subtasks, validates the structure via Zod, and successfully inserts the subtasks into the database.
+- [x] **Risk Detection Algorithm:** Verify that risk detection logic combines overdue tasks and task dependency mappings, identifies blocker loops, and prompts the LLM to summarize high-risk tasks.
+- [x] **AI Quota & Rate-Limiting:** Verify that every AI query inserts a record into the `ai_usages` table and checks if the count exceeds 10 queries/day per user/org, returning a `429 Rate Limit Exceeded` error if blocked.
+- [x] **Error Catch-Blocks & Logger:** Verify that all AI endpoints are wrapped in try/catch, log errors to Pino, capture exceptions in Sentry, and record failed/successful runs in `agent_logs`.
 
 #### Frontend / UI Verification
 - [ ] **Project Summarization Modal:** Verify that clicking "Summarize Project" in the project details header displays a sketchy loading skeleton, executes the server action, and renders the Markdown response inside a whiteboard-themed drawer.

@@ -8,6 +8,37 @@ import { verifyMembership } from "@/lib/auth-helpers";
 import { logger } from "@/lib/logger";
 import * as Sentry from "@sentry/nextjs";
 
+type InsforgeClient = ReturnType<typeof createInsforgeServer>;
+
+interface TaskSummary {
+  title: string;
+  status: string;
+  priority: string;
+  due_date: string | null;
+}
+
+interface SprintSummary {
+  name: string;
+  goal?: string | null;
+  end_date: string;
+}
+
+interface TaskDependencyInfo {
+  id: string | number;
+  source_task: {
+    id: string;
+    title: string;
+    status: string;
+    project_id: string;
+  } | null;
+  target_task: {
+    id: string;
+    title: string;
+    status: string;
+    project_id: string;
+  } | null;
+}
+
 const openai = new OpenAI({
   apiKey: process.env.NVIDIA_API_KEY || "",
   baseURL: process.env.NVIDIA_API_BASE_URL || "https://integrate.api.nvidia.com/v1",
@@ -18,7 +49,7 @@ const openai = new OpenAI({
  * Maximum 10 requests per day.
  */
 async function checkAndIncrementQuota(
-  insforge: any,
+  insforge: InsforgeClient,
   orgId: string,
   userId: string,
   actionType: string
@@ -115,11 +146,11 @@ export async function summarizeProjectAction(
       .eq("organization_id", orgId);
 
     const taskListSummary = (tasks || [])
-      .map((t: any) => `- [${t.status}] ${t.title} (Priority: ${t.priority}, Due: ${t.due_date || "None"})`)
+      .map((t: TaskSummary) => `- [${t.status}] ${t.title} (Priority: ${t.priority}, Due: ${t.due_date || "None"})`)
       .join("\n");
 
     const sprintsSummary = (sprints || [])
-      .map((s: any) => `- Sprint Name: ${s.name}, Goal: ${s.goal || "None"}, End Date: ${s.end_date}`)
+      .map((s: SprintSummary) => `- Sprint Name: ${s.name}, Goal: ${s.goal || "None"}, End Date: ${s.end_date}`)
       .join("\n");
 
     const prompt = `
@@ -145,7 +176,7 @@ Please provide a clean Markdown summary highlighting:
       max_tokens: 1000,
     });
 
-    const reasoning = (completion.choices[0]?.message as any)?.reasoning_content || "";
+    const reasoning = (completion.choices[0]?.message as { reasoning_content?: string })?.reasoning_content || "";
     const content = completion.choices[0]?.message?.content || "Could not generate summary.";
 
     return { success: true, data: content, reasoning };
@@ -201,22 +232,99 @@ Do not write any markdown blocks besides the JSON object.
       max_tokens: 400,
     });
 
-    const reasoning = (completion.choices[0]?.message as any)?.reasoning_content || "";
+    const reasoning = (completion.choices[0]?.message as { reasoning_content?: string })?.reasoning_content || "";
     const contentStr = completion.choices[0]?.message?.content || "{}";
     
     try {
-      const parsed = JSON.parse(contentStr);
-      if (parsed && Array.isArray(parsed.subtasks)) {
-        return { success: true, data: parsed.subtasks, reasoning };
-      }
+      const subtaskSchema = z.object({
+        subtasks: z.array(z.string().min(1).max(200)),
+      });
+
+      const parsed = subtaskSchema.parse(JSON.parse(contentStr));
+      return { success: true, data: parsed.subtasks, reasoning };
+    } catch (err) {
+      logger.error({ error: err, contentStr }, "Failed to validate subtask format via Zod");
       return { success: false, error: "Model returned invalid format" };
-    } catch {
-      return { success: false, error: "Failed to parse model response" };
     }
   } catch (err) {
     logger.error(err, "Failed to suggest subtasks");
     Sentry.captureException(err);
     return { success: false, error: "Failed to suggest subtasks" };
+  }
+}
+
+/**
+ * Import chosen subtasks, inserting them into tasks table and mapping dependencies (subtask blocks parent).
+ */
+export async function importSubtasksAction(
+  parentTaskId: string,
+  projectId: string,
+  orgId: string,
+  subtasks: string[]
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const insforge = createInsforgeServer(userId);
+    const isMember = await verifyMembership(insforge, orgId, userId);
+    if (!isMember) return { success: false, error: "Not a member of this workspace" };
+
+    // Fetch parent task details (priority, status sequence)
+    const { data: parentTask } = await insforge.database
+      .from("tasks")
+      .select("priority")
+      .eq("id", parentTaskId)
+      .eq("organization_id", orgId)
+      .single();
+
+    const parentPriority = parentTask?.priority || "MEDIUM";
+
+    for (const subtaskTitle of subtasks) {
+      // 1. Create subtask
+      const { data: newSubtask, error: insertTaskErr } = await insforge.database
+        .from("tasks")
+        .insert([
+          {
+            project_id: projectId,
+            organization_id: orgId,
+            title: subtaskTitle,
+            description: `Subtask of parent task: ${parentTaskId}`,
+            status: "TODO",
+            priority: parentPriority,
+            board_index: 0,
+          },
+        ])
+        .select("id")
+        .single();
+
+      if (insertTaskErr || !newSubtask) {
+        logger.error({ insertTaskErr }, "Failed to insert subtask into tasks table");
+        return { success: false, error: "Failed to insert subtasks" };
+      }
+
+      // 2. Create dependency (subtask blocks parent)
+      const { error: insertDepErr } = await insforge.database
+        .from("task_dependencies")
+        .insert([
+          {
+            source_task_id: newSubtask.id,
+            target_task_id: parentTaskId,
+            dependency_type: "BLOCKS",
+          },
+        ]);
+
+      if (insertDepErr) {
+        logger.error({ insertDepErr }, "Failed to insert task dependency relation");
+        return { success: false, error: "Failed to link task dependency" };
+      }
+    }
+
+    return { success: true };
+  } catch (err) {
+    logger.error(err, "Failed to import subtasks");
+    Sentry.captureException(err);
+    return { success: false, error: "Failed to import subtasks" };
   }
 }
 
@@ -262,7 +370,7 @@ export async function detectProjectRisksAction(
       `);
 
     // Filter dependencies scoped to this project
-    const projectDeps = (taskDependencies || []).filter((dep: any) => {
+    const projectDeps = (taskDependencies || []).filter((dep: TaskDependencyInfo) => {
       return (
         dep.source_task?.project_id === projectId &&
         dep.target_task?.project_id === projectId
@@ -270,11 +378,11 @@ export async function detectProjectRisksAction(
     });
 
     const overdueList = (overdueTasks || [])
-      .map((t: any) => `- Task: "${t.title}" (Priority: ${t.priority}, Due: ${t.due_date})`)
+      .map((t: TaskSummary) => `- Task: "${t.title}" (Priority: ${t.priority}, Due: ${t.due_date})`)
       .join("\n");
 
     const dependencyList = projectDeps
-      .map((d: any) => `- "${d.source_task?.title}" blocks "${d.target_task?.title}" (Source status: ${d.source_task?.status}, Target status: ${d.target_task?.status})`)
+      .map((d: TaskDependencyInfo) => `- "${d.source_task?.title}" blocks "${d.target_task?.title}" (Source status: ${d.source_task?.status}, Target status: ${d.target_task?.status})`)
       .join("\n");
 
     const prompt = `
@@ -299,7 +407,7 @@ Highlight:
       max_tokens: 800,
     });
 
-    const reasoning = (completion.choices[0]?.message as any)?.reasoning_content || "";
+    const reasoning = (completion.choices[0]?.message as { reasoning_content?: string })?.reasoning_content || "";
     const content = completion.choices[0]?.message?.content || "No risks detected.";
 
     return { success: true, data: content, reasoning };

@@ -1,4 +1,5 @@
 import { describe, it, expect, mock, beforeAll } from "bun:test";
+import type * as AiActions from "../actions/ai";
 
 // Define mocks BEFORE importing actions/ai
 mock.module("@clerk/nextjs/server", () => ({
@@ -51,7 +52,7 @@ mock.module("openai", () => {
 });
 
 describe("AI Assistant Server Actions", () => {
-  let actions: any;
+  let actions: typeof AiActions;
 
   beforeAll(async () => {
     process.env.NVIDIA_API_KEY = "mock-key";

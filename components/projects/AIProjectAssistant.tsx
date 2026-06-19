@@ -36,7 +36,7 @@ export function AIProjectAssistant({ projectId, orgId }: Props) {
       } else {
         setError(res.error || "Failed to query AI Assistant");
       }
-    } catch (err) {
+    } catch {
       setError("An unexpected error occurred.");
     } finally {
       setLoading(false);
