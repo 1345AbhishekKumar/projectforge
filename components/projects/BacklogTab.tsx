@@ -4,7 +4,9 @@ import React from "react";
 import { Plus, ClipboardList, Loader2 } from "lucide-react";
 import { TaskFilters, type FiltersState } from "@/components/tasks/TaskFilters";
 import { TaskList } from "@/components/tasks/TaskList";
-import type { TaskWithAssignee, MemberListItem, Label, SavedView, TaskStatus } from "@/types";
+import type { Label, SavedView, TaskStatus } from "@/types";
+import type { TaskWithAssignee } from "@/actions/task";
+import type { MemberListItem } from "@/actions/membership";
 
 interface BacklogTabProps {
   members: MemberListItem[];

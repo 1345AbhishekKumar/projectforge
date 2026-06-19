@@ -2,8 +2,10 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { auth } from "@clerk/nextjs/server";
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
+import { writeAuditLog } from "@/lib/audit";
 import { z } from "zod";
 import type { Project, ProjectStatus } from "@/types";
 import { logActivity } from "@/actions/activity";
@@ -245,7 +247,7 @@ export async function updateProject(
       }
     }
 
-    const updatePayload: Record<string, any> = {
+    const updatePayload: Record<string, unknown> = {
       name: validated.data.name,
       description: validated.data.description || null,
       status: validated.data.status,
@@ -403,6 +405,17 @@ export async function deleteProject(
     await logActivity(validated.data.orgId, null, userId, "PROJECT_DELETED", {
       projectName,
     });
+
+    after(() =>
+      writeAuditLog(
+        validated.data.orgId,
+        userId,
+        "project.deleted",
+        "project",
+        validated.data.projectId,
+        { name: projectName }
+      )
+    );
 
     revalidatePath("/projects");
     return { success: true };

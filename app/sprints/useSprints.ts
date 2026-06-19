@@ -13,18 +13,13 @@ import { getOrganizationTasks, type TaskWithAssignee } from "@/actions/task";
 import { updateTask, deleteTask } from "@/actions/taskMutation";
 import type { Sprint, SprintStatus, TaskStatus, TaskPriority } from "@/types";
 
-function getActiveOrgId(): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(/active_org_id=([^;]+)/);
-  return match ? match[1] : null;
-}
 
 export function useSprints() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
   const { signOut } = useAuth();
 
-  const { activeOrgId, setActiveOrgId } = useOrgStore();
+  const { activeOrgId } = useOrgStore();
   const { isCreateModalOpen: isModalOpen, actionLoadingId, openCreateModal, closeCreateModal, setActionLoadingId } = useSprintStore();
   const { selectedTask, isDetailsOpen, openDetails, closeDetails } = useTaskStore();
 
@@ -45,16 +40,6 @@ export function useSprints() {
   const [newSprintEnd, setNewSprintEnd] = useState("");
   const [modalError, setModalError] = useState("");
   const [creating, setCreating] = useState(false);
-
-  // Sync activeOrgId from cookie if store is empty on init
-  useEffect(() => {
-    if (!activeOrgId) {
-      const cookieOrgId = getActiveOrgId();
-      if (cookieOrgId) {
-        setActiveOrgId(cookieOrgId);
-      }
-    }
-  }, [activeOrgId, setActiveOrgId]);
 
   const handleSignOut = async () => {
     await signOut();

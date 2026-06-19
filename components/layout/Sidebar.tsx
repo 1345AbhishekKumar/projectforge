@@ -9,6 +9,8 @@ import {
   Users,
   Activity,
   BarChart2,
+  Clock,
+  History,
 } from "lucide-react";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { SearchTrigger } from "@/components/search/SearchTrigger";
@@ -49,6 +51,8 @@ export function Sidebar() {
     { href: "/team", label: "Team Directory", icon: <Users className="h-4 w-4" />, accent: "bg-accent-green" },
     { href: "/activity", label: "Activity Feed", icon: <Activity className="h-4 w-4" />, accent: "bg-accent-yellow" },
     { href: "/analytics", label: "Analytics", icon: <BarChart2 className="h-4 w-4" />, accent: "bg-accent-blue" },
+    { href: "/time", label: "Time Tracking", icon: <Clock className="h-4 w-4" />, accent: "bg-accent-pink" },
+    { href: "/settings/audit-logs", label: "Audit Logs", icon: <History className="h-4 w-4" />, accent: "bg-accent-green" },
   ];
 
   return (

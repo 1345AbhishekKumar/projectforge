@@ -15,6 +15,7 @@ import { z } from "zod";
 import { TaskComments } from "./details/TaskComments";
 import { TaskAttachments } from "./details/TaskAttachments";
 import { TaskLabelSelector } from "./details/TaskLabelSelector";
+import { TaskTimeSection } from "./details/TaskTimeSection";
 
 const taskDetailsSchema = z.object({
   title: z
@@ -417,6 +418,11 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
               setSelectedLabelIds={setSelectedLabelIds}
               labels={labels}
               setLabels={setLabels}
+            />
+
+            <TaskTimeSection
+              taskId={task.id}
+              orgId={task.organization_id}
             />
 
             {/* Action Buttons at Bottom */}

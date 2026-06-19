@@ -2,8 +2,10 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { auth } from "@clerk/nextjs/server";
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
+import { writeAuditLog } from "@/lib/audit";
 import { z } from "zod";
 import type { MembershipRole } from "@/types";
 import { orgIdSchema, membershipIdSchema } from "@/lib/utils";
@@ -169,6 +171,17 @@ export async function updateMemberRole(
       return { success: false, error: "Failed to update role." };
     }
 
+    after(() =>
+      writeAuditLog(
+        validated.data.orgId,
+        userId,
+        "role.updated",
+        "membership",
+        validated.data.membershipId,
+        { from: target.role, to: validated.data.newRole }
+      )
+    );
+
     revalidatePath("/organizations/settings");
     revalidatePath("/dashboard");
     return { success: true };
@@ -240,6 +253,17 @@ export async function removeMember(
       logger.error({ error, membershipId: validated.data.membershipId }, "Failed to remove member");
       return { success: false, error: "Failed to remove member." };
     }
+
+    after(() =>
+      writeAuditLog(
+        validated.data.orgId,
+        userId,
+        "member.removed",
+        "membership",
+        validated.data.membershipId,
+        { removedRole: target.role }
+      )
+    );
 
     revalidatePath("/organizations/settings");
     revalidatePath("/dashboard");

@@ -74,8 +74,10 @@ export async function updateProfile(
   fullName: string,
   avatarUrl?: string | null
 ): Promise<{ success: boolean; error?: string }> {
+  let userId: string | null = null;
   try {
-    const { userId } = await auth();
+    const authRes = await auth();
+    userId = authRes.userId;
     if (!userId) return { success: false, error: "Unauthorized" };
 
     const validated = updateProfileSchema.safeParse({ fullName, avatarUrl });

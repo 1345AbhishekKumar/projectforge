@@ -29,7 +29,7 @@ export default function SprintsPage() {
   return (
     <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
       <div className="hidden md:block">
-        <Sidebar activePage="sprints" activeOrgId={page.activeOrgId} />
+        <Sidebar />
       </div>
 
       <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">

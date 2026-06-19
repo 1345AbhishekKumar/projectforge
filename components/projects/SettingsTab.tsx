@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Loader2, Plus, Trash2, CheckCircle2, AlertTriangle } from "lucide-react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { Project, ProjectStatus } from "@/types";
@@ -70,7 +70,6 @@ export function SettingsTab({ project, orgId }: Props) {
     register,
     handleSubmit,
     control,
-    watch,
     formState: { errors },
   } = useForm<SettingsInput>({
     resolver: zodResolver(settingsSchema),
@@ -89,7 +88,10 @@ export function SettingsTab({ project, orgId }: Props) {
     name: "custom_statuses",
   });
 
-  const useCustomStatuses = watch("useCustomStatuses");
+  const useCustomStatuses = useWatch({
+    control,
+    name: "useCustomStatuses",
+  });
 
   async function onSubmit(data: SettingsInput) {
     setLoading(true);

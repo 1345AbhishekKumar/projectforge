@@ -230,29 +230,29 @@ we are building version 3 (prd_versions/v3.md)
 - [ ] **Immutability Check:** Attempt to modify or delete an audit log entry via API. Verify access is blocked (read-only enforcement).
 
 ### Feature 3.5: AI Assistant Verification
-- [ ] **Project Summarization:** Query AI assistant to "Summarize Project". Verify response content synthesizes active sprint status, risks, and milestones.
-- [ ] **Task Breakdown Suggestions:** Click AI suggest on a large task. Verify it returns structured subtask recommendations.
-- [ ] **Risk Detection:** Verify AI flags overdue tasks with dependent blockers as high risk.
-- [ ] **API Token Quota Limits:** Verify query counts are tracked and rate-limited.
 
-### Feature 3.6: Integrations Platform Verification
-- [ ] **GitHub Webhook OAuth:** Connect a GitHub repository. Verify webhook payloads correctly parse branch commits and PR merges to link with tasks.
-- [ ] **Slack Notification Dispatch:** Trigger a completed task event. Verify Slack message is dispatched to the configured Slack channel.
-- [ ] **Google Calendar Sync:** Sync due dates. Verify external calendar invitation/event updates when task due date changes in ProjectForge.
+#### Backend / API Verification
+- [ ] **AI Assistant Router / Actions:** Verify that the Server Action `actions/ai.ts` successfully connects to NVIDIA GPT OSS 120B via OpenAI client with temperature 0.7 for summaries and 0.3 for structured suggestions.
+- [ ] **Project Summarization Prompt & Payload:** Verify that the project summarization action correctly compiles project name, current status, active sprint name/goal, list of tasks, and milestones before querying the model.
+- [ ] **Task Breakdown Suggestions (JSON validation):** Verify that the task breakdown suggestion action requests a JSON output containing an array of subtasks, validates the structure via Zod, and successfully inserts the subtasks into the database.
+- [ ] **Risk Detection Algorithm:** Verify that risk detection logic combines overdue tasks and task dependency mappings, identifies blocker loops, and prompts the LLM to summarize high-risk tasks.
+- [ ] **AI Quota & Rate-Limiting:** Verify that every AI query inserts a record into the `ai_usages` table and checks if the count exceeds 10 queries/day per user/org, returning a `429 Rate Limit Exceeded` error if blocked.
+- [ ] **Error Catch-Blocks & Logger:** Verify that all AI endpoints are wrapped in try/catch, log errors to Pino, capture exceptions in Sentry, and record failed/successful runs in `agent_logs`.
 
-### Feature 3.7: API Platform & Webhooks Verification
-- [ ] **API Key Authentication:** Request task list using a generated API key in `Authorization` header. Verify successful response.
-- [ ] **Rate Limiting:** Exceed the API rate limit threshold. Verify the API returns `429 Too Many Requests` with retry headers.
-- [ ] **Webhook Dispatch Lifecycle:** Register a webhook URL for `task.completed`. Complete a task. Verify webhook payload is signed and POSTed to the external URL with retry logic on failure.
+#### Frontend / UI Verification
+- [ ] **Project Summarization Modal:** Verify that clicking "Summarize Project" in the project details header displays a sketchy loading skeleton, executes the server action, and renders the Markdown response inside a whiteboard-themed drawer.
+- [ ] **Task Breakdown suggestions in Drawer:** Verify that clicking "AI Suggest Subtasks" in the `TaskDetailsSheet` displays a checklist of suggestions. Selecting items and clicking "Import" inserts them as subtasks and triggers a TanStack query refetch.
+- [ ] **Risk Indicators & Panel:** Verify that the Project Details view renders an "AI Risk Analysis" tab showing high-risk tasks, overdue statuses, and unresolved blockers, with visual highlight indicators.
+- [ ] **Quota Error Alerts:** Simulate a quota breach (e.g. set user's query count to 10 in DB). Verify the UI renders a whiteboard-themed warning toast: `"AI assistant quota reached for today (max 10 queries)"`.
 
-### Feature 3.8: Advanced Search Verification
+### Feature 3.6: Advanced Search Verification
 - [ ] **Multi-Entity Indexing:** Perform search. Verify results return matching instances across projects, tasks, comments, and files.
 - [ ] **Saved Filters:** Save a complex query. Re-open search page and verify search criteria automatically populates.
 
-### Feature 3.9: Reporting & Workload Management Verification
+### Feature 3.7: Reporting & Workload Management Verification
 - [ ] **Workload Distribution Visuals:** Verify workload planner charts capacity utilization correctly based on assigned task weights/hours.
 - [ ] **Project Health Metrics:** Calculate project health. Verify metric updates dynamically based on overdue ratios, blocked tasks, and velocity.
 
-### Feature 3.10: Dependency & Project Templates Verification
+### Feature 3.8: Dependency & Project Templates Verification
 - [ ] **Task Dependency Blocking:** Create dependency Task B blocked by Task A. Attempt to mark Task B as completed. Verify the UI blocks transition and warns of unresolved blocker.
 - [ ] **Template Scaffolding:** Create project from "Website Launch" template. Verify all predefined tasks, statuses, and default assignments are instantiated in the new project.

@@ -1,8 +1,10 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
+import { writeAuditLog } from "@/lib/audit";
 import { z } from "zod";
 import { orgIdSchema } from "@/lib/utils";
 import { verifyMembership, verifyAdminOrOwnerRole } from "@/lib/auth-helpers";
@@ -85,6 +87,17 @@ export async function createWorkflow(
     // Invalidate the cache to ensure trigger is re-read on the next trigger event
     invalidateTriggerCache(validated.data.orgId);
 
+    after(() =>
+      writeAuditLog(
+        validated.data.orgId,
+        userId,
+        "workflow.created",
+        "workflow",
+        workflow.id,
+        { name: validated.data.name, trigger: validated.data.trigger }
+      )
+    );
+
     revalidatePath("/workflows");
     return { success: true, data: { workflowId: workflow.id } };
   } catch (error) {
@@ -144,6 +157,17 @@ export async function updateWorkflow(
 
     invalidateTriggerCache(validated.data.orgId);
 
+    after(() =>
+      writeAuditLog(
+        validated.data.orgId,
+        userId,
+        "workflow.updated",
+        "workflow",
+        validated.data.id,
+        { changes: updates }
+      )
+    );
+
     revalidatePath("/workflows");
     return { success: true };
   } catch (error) {
@@ -183,6 +207,10 @@ export async function deleteWorkflow(
 
     invalidateTriggerCache(orgId);
 
+    after(() =>
+      writeAuditLog(orgId, userId, "workflow.deleted", "workflow", id, {})
+    );
+
     revalidatePath("/workflows");
     return { success: true };
   } catch (error) {
@@ -194,9 +222,20 @@ export async function deleteWorkflow(
   }
 }
 
+export type Workflow = {
+  id: string;
+  organization_id: string;
+  name: string;
+  trigger: string;
+  conditions: Record<string, unknown>;
+  actions: { type: string; data: Record<string, unknown> }[];
+  enabled: boolean;
+  created_at: string;
+};
+
 export async function getWorkflows(
   orgId: string
-): Promise<{ success: boolean; data: any[]; error?: string }> {
+): Promise<{ success: boolean; data: Workflow[]; error?: string }> {
   const validated = orgIdSchema.safeParse(orgId);
   if (!validated.success) {
     return { success: false, error: validated.error.issues[0].message, data: [] };
@@ -224,7 +263,7 @@ export async function getWorkflows(
       return { success: false, error: "Failed to fetch workflows", data: [] };
     }
 
-    return { success: true, data: data || [] };
+    return { success: true, data: (data || []) as Workflow[] };
   } catch (error) {
     logger.error({ error, orgId }, "getWorkflows unexpected error");
     Sentry.captureException(error);

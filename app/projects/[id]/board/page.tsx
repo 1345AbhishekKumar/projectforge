@@ -63,7 +63,7 @@ export default function KanbanBoardPage({ params }: Props) {
 
   return (
     <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
-      <Sidebar activePage="projects" activeOrgId={board.activeOrgId} />
+      <Sidebar />
 
       <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
         {/* Navigation Header */}
