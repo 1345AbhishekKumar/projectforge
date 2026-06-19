@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { TaskStatus, TaskPriority } from "@/types";
@@ -10,6 +11,7 @@ import { orgIdSchema, projectIdSchema, taskIdSchema } from "@/lib/utils";
 import { verifyMembership } from "@/lib/auth-helpers";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
 import * as Sentry from "@sentry/nextjs";
+import { triggerWorkflowEvent } from "@/lib/workflows/engine";
 
 const updateTaskInputSchema = z.object({
   taskId: taskIdSchema,
@@ -187,13 +189,15 @@ export async function updateTask(
       updatePayload.board_index = validated.data.updates.board_index;
     }
 
-    const { error } = await insforge.database
+    const { data: updatedTask, error } = await insforge.database
       .from("tasks")
       .update(updatePayload)
       .eq("id", validated.data.taskId)
-      .eq("organization_id", validated.data.orgId);
+      .eq("organization_id", validated.data.orgId)
+      .select("*")
+      .single();
 
-    if (error) {
+    if (error || !updatedTask) {
       logger.error({ error, taskId: validated.data.taskId }, "Failed to update task record");
       return { success: false, error: "Failed to update task" };
     }
@@ -206,6 +210,26 @@ export async function updateTask(
         taskTitle,
       });
     }
+
+    after(async () => {
+      try {
+        await triggerWorkflowEvent(
+          "task.updated",
+          { task: updatedTask },
+          { userId, orgId: validated.data.orgId }
+        );
+
+        if (validated.data.updates.status === "DONE" && currentTask.status !== "DONE") {
+          await triggerWorkflowEvent(
+            "task.completed",
+            { task: updatedTask },
+            { userId, orgId: validated.data.orgId }
+          );
+        }
+      } catch (err) {
+        logger.error({ error: err }, "Failed to trigger workflows on task update");
+      }
+    });
 
     if (validated.data.updates.assignee_id !== undefined && validated.data.updates.assignee_id !== currentTask.assignee_id) {
       if (validated.data.updates.assignee_id) {
@@ -323,6 +347,8 @@ export async function reorderTasks(
         })
         .eq("id", update.id)
         .eq("organization_id", validated.data.orgId)
+        .select("*")
+        .single()
     );
 
     const results = await Promise.all(promises);
@@ -355,6 +381,33 @@ export async function reorderTasks(
         }
       }
     }
+
+    after(async () => {
+      try {
+        for (let i = 0; i < validated.data.taskUpdates.length; i++) {
+          const update = validated.data.taskUpdates[i];
+          const updatedTask = results[i].data;
+          if (!updatedTask) continue;
+
+          await triggerWorkflowEvent(
+            "task.updated",
+            { task: updatedTask },
+            { userId, orgId: validated.data.orgId }
+          );
+
+          const prev = prevTasks?.find((t) => t.id === update.id);
+          if (prev && prev.status !== update.status && update.status === "DONE") {
+            await triggerWorkflowEvent(
+              "task.completed",
+              { task: updatedTask },
+              { userId, orgId: validated.data.orgId }
+            );
+          }
+        }
+      } catch (err) {
+        logger.error({ error: err }, "Failed to trigger workflows on reorderTasks");
+      }
+    });
 
     revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };

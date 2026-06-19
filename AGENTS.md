@@ -18,6 +18,8 @@ do not read the lessons and learning-records folders.
   `projectforge/components/<feature>/`
 * If the required UI folder does not exist, create it before adding components.
 * Keep UI components organized by feature/domain.
+* add proper caching 
+* use sentry , and logger
 
 ### Validation
 
@@ -71,7 +73,7 @@ do not read the lessons and learning-records folders.
 ### Next.js Best Practices
 
 * Always follow current Next.js best practices for performance, scalability, and maintainability.
-* Prefer:
+* Prefer: from /next-best-practices skill
 
   * Server Components by default
   * Server Actions when appropriate

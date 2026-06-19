@@ -92,21 +92,21 @@ we are building version 2 (prd_versions/v2.md)
 ## Phase 2 Database & Schema Setup Checklist
 
 ### New Database Tables & Schema Verification
-- [ ] **`sprints` Table:** Verify fields: `id`, `organization_id`, `name`, `goal`, `start_date`, `end_date`, `status` (PLANNED, ACTIVE, COMPLETED, CANCELLED), `created_at`. Enforce FK to `organizations.id`.
-- [ ] **`activities` Table:** Verify fields: `id`, `organization_id`, `project_id`, `user_id` (actor), `action_type`, `metadata` (jsonb), `created_at`. Enforce FK to `organizations.id`.
-- [ ] **`labels` Table:** Verify fields: `id`, `organization_id`, `name`, `color`. Enforce FK to `organizations.id` and unique constraint on `(organization_id, name)`.
-- [ ] **`saved_views` Table:** Verify fields: `id`, `user_id`, `organization_id`, `name`, `filters` (jsonb). Enforce FK to `profiles.id`.
-- [ ] **`tasks` Table (migration):** Verify new `sprint_id` (nullable FK to `sprints.id`), `board_index` (int), and `label_ids` (array or junction) columns added correctly.
-- [ ] **Full-Text Search Index:** Verify `to_tsvector` index on `tasks(title, description)` for search performance.
+- [x] **`sprints` Table:** Verify fields: `id`, `organization_id`, `name`, `goal`, `start_date`, `end_date`, `status` (PLANNED, ACTIVE, COMPLETED, CANCELLED), `created_at`. Enforce FK to `organizations.id`.
+- [x] **`activities` Table:** Verify fields: `id`, `organization_id`, `project_id`, `user_id` (actor), `action_type`, `metadata` (jsonb), `created_at`. Enforce FK to `organizations.id`.
+- [x] **`labels` Table:** Verify fields: `id`, `organization_id`, `name`, `color`. Enforce FK to `organizations.id` and unique constraint on `(organization_id, name)`.
+- [x] **`saved_views` Table:** Verify fields: `id`, `user_id`, `organization_id`, `name`, `filters` (jsonb). Enforce FK to `profiles.id`.
+- [x] **`tasks` Table (migration):** Verify new `sprint_id` (nullable FK to `sprints.id`), `board_index` (int), and `label_ids` (array or junction) columns added correctly.
+- [x] **Full-Text Search Index:** Verify `to_tsvector` index on `tasks(title, description)` for search performance.
 
 ### Page Routing & Directory Scaffolding
 - [x] **Sprints Page (`/sprints`):** Verify page routing and sprint list layout renders (Planned, Active, Completed groups).
 - [x] **Kanban Board (`/projects/[id]/board`):** Verify dynamic board page routing and 3-column grid layout renders.
 - [x] **Activity Feed (`/projects/[id]/activity`):** Verify dynamic activity page routing and timeline layout renders.
 - [x] **Analytics Dashboard (`/analytics`):** Verify page routing and stats card placeholders render.
-- [] **Team Directory (`/team`):** Verify page routing and member grid layout renders.
-- [] **Global Search Modal:** Verify search modal is accessible from the header and opens correctly.
-- [] **Updated Navigation:** Verify sidebar navigation includes all new V2 links: Team, Boards, Sprints, Activity, Analytics.
+- [x] **Team Directory (`/team`):** Verify page routing and member grid layout renders.
+- [x] **Global Search Modal:** Verify search modal is accessible from the header and opens correctly.
+- [x] **Updated Navigation:** Verify sidebar navigation includes all new V2 links: Team, Boards, Sprints, Activity, Analytics.
 
 ---
 
@@ -171,4 +171,88 @@ we are building version 2 (prd_versions/v2.md)
 - [x] **Project Completed Notification:** Set a project status to COMPLETED. Verify a `project completed` notification is triggered.
 - [x] **Notification Preferences:** Verify notification preferences (In App, Email) can be toggled per user and are respected by the notification system.
 
+---
 
+# ProjectForge: Version 3 (Work OS) Verification Guidelines & Todos
+
+This document lists the technical verification checklists and manual E2E test steps for **Version 3 (Work OS)**, organized by domain modules, database setup, page routing, and individual feature components.
+
+---
+
+we are building version 3 (prd_versions/v3.md)
+
+## Phase 3 Database & Schema Setup Checklist
+
+### New Database Tables & Schema Verification
+- [ ] **`workflows` Table:** Verify fields: `id`, `organization_id`, `name`, `trigger` (string), `conditions` (jsonb), `actions` (jsonb), `enabled` (boolean), `created_at`. Enforce FK to `organizations.id`.
+- [ ] **`time_entries` Table:** Verify fields: `id`, `task_id`, `user_id`, `start_time` (timestamp), `end_time` (timestamp/nullable), `duration` (integer), `created_at`. Enforce FK to `tasks.id` and `profiles.id`.
+- [ ] **`audit_logs` Table:** Verify fields: `id`, `actor_id` (nullable FK to `profiles.id`), `action` (string), `entity_type` (string), `entity_id` (string), `metadata` (jsonb), `created_at` (timestamp).
+- [ ] **`api_keys` Table:** Verify fields: `id`, `organization_id`, `name`, `key_hash` (string), `expires_at` (timestamp), `created_at`. Enforce FK to `organizations.id`.
+- [ ] **`task_dependencies` Table:** Verify fields: `id`, `source_task_id`, `target_task_id`, `type` (string), `created_at`. Enforce FKs to `tasks.id`.
+- [ ] **`project_templates` Table:** Verify fields: `id`, `name`, `description`, `tasks_schema` (jsonb), `created_at`.
+- [ ] **Custom Task Workflows Schema:** Verify table or column structure supporting customizable status sequences (e.g. statuses array or custom status mapping in `projects` or `organizations`).
+
+### Page Routing & Directory Scaffolding
+- [ ] **Workflows Dashboard (`/workflows`):** Verify page routing and active/inactive workflow list view.
+- [ ] **Workflow Builder (`/workflows/new` or `/workflows/[id]`):** Verify builder canvas, trigger selection, conditions editor, and actions selector.
+- [ ] **Time Tracking Dashboard (`/time`):** Verify personal time logs, active timer interface, and project-wide tracking.
+- [ ] **Audit Logs Viewer (`/settings/audit-logs`):** Verify query filters (actor, date range, action type) and event table renders.
+- [ ] **Developer Settings (`/settings/developer`):** Verify API key generation interface, rate limit indicators, and webhook subscription settings.
+- [ ] **Advanced Search Dashboard (`/search`):** Verify deep filter panels (projects, tasks, comments, files, dates) and full-text search results page.
+- [ ] **Reporting & Analytics Center (`/reports`):** Verify custom reports builder, export options, and chart components (productivity, velocity, health).
+- [ ] **Workload Planner (`/team/workload`):** Verify capacity planning calendar, workload distribution grid, and capacity utilization bar chart.
+- [ ] **Project Template Selector (`/projects/new/templates`):** Verify layout displaying preset templates (Mobile App, Marketing, etc.).
+
+---
+
+## Component-by-Component Checklists
+
+### Feature 3.1: Workflow Automation Verification
+- [x] **Workflow Creation & Rule Parsing:** Create workflow with trigger `task.created` -> action `assign to team lead`. Verify JSON structure in `workflows` table.
+- [x] **Automation Engine Execution:** Trigger a workflow action (e.g. create a task). Verify the rule engine evaluates conditions and automatically performs the defined actions (e.g. updates assignee).
+- [x] **Loop Prevention:** Trigger dependent workflows. Verify that recursive execution cycles are detected and terminated.
+- [x] **Toggle Workflow State:** Enable/disable a workflow. Verify execution blocks when state is disabled.
+
+### Feature 3.2: Custom Task Workflows Verification
+- [ ] **Status Sequence Definition:** Configure custom statuses `[Draft, Review, Approved, Published]` for a project. Verify tasks in this project are constrained to these statuses.
+- [ ] **Status Transition Rules:** Set task status updates. Verify only permitted transitions are allowed and invalid moves are rejected.
+- [ ] **Kanban Column Alignment:** Verify Kanban Board columns dynamically update to match the custom status configurations of the project.
+
+### Feature 3.3: Time Tracking Verification
+- [ ] **Live Timer Lifecycle:** Start timer on a task. Verify `time_entries` inserts record with null `end_time`. Stop timer. Verify `end_time` and `duration` compute and save.
+- [ ] **Manual Time Log:** Enter manual log (e.g. 2 hours on yesterday's task). Verify validation rules reject negative/future dates.
+- [ ] **Task Time Accumulator:** Verify task details view aggregates total hours tracked from all users on that task.
+- [ ] **Reporting Exports:** Generate project time report. Verify CSV/PDF export formats correctly.
+
+### Feature 3.4: Audit Logs Verification
+- [ ] **Critical Action Logging:** Delete a project or update a member role. Verify an audit log record is created with accurate metadata and actor details.
+- [ ] **Audit Logs Pagination:** Verify that log list handles filtering and pagination under high volume.
+- [ ] **Immutability Check:** Attempt to modify or delete an audit log entry via API. Verify access is blocked (read-only enforcement).
+
+### Feature 3.5: AI Assistant Verification
+- [ ] **Project Summarization:** Query AI assistant to "Summarize Project". Verify response content synthesizes active sprint status, risks, and milestones.
+- [ ] **Task Breakdown Suggestions:** Click AI suggest on a large task. Verify it returns structured subtask recommendations.
+- [ ] **Risk Detection:** Verify AI flags overdue tasks with dependent blockers as high risk.
+- [ ] **API Token Quota Limits:** Verify query counts are tracked and rate-limited.
+
+### Feature 3.6: Integrations Platform Verification
+- [ ] **GitHub Webhook OAuth:** Connect a GitHub repository. Verify webhook payloads correctly parse branch commits and PR merges to link with tasks.
+- [ ] **Slack Notification Dispatch:** Trigger a completed task event. Verify Slack message is dispatched to the configured Slack channel.
+- [ ] **Google Calendar Sync:** Sync due dates. Verify external calendar invitation/event updates when task due date changes in ProjectForge.
+
+### Feature 3.7: API Platform & Webhooks Verification
+- [ ] **API Key Authentication:** Request task list using a generated API key in `Authorization` header. Verify successful response.
+- [ ] **Rate Limiting:** Exceed the API rate limit threshold. Verify the API returns `429 Too Many Requests` with retry headers.
+- [ ] **Webhook Dispatch Lifecycle:** Register a webhook URL for `task.completed`. Complete a task. Verify webhook payload is signed and POSTed to the external URL with retry logic on failure.
+
+### Feature 3.8: Advanced Search Verification
+- [ ] **Multi-Entity Indexing:** Perform search. Verify results return matching instances across projects, tasks, comments, and files.
+- [ ] **Saved Filters:** Save a complex query. Re-open search page and verify search criteria automatically populates.
+
+### Feature 3.9: Reporting & Workload Management Verification
+- [ ] **Workload Distribution Visuals:** Verify workload planner charts capacity utilization correctly based on assigned task weights/hours.
+- [ ] **Project Health Metrics:** Calculate project health. Verify metric updates dynamically based on overdue ratios, blocked tasks, and velocity.
+
+### Feature 3.10: Dependency & Project Templates Verification
+- [ ] **Task Dependency Blocking:** Create dependency Task B blocked by Task A. Attempt to mark Task B as completed. Verify the UI blocks transition and warns of unresolved blocker.
+- [ ] **Template Scaffolding:** Create project from "Website Launch" template. Verify all predefined tasks, statuses, and default assignments are instantiated in the new project.

@@ -2,6 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { Task, TaskStatus, TaskPriority, Label } from "@/types";
@@ -10,6 +11,7 @@ import { orgIdSchema, projectIdSchema } from "@/lib/utils";
 import { verifyMembership } from "@/lib/auth-helpers";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
 import * as Sentry from "@sentry/nextjs";
+import { triggerWorkflowEvent } from "@/lib/workflows/engine";
 
 const taskSchema = z.object({
   title: z.string().min(3, "Title must be at least 3 characters").max(100),
@@ -124,7 +126,7 @@ export async function createTask(
           board_index: nextIndex,
         },
       ])
-      .select("id")
+      .select("*")
       .single();
 
     if (error || !task) {
@@ -150,6 +152,18 @@ export async function createTask(
     await logActivity(validated.data.orgId, validated.data.projectId, userId, "TASK_CREATED", {
       taskId: task.id,
       taskTitle: validated.data.title,
+    });
+
+    after(async () => {
+      try {
+        await triggerWorkflowEvent(
+          "task.created",
+          { task },
+          { userId, orgId: validated.data.orgId }
+        );
+      } catch (err) {
+        logger.error({ error: err }, "Failed to trigger workflows on task.created");
+      }
     });
 
     revalidatePath(`/projects/${validated.data.projectId}`);
