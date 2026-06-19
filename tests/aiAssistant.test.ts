@@ -6,28 +6,41 @@ mock.module("@clerk/nextjs/server", () => ({
   auth: () => Promise.resolve({ userId: "mock-user-123" }),
 }));
 
+const mockDbQuery = {
+  select: () => mockDbQuery,
+  insert: () => mockDbQuery,
+  eq: () => mockDbQuery,
+  neq: () => mockDbQuery,
+  gte: () => mockDbQuery,
+  lte: () => mockDbQuery,
+  lt: () => mockDbQuery,
+  single: () => Promise.resolve({ data: { id: "mock-id-123", name: "Mock Project" }, error: null }),
+  then: (resolve: (value: { data: unknown[]; error: unknown }) => void) => resolve({ data: [], error: null }),
+};
+
 mock.module("@/lib/insforge-server", () => ({
   createInsforgeServer: () => ({
     database: {
-      from: (table: string) => ({
-        select: () => ({
-          eq: () => ({
-            eq: () => ({
-              gte: () => ({
-                lte: () => Promise.resolve({ data: [], error: null }),
-              }),
-            }),
-            single: () => Promise.resolve({ data: table === "projects" ? { name: "Mock Project" } : { custom_statuses: ["TODO", "IN_PROGRESS", "DONE"] }, error: null }),
-          }),
-        }),
-        insert: () => Promise.resolve({ error: null }),
-      }),
+      from: () => mockDbQuery,
     },
   }),
 }));
 
 mock.module("@/lib/auth-helpers", () => ({
   verifyMembership: () => Promise.resolve(true),
+}));
+
+mock.module("@sentry/nextjs", () => ({
+  captureException: () => {},
+}));
+
+mock.module("@/lib/logger", () => ({
+  logger: {
+    info: () => {},
+    error: () => {},
+    warn: () => {},
+    debug: () => {},
+  },
 }));
 
 mock.module("openai", () => {

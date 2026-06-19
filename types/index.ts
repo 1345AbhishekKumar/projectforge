@@ -173,10 +173,47 @@ export type SearchResultMember = {
   role: MembershipRole;
 };
 
+export type SearchResultComment = Pick<Comment, "id" | "task_id" | "content" | "created_at"> & {
+  task_title?: string;
+  project_id?: string;
+};
+
+export type SearchResultAttachment = Pick<Attachment, "id" | "task_id" | "file_name" | "file_url" | "created_at"> & {
+  task_title?: string;
+  project_id?: string;
+};
+
+export type SearchResultActivity = {
+  id: string;
+  organization_id: string;
+  project_id: string | null;
+  user_id: string;
+  action_type: string;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  actor?: {
+    full_name: string | null;
+    avatar_url: string | null;
+  } | null;
+};
+
+export type SavedSearch = {
+  id: string;
+  user_id: string;
+  organization_id: string;
+  name: string;
+  query_text: string | null;
+  filters: Record<string, unknown>;
+  created_at: string;
+};
+
 export type SearchResult = {
   projects: SearchResultProject[];
   tasks: SearchResultTask[];
   members: SearchResultMember[];
+  comments: SearchResultComment[];
+  attachments: SearchResultAttachment[];
+  activities: SearchResultActivity[];
 };
 
 export type TeamMember = {

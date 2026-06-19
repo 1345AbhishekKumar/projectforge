@@ -240,18 +240,18 @@ we are building version 3 (prd_versions/v3.md)
 - [x] **Error Catch-Blocks & Logger:** Verify that all AI endpoints are wrapped in try/catch, log errors to Pino, capture exceptions in Sentry, and record failed/successful runs in `agent_logs`.
 
 #### Frontend / UI Verification
-- [ ] **Project Summarization Modal:** Verify that clicking "Summarize Project" in the project details header displays a sketchy loading skeleton, executes the server action, and renders the Markdown response inside a whiteboard-themed drawer.
-- [ ] **Task Breakdown suggestions in Drawer:** Verify that clicking "AI Suggest Subtasks" in the `TaskDetailsSheet` displays a checklist of suggestions. Selecting items and clicking "Import" inserts them as subtasks and triggers a TanStack query refetch.
-- [ ] **Risk Indicators & Panel:** Verify that the Project Details view renders an "AI Risk Analysis" tab showing high-risk tasks, overdue statuses, and unresolved blockers, with visual highlight indicators.
-- [ ] **Quota Error Alerts:** Simulate a quota breach (e.g. set user's query count to 10 in DB). Verify the UI renders a whiteboard-themed warning toast: `"AI assistant quota reached for today (max 10 queries)"`.
+- [x] **Project Summarization Modal:** Verify that clicking "Summarize Project" in the project details header displays a sketchy loading skeleton, executes the server action, and renders the Markdown response inside a whiteboard-themed drawer.
+- [x] **Task Breakdown suggestions in Drawer:** Verify that clicking "AI Suggest Subtasks" in the `TaskDetailsSheet` displays a checklist of suggestions. Selecting items and clicking "Import" inserts them as subtasks and triggers a TanStack query refetch.
+- [x] **Risk Indicators & Panel:** Verify that the Project Details view renders an "AI Risk Analysis" tab showing high-risk tasks, overdue statuses, and unresolved blockers, with visual highlight indicators.
+- [x] **Quota Error Alerts:** Simulate a quota breach (e.g. set user's query count to 10 in DB). Verify the UI renders a whiteboard-themed warning toast: `"AI assistant quota reached for today (max 10 queries)"`.
 
 ### Feature 3.6: Advanced Search Verification
-- [ ] **Multi-Entity Indexing:** Perform search. Verify results return matching instances across projects, tasks, comments, and files.
-- [ ] **Saved Filters:** Save a complex query. Re-open search page and verify search criteria automatically populates.
+- [x] **Multi-Entity Indexing:** Perform search. Verify results return matching instances across projects, tasks, comments, and files.
+- [x] **Saved Filters:** Save a complex query. Re-open search page and verify search criteria automatically populates.
 
 ### Feature 3.7: Reporting & Workload Management Verification
-- [ ] **Workload Distribution Visuals:** Verify workload planner charts capacity utilization correctly based on assigned task weights/hours.
-- [ ] **Project Health Metrics:** Calculate project health. Verify metric updates dynamically based on overdue ratios, blocked tasks, and velocity.
+- [x] **Workload Distribution Visuals:** Verify workload planner charts capacity utilization correctly based on assigned task weights/hours.
+- [x] **Project Health Metrics:** Calculate project health. Verify metric updates dynamically based on overdue ratios, blocked tasks, and velocity.
 
 ### Feature 3.8: Dependency & Project Templates Verification
 - [ ] **Task Dependency Blocking:** Create dependency Task B blocked by Task A. Attempt to mark Task B as completed. Verify the UI blocks transition and warns of unresolved blocker.
