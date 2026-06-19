@@ -11,6 +11,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { BacklogTab } from "@/components/projects/BacklogTab";
 import { MembersTab } from "@/components/projects/MembersTab";
 import { SettingsTab } from "@/components/projects/SettingsTab";
+import { AIProjectAssistant } from "@/components/projects/AIProjectAssistant";
 import { useProjectDetails } from "./useProjectDetails";
 import type { ProjectStatus } from "@/types";
 
@@ -206,6 +207,11 @@ export default function ProjectDetailsPage({ params }: Props) {
                       <Loader2 className="h-4 w-4 animate-spin text-secondary" />
                     )}
                   </div>
+
+                  {/* AI Project Assistant Tools */}
+                  {activeOrgId && (
+                    <AIProjectAssistant projectId={projectId} orgId={activeOrgId} />
+                  )}
 
                   {/* Archive Button */}
                   {project.status !== "ARCHIVED" && (

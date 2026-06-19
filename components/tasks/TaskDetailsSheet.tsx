@@ -16,6 +16,7 @@ import { TaskComments } from "./details/TaskComments";
 import { TaskAttachments } from "./details/TaskAttachments";
 import { TaskLabelSelector } from "./details/TaskLabelSelector";
 import { TaskTimeSection } from "./details/TaskTimeSection";
+import { AISubtaskSuggester } from "./details/AISubtaskSuggester";
 
 const taskDetailsSchema = z.object({
   title: z
@@ -418,6 +419,14 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
               setSelectedLabelIds={setSelectedLabelIds}
               labels={labels}
               setLabels={setLabels}
+            />
+
+            <AISubtaskSuggester
+              taskId={task.id}
+              orgId={task.organization_id}
+              projectId={task.project_id}
+              taskTitle={task.title}
+              taskDescription={task.description || ""}
             />
 
             <TaskTimeSection

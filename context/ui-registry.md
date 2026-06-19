@@ -99,6 +99,18 @@ After building any component — update this file with the component name, file 
 - **Card Link:** `block w-full rounded-sketchy p-5 shadow-flat-offset-sm hover:-translate-y-1 hover:rotate-1 hover:shadow-flat-offset active:translate-y-0.5 active:rotate-0 transition-all duration-200 cursor-pointer`
 - **Badge Colors:** `PLANNING: bg-accent-yellow`, `ACTIVE: bg-accent-blue`, `COMPLETED: bg-accent-green`, `ARCHIVED: bg-neutral-bg`
 
+### AI Assistant Components
+
+#### AIProjectAssistant Component (Project Summarization & Risks)
+- **File Path:** [AIProjectAssistant.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/projects/AIProjectAssistant.tsx)
+- **Container Dialog Classes:** `bg-white border-2 border-black rounded-sketchy w-full max-w-2xl max-h-[85vh] p-6 md:p-8 relative shadow-flat-offset flex flex-col gap-4 overflow-hidden`
+- **Trigger Buttons:** AI Summary (`bg-tertiary hover:bg-tertiary-hover text-white border-2 border-black px-3 py-2 rounded-full shadow-flat-offset-sm`), AI Risks (`bg-[#FFF2B2] hover:bg-[#FFE680] text-primary border-2 border-black px-3 py-2 rounded-full shadow-flat-offset-sm`)
+
+#### AISubtaskSuggester Component (Subtask Breakdowns)
+- **File Path:** [AISubtaskSuggester.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/details/AISubtaskSuggester.tsx)
+- **Container Classes:** `border-2 border-black rounded-sketchy p-4 bg-[#FFF2B2]/20 flex flex-col gap-3`
+- **Action Button:** `flex items-center gap-1 bg-white hover:bg-neutral-bg border border-black px-2 py-1 rounded shadow-flat-offset-xs`
+
 #### CreateProjectModal Component
 - **File Path:** [CreateProjectModal.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/projects/CreateProjectModal.tsx)
 - **Card Wrapper:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-md w-full relative rotate-[0.5deg]`
