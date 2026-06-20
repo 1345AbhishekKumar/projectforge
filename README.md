@@ -1,7 +1,6 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+ProjectForge App Preview
 
-
-[!image public\image.png]
+![ProjectForge App Preview](public/image.png)
 
 
 ## Getting Started
