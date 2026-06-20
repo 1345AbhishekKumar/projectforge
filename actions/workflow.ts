@@ -7,7 +7,7 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { writeAuditLog } from "@/lib/audit";
 import { z } from "zod";
 import { orgIdSchema } from "@/lib/utils";
-import { verifyMembership, verifyAdminOrOwnerRole } from "@/lib/auth-helpers";
+import { verifyMembership, verifyPermission } from "@/lib/auth-helpers";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
 import * as Sentry from "@sentry/nextjs";
 import { invalidateTriggerCache } from "@/lib/workflows/cache";
@@ -59,9 +59,9 @@ export async function createWorkflow(
     const insforge = createInsforgeServer(userId);
 
     // Only OWNER or ADMIN can create workflows
-    const isAuthorized = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
+    const isAuthorized = await verifyPermission(insforge, validated.data.orgId, userId, "workflows", "create");
     if (!isAuthorized) {
-      return { success: false, error: "Only admins or owners can create workflows" };
+      return { success: false, error: "Only users with workflow creation permissions can create workflows" };
     }
 
     const { data: workflow, error } = await insforge.database
@@ -132,9 +132,9 @@ export async function updateWorkflow(
     const insforge = createInsforgeServer(userId);
 
     // Only OWNER or ADMIN can update workflows
-    const isAuthorized = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
+    const isAuthorized = await verifyPermission(insforge, validated.data.orgId, userId, "workflows", "update");
     if (!isAuthorized) {
-      return { success: false, error: "Only admins or owners can update workflows" };
+      return { success: false, error: "Only users with workflow update permissions can update workflows" };
     }
 
     const updatePayload: Record<string, unknown> = {};
@@ -189,9 +189,9 @@ export async function deleteWorkflow(
 
     const insforge = createInsforgeServer(userId);
 
-    const isAuthorized = await verifyAdminOrOwnerRole(insforge, orgId, userId);
+    const isAuthorized = await verifyPermission(insforge, orgId, userId, "workflows", "delete");
     if (!isAuthorized) {
-      return { success: false, error: "Only admins or owners can delete workflows" };
+      return { success: false, error: "Only users with workflow deletion permissions can delete workflows" };
     }
 
     const { error } = await insforge.database

@@ -35,8 +35,10 @@ export default function PortfoliosDirectoryPage() {
 
   useEffect(() => {
     if (!activeOrgId) {
-      setPortfolios([]);
-      setLoading(false);
+      Promise.resolve().then(() => {
+        setPortfolios([]);
+        setLoading(false);
+      });
       return;
     }
 

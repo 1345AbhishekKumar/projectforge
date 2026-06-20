@@ -8,7 +8,7 @@ import { z } from "zod";
 import type { TaskStatus, TaskPriority } from "@/types";
 import { logActivity } from "@/actions/activity";
 import { orgIdSchema, projectIdSchema, taskIdSchema } from "@/lib/utils";
-import { verifyMembership } from "@/lib/auth-helpers";
+import { verifyMembership, verifyPermission } from "@/lib/auth-helpers";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
 import * as Sentry from "@sentry/nextjs";
 import { triggerWorkflowEvent } from "@/lib/workflows/engine";
@@ -76,9 +76,9 @@ export async function updateTask(
 
     const insforge = createInsforgeServer(userId);
 
-    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
-    if (!isMember) {
-      return { success: false, error: "Not a member of this workspace" };
+    const isAllowed = await verifyPermission(insforge, validated.data.orgId, userId, "tasks", "update");
+    if (!isAllowed) {
+      return { success: false, error: "You do not have permission to update tasks in this workspace." };
     }
 
     if (validated.data.updates.assignee_id) {
@@ -354,9 +354,9 @@ export async function deleteTask(
 
     const insforge = createInsforgeServer(userId);
 
-    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
-    if (!isMember) {
-      return { success: false, error: "Not a member of this workspace" };
+    const isAllowed = await verifyPermission(insforge, validated.data.orgId, userId, "tasks", "delete");
+    if (!isAllowed) {
+      return { success: false, error: "You do not have permission to delete tasks in this workspace." };
     }
 
     const { error } = await insforge.database
@@ -397,9 +397,9 @@ export async function reorderTasks(
 
     const insforge = createInsforgeServer(userId);
 
-    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
-    if (!isMember) {
-      return { success: false, error: "Not a member of this workspace" };
+    const isAllowed = await verifyPermission(insforge, validated.data.orgId, userId, "tasks", "update");
+    if (!isAllowed) {
+      return { success: false, error: "You do not have permission to update tasks in this workspace." };
     }
 
     // Fetch previous task states to log status transitions

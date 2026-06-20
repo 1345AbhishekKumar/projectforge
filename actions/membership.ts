@@ -19,7 +19,7 @@ const getOrganizationMembersInputSchema = z.object({
 const updateMemberRoleInputSchema = z.object({
   membershipId: membershipIdSchema,
   orgId: orgIdSchema,
-  newRole: z.enum(["ADMIN", "MEMBER"]),
+  newRole: z.string().min(2).max(50),
 });
 
 const removeMemberInputSchema = z.object({
@@ -113,7 +113,7 @@ export async function getOrganizationMembers(
 export async function updateMemberRole(
   membershipId: string,
   orgId: string,
-  newRole: "ADMIN" | "MEMBER"
+  newRole: string
 ): Promise<{ success: boolean; error?: string }> {
   const validated = updateMemberRoleInputSchema.safeParse({ membershipId, orgId, newRole });
   if (!validated.success) {

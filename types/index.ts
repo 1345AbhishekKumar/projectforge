@@ -1,4 +1,4 @@
-export type MembershipRole = "OWNER" | "ADMIN" | "MEMBER";
+export type MembershipRole = "OWNER" | "ADMIN" | "MEMBER" | string;
 
 export type UserProfile = {
   id: string;
@@ -254,9 +254,29 @@ export type Program = {
 export type ProgramProject = {
   program_id: string;
   project_id: string;
+};export type CustomFieldType = "TEXT" | "NUMBER" | "SELECT" | "DATE";
+
+export type CustomField = {
+  id: string;
+  organization_id: string;
+  entity_type: "TASK" | "PROJECT";
+  name: string;
+  field_type: CustomFieldType;
+  options: string[] | null;
+  created_at: string;
 };
 
-
-
-
+export type CustomFieldValue = {
+  id: string;
+  custom_field_id: string;
+  entity_id: string;
+  value: string;
+  created_at: string;
+  custom_fields?: {
+    organization_id: string;
+    name: string;
+    field_type: CustomFieldType;
+    options: string[] | null;
+  };
+};
 

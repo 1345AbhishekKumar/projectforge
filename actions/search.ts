@@ -14,6 +14,12 @@ const searchFiltersSchema = z.object({
   priorities: z.array(z.string()).optional(),
   assignees: z.array(z.string()).optional(),
   labelIds: z.array(z.string().uuid()).optional(),
+  customFieldFilters: z.array(
+    z.object({
+      fieldId: z.string().uuid(),
+      value: z.string().min(1),
+    })
+  ).optional(),
   dateRange: z.object({
     start: z.string().optional(),
     end: z.string().optional(),
@@ -111,6 +117,30 @@ export async function advancedSearch(
       taskQuery = taskQuery.in("id", taskIdsWithLabels);
     }
 
+    // Custom field value filtering
+    if (filterData.customFieldFilters && filterData.customFieldFilters.length > 0) {
+      let cfTaskIds: string[] | null = null;
+      for (const cf of filterData.customFieldFilters) {
+        const { data: cfMatches } = await insforge.database
+          .from("custom_field_values")
+          .select("entity_id")
+          .eq("custom_field_id", cf.fieldId)
+          .ilike("value", `%${cf.value}%`);
+
+        const ids = (cfMatches ?? []).map((r: { entity_id: string }) => r.entity_id);
+        cfTaskIds = cfTaskIds === null ? ids : cfTaskIds.filter((id) => ids.includes(id));
+      }
+
+      const intersected = cfTaskIds ?? [];
+      if (intersected.length === 0) {
+        return {
+          success: true,
+          data: { projects: [], tasks: [], members: [], comments: [], attachments: [], activities: [] },
+        };
+      }
+      taskQuery = taskQuery.in("id", intersected);
+    }
+
     const { data: filteredTasks, error: taskQueryError } = await taskQuery;
     if (taskQueryError) {
       logger.error({ error: taskQueryError }, "Error filtering tasks");
@@ -124,6 +154,7 @@ export async function advancedSearch(
                       (filterData.priorities && filterData.priorities.length > 0) ||
                       (filterData.assignees && filterData.assignees.length > 0) ||
                       (filterData.labelIds && filterData.labelIds.length > 0) ||
+                      (filterData.customFieldFilters && filterData.customFieldFilters.length > 0) ||
                       filterData.dateRange?.start ||
                       filterData.dateRange?.end;
 

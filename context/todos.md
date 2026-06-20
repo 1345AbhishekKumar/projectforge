@@ -307,14 +307,14 @@ we are building version 4 (prd_versions/v4.md)
 - [x] **Manager Assignment:** Assign a program manager. Verify that only assigned managers or admins can modify program settings.
 
 ### Feature 4.3: Advanced RBAC Verification
-- [ ] **Custom Role Assignment:** Create a role `Auditor` and assign it to a user. Verify permissions (read-only for all resources, write actions blocked).
-- [ ] **Resource-Action Matrix:** Test fine-grained permissions (e.g. allow a user to update tasks but block project deletion). Verify API rejects unauthorized requests.
-- [ ] **Default Roles Fallback:** Ensure default roles (Owner, Admin, Contributor, Viewer) behave identically to V1 specifications if no custom roles are defined.
+- [x] **Custom Role Assignment:** Create a role `Auditor` and assign it to a user. Verify permissions (read-only for all resources, write actions blocked).
+- [x] **Resource-Action Matrix:** Test fine-grained permissions (e.g. allow a user to update tasks but block project deletion). Verify API rejects unauthorized requests.
+- [x] **Default Roles Fallback:** Ensure default roles (Owner, Admin, Contributor, Viewer) behave identically to V1 specifications if no custom roles are defined.
 
 ### Feature 4.4: Custom Fields Verification
-- [ ] **Dynamic UI Input Injection:** Verify task drawers dynamically inject input elements (text fields, numeric inputs, or dropdowns) based on defined `custom_fields`.
-- [ ] **Zod Input Validation:** Ensure custom field values match target types (e.g. enforce numeric check for 'NUMBER' field) before saving.
-- [ ] **Search & Filter Integration:** Filter task search results using custom field criteria. Verify matching records return.
+- [x] **Dynamic UI Input Injection:** Verify task drawers dynamically inject input elements (text fields, numeric inputs, or dropdowns) based on defined `custom_fields`.
+- [x] **Zod Input Validation:** Ensure custom field values match target types (e.g. enforce numeric check for 'NUMBER' field) before saving.
+- [x] **Search & Filter Integration:** Filter task search results using custom field criteria. Verify matching records return.
 
 ### Feature 4.5: Advanced Workflow Engine Verification
 - [ ] **Approval Chains:** Create a multi-step approval workflow (e.g. Contributor -> Manager -> Director). Verify task status stays locked until all approvals are logged.

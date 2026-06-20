@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Trash2, ShieldAlert, XCircle, Users, Zap } from "lucide-react";
+import Link from "next/link";
+import { Loader2, Trash2, ShieldAlert, XCircle, Users, Zap, SlidersHorizontal } from "lucide-react";
 import { MemberList } from "@/components/orgs/MemberList";
 import { InviteModal } from "@/components/orgs/InviteModal";
 import { NotificationPreferences } from "@/components/notifications/NotificationPreferences";
@@ -202,6 +203,15 @@ export function SettingsForm({
               Workflows
             </span>
           </button>
+        )}
+        {isOwnerOrAdmin && (
+          <Link
+            href="/settings/custom-fields"
+            className="px-6 py-2.5 text-sm font-bold font-cursive transition-all -mb-0.5 cursor-pointer border-b-2 border-transparent hover:bg-neutral-bg/50 text-secondary flex items-center gap-2"
+          >
+            <SlidersHorizontal className="h-4 w-4" />
+            Custom Fields
+          </Link>
         )}
       </div>
 

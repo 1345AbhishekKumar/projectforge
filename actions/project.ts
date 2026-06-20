@@ -11,7 +11,7 @@ import type { Project, ProjectStatus } from "@/types";
 import { logActivity } from "@/actions/activity";
 import { createNotification } from "@/actions/notification";
 import { orgIdSchema, projectIdSchema } from "@/lib/utils";
-import { verifyMembership, verifyAdminOrOwnerRole } from "@/lib/auth-helpers";
+import { verifyMembership, verifyPermission } from "@/lib/auth-helpers";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 const projectSchema = z.object({
@@ -106,9 +106,9 @@ export async function createProject(
 
     const insforge = createInsforgeServer(userId);
 
-    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
-    if (!isMember) {
-      return { success: false, error: "Not a member of this workspace" };
+    const isAllowed = await verifyPermission(insforge, validated.data.orgId, userId, "projects", "create");
+    if (!isAllowed) {
+      return { success: false, error: "You do not have permission to create projects in this workspace." };
     }
 
     let finalCustomStatuses = validated.data.custom_statuses || null;
@@ -364,9 +364,9 @@ export async function updateProject(
 
     const insforge = createInsforgeServer(userId);
 
-    const isAdminOrOwner = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
-    if (!isAdminOrOwner) {
-      return { success: false, error: "Only owners and admins can update projects." };
+    const isAllowed = await verifyPermission(insforge, validated.data.orgId, userId, "projects", "update");
+    if (!isAllowed) {
+      return { success: false, error: "You do not have permission to update projects in this workspace." };
     }
 
     // Task conflict guard if custom_statuses is updated/cleared
@@ -463,9 +463,9 @@ export async function archiveProject(
 
     const insforge = createInsforgeServer(userId);
 
-    const isAdminOrOwner = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
-    if (!isAdminOrOwner) {
-      return { success: false, error: "Only owners and admins can archive projects." };
+    const isAllowed = await verifyPermission(insforge, validated.data.orgId, userId, "projects", "delete");
+    if (!isAllowed) {
+      return { success: false, error: "You do not have permission to archive projects in this workspace." };
     }
 
     const { data: projData } = await insforge.database
@@ -525,9 +525,9 @@ export async function deleteProject(
 
     const insforge = createInsforgeServer(userId);
 
-    const isAdminOrOwner = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
-    if (!isAdminOrOwner) {
-      return { success: false, error: "Only owners and admins can delete projects." };
+    const isAllowed = await verifyPermission(insforge, validated.data.orgId, userId, "projects", "delete");
+    if (!isAllowed) {
+      return { success: false, error: "You do not have permission to delete projects in this workspace." };
     }
 
     // Fetch project details for logging

@@ -17,6 +17,7 @@ import { TaskAttachments } from "./details/TaskAttachments";
 import { TaskLabelSelector } from "./details/TaskLabelSelector";
 import { TaskTimeSection } from "./details/TaskTimeSection";
 import { AISubtaskSuggester } from "./details/AISubtaskSuggester";
+import { CustomFieldsPanel } from "./details/CustomFieldsPanel";
 
 const taskDetailsSchema = z.object({
   title: z
@@ -430,6 +431,11 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
             />
 
             <TaskTimeSection
+              taskId={task.id}
+              orgId={task.organization_id}
+            />
+
+            <CustomFieldsPanel
               taskId={task.id}
               orgId={task.organization_id}
             />

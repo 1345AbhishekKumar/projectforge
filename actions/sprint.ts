@@ -7,7 +7,7 @@ import { z } from "zod";
 import type { Sprint, SprintStatus } from "@/types";
 import { createNotification } from "@/actions/notification";
 import { orgIdSchema, sprintIdSchema } from "@/lib/utils";
-import { verifyMembership, verifyAdminOrOwnerRole } from "@/lib/auth-helpers";
+import { verifyMembership, verifyPermission } from "@/lib/auth-helpers";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
 import * as Sentry from "@sentry/nextjs";
 
@@ -86,9 +86,9 @@ export async function createSprint(
     const insforge = createInsforgeServer(userId);
 
     // Check permissions
-    const isAuthorized = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
+    const isAuthorized = await verifyPermission(insforge, validated.data.orgId, userId, "sprints", "create");
     if (!isAuthorized) {
-      return { success: false, error: "Unauthorized: Only Admins and Owners can manage sprints." };
+      return { success: false, error: "Unauthorized: Only users with sprint creation permissions can manage sprints." };
     }
 
     // Check date order
@@ -194,9 +194,9 @@ export async function updateSprint(
     const insforge = createInsforgeServer(userId);
 
     // Check permissions
-    const isAuthorized = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
+    const isAuthorized = await verifyPermission(insforge, validated.data.orgId, userId, "sprints", "update");
     if (!isAuthorized) {
-      return { success: false, error: "Unauthorized: Only Admins and Owners can manage sprints." };
+      return { success: false, error: "Unauthorized: Only users with sprint update permissions can manage sprints." };
     }
 
     // Check current status - Completed sprints are locked
@@ -288,9 +288,9 @@ export async function updateSprintStatus(
     const insforge = createInsforgeServer(userId);
 
     // Check permissions
-    const isAuthorized = await verifyAdminOrOwnerRole(insforge, validated.data.orgId, userId);
+    const isAuthorized = await verifyPermission(insforge, validated.data.orgId, userId, "sprints", "update");
     if (!isAuthorized) {
-      return { success: false, error: "Unauthorized: Only Admins and Owners can manage sprints." };
+      return { success: false, error: "Unauthorized: Only users with sprint update permissions can manage sprints." };
     }
 
     const { data: existingSprint } = await insforge.database

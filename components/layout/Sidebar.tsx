@@ -12,6 +12,7 @@ import {
   Clock,
   History,
   Briefcase,
+  Shield,
 } from "lucide-react";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { SearchTrigger } from "@/components/search/SearchTrigger";
@@ -55,6 +56,7 @@ export function Sidebar() {
     { href: "/analytics", label: "Analytics", icon: <BarChart2 className="h-4 w-4" />, accent: "bg-accent-blue" },
     { href: "/time", label: "Time Tracking", icon: <Clock className="h-4 w-4" />, accent: "bg-accent-pink" },
     { href: "/settings/audit-logs", label: "Audit Logs", icon: <History className="h-4 w-4" />, accent: "bg-accent-green" },
+    { href: "/settings/roles", label: "Roles & Permissions", icon: <Shield className="h-4 w-4" />, accent: "bg-accent-yellow" },
   ];
 
   return (

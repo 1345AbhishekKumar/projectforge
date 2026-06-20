@@ -1,8 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Filter, ChevronDown, Check, Save, Trash2, X } from "lucide-react";
-import type { TaskPriority, TaskStatus, Label, SavedView } from "@/types";
+import { Filter, ChevronDown, Check, Save, Trash2, X, SlidersHorizontal } from "lucide-react";
+import type { TaskPriority, TaskStatus, Label, SavedView, CustomField } from "@/types";
 import type { MemberListItem } from "@/actions/membership";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,6 +23,7 @@ export type FiltersState = {
   statuses: TaskStatus[];
   assigneeIds: (string | null)[];
   labelIds: string[];
+  customFieldFilters?: { fieldId: string; value: string }[];
 };
 
 export const initialFilters: FiltersState = {
@@ -30,6 +31,7 @@ export const initialFilters: FiltersState = {
   statuses: [],
   assigneeIds: [],
   labelIds: [],
+  customFieldFilters: [],
 };
 
 type Props = {
@@ -43,6 +45,7 @@ type Props = {
   activeViewName?: string;
   onClearViewName?: () => void;
   customStatuses?: string[] | null;
+  customFields?: CustomField[];
 };
 
 export function TaskFilters({
@@ -55,7 +58,8 @@ export function TaskFilters({
   onDeleteView,
   activeViewName,
   onClearViewName,
-  customStatuses
+  customStatuses,
+  customFields = [],
 }: Props) {
   const [openDropdown, setOpenDropdown] = useState<"priority" | "status" | "assignee" | "label" | "views" | null>(null);
   const [isSavingView, setIsSavingView] = useState(false);
@@ -146,7 +150,8 @@ export function TaskFilters({
     activeFilters.priorities.length > 0 ||
     activeFilters.statuses.length > 0 ||
     activeFilters.assigneeIds.length > 0 ||
-    activeFilters.labelIds.length > 0;
+    activeFilters.labelIds.length > 0 ||
+    (activeFilters.customFieldFilters ?? []).some((cf) => cf.value.trim() !== "");
 
   const handleClearAll = () => {
     onFiltersChange(initialFilters);
@@ -333,6 +338,65 @@ export function TaskFilters({
               </div>
             )}
           </div>
+
+          {/* Custom Field Filters */}
+          {customFields.length > 0 && customFields.map((field) => {
+            const cfFilters = activeFilters.customFieldFilters ?? [];
+            const existing = cfFilters.find((cf) => cf.fieldId === field.id);
+            const currentValue = existing?.value ?? "";
+            const isActive = currentValue.trim() !== "";
+
+            const handleCfChange = (val: string) => {
+              const updated = cfFilters
+                .filter((cf) => cf.fieldId !== field.id)
+                .concat(val.trim() ? [{ fieldId: field.id, value: val }] : []);
+              onFiltersChange({ ...activeFilters, customFieldFilters: updated });
+              if (onClearViewName) onClearViewName();
+            };
+
+            return (
+              <div key={field.id} className="relative">
+                <div
+                  className={`flex items-center gap-1.5 border-2 border-black rounded-full pl-3 pr-2 py-1 font-sans text-xs font-bold shadow-flat-offset-sm ${
+                    isActive ? "bg-accent-blue/20" : "bg-white"
+                  }`}
+                >
+                  <SlidersHorizontal className="h-3 w-3 text-secondary flex-shrink-0" />
+                  <span className="text-secondary/70 whitespace-nowrap">{field.name}:</span>
+                  {field.field_type === "SELECT" ? (
+                    <select
+                      value={currentValue}
+                      onChange={(e) => handleCfChange(e.target.value)}
+                      className="bg-transparent border-none outline-none text-xs font-bold cursor-pointer max-w-[100px]"
+                    >
+                      <option value="">Any</option>
+                      {(field.options ?? []).map((opt) => (
+                        <option key={opt} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  ) : (
+                    <input
+                      type={field.field_type === "NUMBER" ? "number" : field.field_type === "DATE" ? "date" : "text"}
+                      value={currentValue}
+                      onChange={(e) => handleCfChange(e.target.value)}
+                      placeholder="Any"
+                      className="bg-transparent border-none outline-none text-xs font-bold w-16"
+                    />
+                  )}
+                  {isActive && (
+                    <button
+                      type="button"
+                      onClick={() => handleCfChange("")}
+                      className="ml-0.5 text-secondary hover:text-primary cursor-pointer"
+                      aria-label={`Clear ${field.name} filter`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
 
           {/* Clear Button */}
           {hasActiveFilters && (

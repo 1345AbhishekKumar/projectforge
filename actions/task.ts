@@ -8,7 +8,7 @@ import { z } from "zod";
 import type { Task, TaskStatus, TaskPriority, Label } from "@/types";
 import { logActivity } from "@/actions/activity";
 import { orgIdSchema, projectIdSchema } from "@/lib/utils";
-import { verifyMembership } from "@/lib/auth-helpers";
+import { verifyMembership, verifyPermission } from "@/lib/auth-helpers";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
 import * as Sentry from "@sentry/nextjs";
 import { triggerWorkflowEvent } from "@/lib/workflows/engine";
@@ -73,9 +73,9 @@ export async function createTask(
 
     const insforge = createInsforgeServer(userId);
 
-    const isMember = await verifyMembership(insforge, validated.data.orgId, userId);
-    if (!isMember) {
-      return { success: false, error: "Not a member of this workspace" };
+    const isAllowed = await verifyPermission(insforge, validated.data.orgId, userId, "tasks", "create");
+    if (!isAllowed) {
+      return { success: false, error: "You do not have permission to create tasks in this workspace." };
     }
 
     // Fetch project's custom statuses and validate the status value
