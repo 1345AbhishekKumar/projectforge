@@ -298,13 +298,13 @@ we are building version 4 (prd_versions/v4.md)
 ## Component-by-Component Checklists
 
 ### Feature 4.1: Portfolio Management Verification
-- [ ] **Portfolio CRUD Lifecycle:** Test portfolio creation, view list, update details, and archive. Verify database changes in `portfolios`.
-- [ ] **Tenant Isolation:** Verify users cannot see or query portfolios outside their active `organization_id`.
-- [ ] **Project Mappings:** Link multiple projects to a portfolio. Verify references are tracked and aggregated dashboard stats display correctly.
+- [x] **Portfolio CRUD Lifecycle:** Test portfolio creation, view list, update details, and archive. Verify database changes in `portfolios`.
+- [x] **Tenant Isolation:** Verify users cannot see or query portfolios outside their active `organization_id`.
+- [x] **Project Mappings:** Link multiple projects to a portfolio. Verify references are tracked and aggregated dashboard stats display correctly.
 
 ### Feature 4.2: Program Management Verification
-- [ ] **Program Association:** Link projects under a program. Verify that the parent relationship to a portfolio is maintained in the `programs` table.
-- [ ] **Manager Assignment:** Assign a program manager. Verify that only assigned managers or admins can modify program settings.
+- [x] **Program Association:** Link projects under a program. Verify that the parent relationship to a portfolio is maintained in the `programs` table.
+- [x] **Manager Assignment:** Assign a program manager. Verify that only assigned managers or admins can modify program settings.
 
 ### Feature 4.3: Advanced RBAC Verification
 - [ ] **Custom Role Assignment:** Create a role `Auditor` and assign it to a user. Verify permissions (read-only for all resources, write actions blocked).

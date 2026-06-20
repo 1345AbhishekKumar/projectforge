@@ -226,6 +226,37 @@ export type TeamMember = {
   active_project_count: number;
 };
 
+export type PortfolioStatus = "ACTIVE" | "INACTIVE";
+
+export type Portfolio = {
+  id: string;
+  organization_id: string;
+  name: string;
+  description: string | null;
+  owner_id: string;
+  status: PortfolioStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProgramStatus = "ACTIVE" | "ARCHIVED";
+
+export type Program = {
+  id: string;
+  portfolio_id: string;
+  name: string;
+  manager_id: string | null;
+  status: ProgramStatus;
+  created_at: string;
+  updated_at: string;
+};
+
+export type ProgramProject = {
+  program_id: string;
+  project_id: string;
+};
+
+
 
 
 

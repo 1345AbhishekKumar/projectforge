@@ -11,6 +11,7 @@ import {
   BarChart2,
   Clock,
   History,
+  Briefcase,
 } from "lucide-react";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { SearchTrigger } from "@/components/search/SearchTrigger";
@@ -46,6 +47,7 @@ export function Sidebar() {
 
   const links = [
     { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, accent: "bg-accent-yellow" },
+    { href: "/portfolios", label: "Portfolios", icon: <Briefcase className="h-4 w-4" />, accent: "bg-accent-yellow" },
     { href: "/projects", label: "Projects Directory", icon: <FolderKanban className="h-4 w-4" />, accent: "bg-accent-blue" },
     { href: "/sprints", label: "Sprints", icon: <Calendar className="h-4 w-4" />, accent: "bg-accent-pink" },
     { href: "/team", label: "Team Directory", icon: <Users className="h-4 w-4" />, accent: "bg-accent-green" },
