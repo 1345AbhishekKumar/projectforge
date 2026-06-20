@@ -41,6 +41,7 @@ interface ReportingData {
 
 export default function ReportsPage() {
   const orgId = useOrgStore((s) => s.activeOrgId);
+  const [mounted, setMounted] = useState(false);
   const [activeTab, setActiveTab] = useState<"productivity" | "health" | "velocity" | "completion" | "workload">("productivity");
   const [data, setData] = useState<ReportingData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -48,6 +49,13 @@ export default function ReportsPage() {
   
   // Time range selection
   const [timeRange, setTimeRange] = useState<"7" | "30" | "all">("30");
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   const loadData = useCallback(async () => {
     if (!orgId) return;
@@ -97,6 +105,14 @@ export default function ReportsPage() {
       document.body.removeChild(link);
     }
   };
+
+  if (!mounted) {
+    return (
+      <div className="p-6 max-w-6xl mx-auto font-sans bg-neutral-bg/10 min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-tertiary" />
+      </div>
+    );
+  }
 
   if (!orgId) {
     return (

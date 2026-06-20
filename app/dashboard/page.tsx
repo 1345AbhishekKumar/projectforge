@@ -2,22 +2,56 @@
 
 import { useUser, useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import { LogOut, User as UserIcon, LayoutDashboard, Settings, BookOpen } from "lucide-react";
+import { useEffect, useState } from "react";
+import { LogOut, User as UserIcon, LayoutDashboard, Settings, BookOpen, CheckCircle, XCircle } from "lucide-react";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { syncProfile } from "@/actions/profile";
 import { InvitationBanner } from "@/components/invitations/InvitationBanner";
+import { useOrgStore } from "@/store/orgStore";
+import { seedData } from "@/actions/seeddata";
 
 export default function DashboardPage() {
   const { user, isLoaded } = useUser();
   const { signOut } = useAuth();
   const router = useRouter();
+  const { activeOrgId } = useOrgStore();
+
+  const [isSeeding, setIsSeeding] = useState(false);
+  const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const handleSignOut = async () => {
     await signOut();
     router.push("/sign-in");
+  };
+
+  const showBanner = (type: "success" | "error", text: string) => {
+    setBanner({ type, text });
+    setTimeout(() => setBanner(null), 4000);
+  };
+
+  const handleSeedData = async () => {
+    if (!activeOrgId) {
+      showBanner("error", "Please select or create an organization workspace first!");
+      return;
+    }
+    setIsSeeding(true);
+    try {
+      const res = await seedData(activeOrgId);
+      if (res.success) {
+        showBanner("success", "Database seeded successfully! Reloading workspace...");
+        setTimeout(() => {
+          router.refresh();
+        }, 1500);
+      } else {
+        showBanner("error", res.error || "Failed to seed database");
+      }
+    } catch {
+      showBanner("error", "An unexpected error occurred during seeding");
+    } finally {
+      setIsSeeding(false);
+    }
   };
 
   // Sync Clerk user → InsForge profiles table on first load
@@ -83,16 +117,46 @@ export default function DashboardPage() {
           <OrgSwitcher />
         </div>
 
+      {/* Toast Notification Banner */}
+      {banner && (
+        <div
+          role="alert"
+          className={`fixed top-4 right-4 z-[100] max-w-md border-2 border-black rounded-sketchy p-4 shadow-flat-offset transition-all transform ${
+            banner.type === "success" ? "bg-accent-green" : "bg-accent-pink"
+          }`}
+        >
+          <div className="flex items-center gap-2 font-sans font-bold text-sm">
+            {banner.type === "success" ? (
+              <CheckCircle className="h-5 w-5 text-primary" />
+            ) : (
+              <XCircle className="h-5 w-5 text-primary" />
+            )}
+            {banner.text}
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-8">
         <InvitationBanner />
         <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8">
-          <h1 className="font-cursive text-4xl font-bold mb-2">
-            Hey, {user?.firstName || "Collaborator"}! 👋
-          </h1>
-          <p className="font-sans text-sm text-secondary mb-6">
-            Welcome to your intelligent whiteboard workspace. Here is a snapshot of your execution board.
-          </p>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div>
+              <h1 className="font-cursive text-4xl font-bold mb-2">
+                Hey, {user?.firstName || "Collaborator"}! 👋
+              </h1>
+              <p className="font-sans text-sm text-secondary">
+                Welcome to your intelligent whiteboard workspace. Here is a snapshot of your execution board.
+              </p>
+            </div>
+            <button
+              onClick={handleSeedData}
+              disabled={isSeeding}
+              className={`flex items-center gap-2 bg-accent-yellow hover:bg-[#FFE680] text-primary border-2 border-black font-sans text-xs font-bold px-4 py-2.5 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              🌱 {isSeeding ? "Seeding..." : "Seed Data"}
+            </button>
+          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Widget 1: Active Workspace */}

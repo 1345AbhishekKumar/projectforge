@@ -40,6 +40,8 @@ After building any component — update this file with the component name, file 
 - **Navbar Classes:** `w-full bg-white border-b-2 border-black px-6 py-3 flex items-center justify-between sticky top-0 z-50`
 - **Card Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8`
 - **Widget Classes:** `border-2 border-black rounded-sketchy-sm p-6 shadow-flat-offset-sm`
+- **Seed Button Classes:** `flex items-center gap-2 bg-accent-yellow hover:bg-[#FFE680] text-primary border-2 border-black font-sans text-xs font-bold px-4 py-2.5 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer`
+- **Toast Banner Classes:** `fixed top-4 right-4 z-[100] max-w-md border-2 border-black rounded-sketchy p-4 shadow-flat-offset transition-all transform`
 
 ### Organization Screens
 

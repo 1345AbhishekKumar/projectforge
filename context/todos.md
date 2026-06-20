@@ -184,24 +184,24 @@ we are building version 3 (prd_versions/v3.md)
 ## Phase 3 Database & Schema Setup Checklist
 
 ### New Database Tables & Schema Verification
-- [ ] **`workflows` Table:** Verify fields: `id`, `organization_id`, `name`, `trigger` (string), `conditions` (jsonb), `actions` (jsonb), `enabled` (boolean), `created_at`. Enforce FK to `organizations.id`.
-- [ ] **`time_entries` Table:** Verify fields: `id`, `task_id`, `user_id`, `start_time` (timestamp), `end_time` (timestamp/nullable), `duration` (integer), `created_at`. Enforce FK to `tasks.id` and `profiles.id`.
-- [ ] **`audit_logs` Table:** Verify fields: `id`, `actor_id` (nullable FK to `profiles.id`), `action` (string), `entity_type` (string), `entity_id` (string), `metadata` (jsonb), `created_at` (timestamp).
-- [ ] **`api_keys` Table:** Verify fields: `id`, `organization_id`, `name`, `key_hash` (string), `expires_at` (timestamp), `created_at`. Enforce FK to `organizations.id`.
-- [ ] **`task_dependencies` Table:** Verify fields: `id`, `source_task_id`, `target_task_id`, `type` (string), `created_at`. Enforce FKs to `tasks.id`.
-- [ ] **`project_templates` Table:** Verify fields: `id`, `name`, `description`, `tasks_schema` (jsonb), `created_at`.
-- [ ] **Custom Task Workflows Schema:** Verify table or column structure supporting customizable status sequences (e.g. statuses array or custom status mapping in `projects` or `organizations`).
+- [x] **`workflows` Table:** Verify fields: `id`, `organization_id`, `name`, `trigger` (string), `conditions` (jsonb), `actions` (jsonb), `enabled` (boolean), `created_at`. Enforce FK to `organizations.id`.
+- [x] **`time_entries` Table:** Verify fields: `id`, `task_id`, `user_id`, `start_time` (timestamp), `end_time` (timestamp/nullable), `duration` (integer), `created_at`. Enforce FK to `tasks.id` and `profiles.id`.
+- [x] **`audit_logs` Table:** Verify fields: `id`, `actor_id` (nullable FK to `profiles.id`), `action` (string), `entity_type` (string), `entity_id` (string), `metadata` (jsonb), `created_at` (timestamp).
+- [x] **`api_keys` Table:** Verify fields: `id`, `organization_id`, `name`, `key_hash` (string), `expires_at` (timestamp), `created_at`. Enforce FK to `organizations.id`.
+- [x] **`task_dependencies` Table:** Verify fields: `id`, `source_task_id`, `target_task_id`, `type` (string), `created_at`. Enforce FKs to `tasks.id`.
+- [x] **`project_templates` Table:** Verify fields: `id`, `name`, `description`, `tasks_schema` (jsonb), `created_at`.
+- [x] **Custom Task Workflows Schema:** Verify table or column structure supporting customizable status sequences (e.g. statuses array or custom status mapping in `projects` or `organizations`).
 
 ### Page Routing & Directory Scaffolding
-- [ ] **Workflows Dashboard (`/workflows`):** Verify page routing and active/inactive workflow list view.
-- [ ] **Workflow Builder (`/workflows/new` or `/workflows/[id]`):** Verify builder canvas, trigger selection, conditions editor, and actions selector.
-- [ ] **Time Tracking Dashboard (`/time`):** Verify personal time logs, active timer interface, and project-wide tracking.
-- [ ] **Audit Logs Viewer (`/settings/audit-logs`):** Verify query filters (actor, date range, action type) and event table renders.
-- [ ] **Developer Settings (`/settings/developer`):** Verify API key generation interface, rate limit indicators, and webhook subscription settings.
-- [ ] **Advanced Search Dashboard (`/search`):** Verify deep filter panels (projects, tasks, comments, files, dates) and full-text search results page.
-- [ ] **Reporting & Analytics Center (`/reports`):** Verify custom reports builder, export options, and chart components (productivity, velocity, health).
-- [ ] **Workload Planner (`/team/workload`):** Verify capacity planning calendar, workload distribution grid, and capacity utilization bar chart.
-- [ ] **Project Template Selector (`/projects/new/templates`):** Verify layout displaying preset templates (Mobile App, Marketing, etc.).
+- [x] **Workflows Dashboard (`/workflows`):** Verify page routing and active/inactive workflow list view.
+- [x] **Workflow Builder (`/workflows/new` or `/workflows/[id]`):** Verify builder canvas, trigger selection, conditions editor, and actions selector.
+- [x] **Time Tracking Dashboard (`/time`):** Verify personal time logs, active timer interface, and project-wide tracking.
+- [x] **Audit Logs Viewer (`/settings/audit-logs`):** Verify query filters (actor, date range, action type) and event table renders.
+- [x] **Developer Settings (`/settings/developer`):** Verify API key generation interface, rate limit indicators, and webhook subscription settings.
+- [x] **Advanced Search Dashboard (`/search`):** Verify deep filter panels (projects, tasks, comments, files, dates) and full-text search results page.
+- [x] **Reporting & Analytics Center (`/reports`):** Verify custom reports builder, export options, and chart components (productivity, velocity, health).
+- [x] **Workload Planner (`/team/workload`):** Verify capacity planning calendar, workload distribution grid, and capacity utilization bar chart.
+- [x] **Project Template Selector (`/projects/new/templates`):** Verify layout displaying preset templates (Mobile App, Marketing, etc.).
 
 ---
 
@@ -256,3 +256,112 @@ we are building version 3 (prd_versions/v3.md)
 ### Feature 3.8: Dependency & Project Templates Verification
 - [x] **Task Dependency Blocking:** Create dependency Task B blocked by Task A. Attempt to mark Task B as completed. Verify the UI blocks transition and warns of unresolved blocker.
 - [x] **Template Scaffolding:** Create project from "Website Launch" template. Verify all predefined tasks, statuses, and default assignments are instantiated in the new project.
+
+---
+
+# ProjectForge: Version 4 (Enterprise Execution Platform) Verification Guidelines & Todos
+
+This document lists the technical verification checklists and manual E2E test steps for **Version 4 (Enterprise Execution Platform)**, organized by database setup, page routing, and individual feature components.
+
+---
+
+we are building version 4 (prd_versions/v4.md)
+
+## Phase 4 Database & Schema Setup Checklist
+
+### New Database Tables & Schema Verification
+- [ ] **`portfolios` Table:** Verify fields: `id`, `organization_id`, `name`, `description`, `owner_id`, `status` (PLANNED, ACTIVE, COMPLETED, ARCHIVED), `created_at`. Enforce FK to `organizations.id` and `profiles.id` (owner).
+- [ ] **`programs` Table:** Verify fields: `id`, `portfolio_id`, `name`, `manager_id`, `status` (PLANNED, ACTIVE, COMPLETED, ARCHIVED), `created_at`. Enforce FK to `portfolios.id` and `profiles.id` (manager).
+- [ ] **`roles` Table:** Verify fields: `id`, `organization_id`, `name`, `created_at`. Enforce FK to `organizations.id`.
+- [ ] **`permissions` Table:** Verify fields: `id`, `name`, `resource` (string), `action` (string), `created_at`.
+- [ ] **`role_permissions` Table:** Verify fields: `role_id`, `permission_id`. Enforce FKs to `roles.id` and `permissions.id` with a composite primary key.
+- [ ] **`custom_fields` Table:** Verify fields: `id`, `organization_id`, `entity_type` (e.g. 'TASK', 'PROJECT'), `name`, `field_type` (e.g. 'TEXT', 'NUMBER', 'SELECT'), `created_at`. Enforce FK to `organizations.id`.
+- [ ] **`custom_field_values` Table:** Verify fields: `id`, `custom_field_id`, `entity_id` (UUID), `value` (text), `created_at`. Enforce FK to `custom_fields.id`.
+- [ ] **`resource_allocations` Table:** Verify fields: `id`, `user_id`, `project_id`, `allocation_percentage` (int), `created_at`. Enforce FK to `profiles.id` and `projects.id`.
+- [ ] **`risks` Table:** Verify fields: `id`, `project_id`, `title`, `probability` (low, medium, high), `impact` (low, medium, high), `mitigation_plan` (text), `created_at`. Enforce FK to `projects.id`.
+- [ ] **`departments` Table:** Verify fields: `id`, `organization_id`, `name`, `parent_department_id` (nullable), `created_at`. Enforce FK to `organizations.id` and self-referential FK.
+
+### Page Routing & Directory Scaffolding
+- [ ] **Portfolios Dashboard (`/portfolios`):** Verify page routing and display of aggregated portfolio-level KPIs.
+- [ ] **Portfolio & Program Detail Views (`/portfolios/[id]`, `/programs/[id]`):** Verify dynamic routes, project mappings, and status monitoring interfaces.
+- [ ] **Custom Roles Settings (`/settings/roles`):** Verify interface for listing, creating, and modifying RBAC permissions.
+- [ ] **Custom Fields Dashboard (`/settings/custom-fields`):** Verify management of dynamic attributes for tasks and projects.
+- [ ] **Enterprise Analytics & Reporting (`/reports/enterprise`):** Verify custom reports builder, capacity allocation charts, and department productivity view.
+- [ ] **Resource Planner (`/team/capacity`):** Verify resource allocation grids and utilization forecast visuals.
+- [ ] **Risk Registry Matrix (`/projects/[id]/risks`):** Verify interactive risk matrix view showing probability vs. impact.
+- [ ] **Compliance Center (`/settings/compliance`):** Verify logs table, data retention policies editor, and download options.
+- [ ] **Integrations Center (`/settings/integrations`):** Verify connection settings for third-party systems (Jira, Salesforce, HubSpot, SAP, Teams, Azure DevOps).
+- [ ] **SSO Configurator (`/settings/auth`):** Verify SAML, Okta, and Entra ID configuration panels.
+
+---
+
+## Component-by-Component Checklists
+
+### Feature 4.1: Portfolio Management Verification
+- [ ] **Portfolio CRUD Lifecycle:** Test portfolio creation, view list, update details, and archive. Verify database changes in `portfolios`.
+- [ ] **Tenant Isolation:** Verify users cannot see or query portfolios outside their active `organization_id`.
+- [ ] **Project Mappings:** Link multiple projects to a portfolio. Verify references are tracked and aggregated dashboard stats display correctly.
+
+### Feature 4.2: Program Management Verification
+- [ ] **Program Association:** Link projects under a program. Verify that the parent relationship to a portfolio is maintained in the `programs` table.
+- [ ] **Manager Assignment:** Assign a program manager. Verify that only assigned managers or admins can modify program settings.
+
+### Feature 4.3: Advanced RBAC Verification
+- [ ] **Custom Role Assignment:** Create a role `Auditor` and assign it to a user. Verify permissions (read-only for all resources, write actions blocked).
+- [ ] **Resource-Action Matrix:** Test fine-grained permissions (e.g. allow a user to update tasks but block project deletion). Verify API rejects unauthorized requests.
+- [ ] **Default Roles Fallback:** Ensure default roles (Owner, Admin, Contributor, Viewer) behave identically to V1 specifications if no custom roles are defined.
+
+### Feature 4.4: Custom Fields Verification
+- [ ] **Dynamic UI Input Injection:** Verify task drawers dynamically inject input elements (text fields, numeric inputs, or dropdowns) based on defined `custom_fields`.
+- [ ] **Zod Input Validation:** Ensure custom field values match target types (e.g. enforce numeric check for 'NUMBER' field) before saving.
+- [ ] **Search & Filter Integration:** Filter task search results using custom field criteria. Verify matching records return.
+
+### Feature 4.5: Advanced Workflow Engine Verification
+- [ ] **Approval Chains:** Create a multi-step approval workflow (e.g. Contributor -> Manager -> Director). Verify task status stays locked until all approvals are logged.
+- [ ] **Escalation Trigger Execution:** Simulate overdue task conditions. Verify the workflow engine executes the escalation action (assignee change, priority bump, and notifications).
+
+### Feature 4.6: Enterprise Reporting Verification
+- [ ] **Health & Financial Aggregations:** Generate reports incorporating project health metrics and resource cost centers. Verify mathematical formulas roll up accurately.
+- [ ] **Cross-Tenant Leakage Check:** Attempt to view reports using an unauthorized organization token. Verify immediate access denial.
+
+### Feature 4.7: Resource Management Verification
+- [ ] **Allocation Validation:** Assign a user to multiple projects. Verify that total allocation percentage warning triggers if it exceeds 100%.
+- [ ] **Workload Utilization Chart:** View capacity planner. Verify capacity graphs accurately reflect allocations stored in `resource_allocations`.
+
+### Feature 4.8: Risk Management Verification
+- [ ] **Risk Registry logging:** Add, update, and resolve risks under a project. Verify fields map correctly in `risks`.
+- [ ] **Mitigation Tracking:** Enforce that high-probability, high-impact risks display warning badges on the project summary screen.
+
+### Feature 4.9: Compliance & Governance Verification
+- [ ] **Immutability of Audit Trails:** Verify that the system records all state modifications into `audit_logs` and that the endpoints reject update/delete requests.
+- [ ] **Data Retention Job:** Run data retention cron. Verify tasks/activity records older than configured retention period are permanently deleted.
+
+### Feature 4.10: Organization Hierarchies Verification
+- [ ] **Recursive Department Tree:** Create nested departments. Verify child department metrics roll up to parent departments on reporting views.
+- [ ] **Scoped Permissions by Node:** Assign a Manager to a department node. Verify they only have access to projects and members within that branch.
+
+### Feature 4.11: Enterprise Integrations Verification
+- [ ] **Jira State Sync:** Trigger task change in Jira. Verify webhook syncs task status in ProjectForge.
+- [ ] **Teams/Slack Alerts:** Post updates in ProjectForge. Verify notifications successfully dispatch to mapped channels.
+
+### Feature 4.12: Advanced Notifications Verification
+- [ ] **Role-Targeted Alerts:** Send notification targeted to `Auditor` and `Manager` roles. Verify only users matching those roles receive the notification.
+- [ ] **Escalation Actions:** Verify that overdue task alerts trigger and notify supervisors if ignored.
+
+### Feature 4.13: Data Export Verification
+- [ ] **Format Validation:** Export data in CSV, Excel, and PDF formats. Check that values, date stamps, and layouts match target templates.
+- [ ] **Tamper-Proof Log Export:** Export audit logs to PDF. Verify cryptographic hashes or signature headers exist to guarantee integrity.
+
+### Feature 4.14: Multi-Language Support Verification
+- [ ] **UI i18n Translation:** Toggle UI locale. Verify all labels, tooltips, validation alerts, and placeholders render in the selected language.
+- [ ] **Locale Persistence:** Log out and log back in. Verify the preferred locale is retrieved from user profile metadata.
+
+### Feature 4.15: SSO & Enterprise Authentication Verification
+- [ ] **SSO Auth Handshake:** Perform Okta / Entra ID logins. Verify JWT verification succeeds and redirects user into active workspace.
+- [ ] **JIT Provisioning:** Verify a new employee logging in via SSO has their profile, organization membership, and default role auto-created.
+
+### Feature 4.16: Distributed Architecture & Infrastructure Verification
+- [ ] **API Gateway Routing:** Verify that request routes are properly split and dispatched to independent services (Auth, Org, Project, etc.).
+- [ ] **Event Bus Delivery:** Verify that event dispatching works asynchronously and failures are handled with retries and dead-letter queues.
+- [ ] **Telemetry & Tracing:** Run load tests. Verify OpenTelemetry captures distributed traces across all service boundaries and lists them in Grafana.
+
