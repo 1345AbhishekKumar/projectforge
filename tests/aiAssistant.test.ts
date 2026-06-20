@@ -28,6 +28,8 @@ mock.module("@/lib/insforge-server", () => ({
 
 mock.module("@/lib/auth-helpers", () => ({
   verifyMembership: () => Promise.resolve(true),
+  verifyAdminOrOwnerRole: () => Promise.resolve(true),
+  getOrganizationMemberships: () => Promise.resolve({ data: [], error: null }),
 }));
 
 mock.module("@sentry/nextjs", () => ({
@@ -41,6 +43,7 @@ mock.module("@/lib/logger", () => ({
     warn: () => {},
     debug: () => {},
   },
+  flushLogsAfterResponse: () => {},
 }));
 
 mock.module("openai", () => {

@@ -58,9 +58,9 @@ export default function ProjectsDirectoryPage() {
   }, [activeOrgId]);
 
   // Create project callback passed to modal
-  async function handleCreateProject(name: string, description: string | null, status: ProjectStatus) {
+  async function handleCreateProject(name: string, description: string | null, status: ProjectStatus, templateId?: string) {
     if (!activeOrgId) return { success: false, error: "No active workspace selected" };
-    const res = await createProject(name, description, status, activeOrgId);
+    const res = await createProject(name, description, status, activeOrgId, null, templateId || null);
     if (res.success) {
       // Reload projects list
       const projectsRes = await getUserProjects(activeOrgId);

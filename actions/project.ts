@@ -31,6 +31,7 @@ const projectSchema = z.object({
 
 const createProjectInputSchema = projectSchema.extend({
   orgId: orgIdSchema,
+  templateId: z.string().uuid().nullable().optional(),
 });
 
 const getUserProjectsInputSchema = z.object({
@@ -52,15 +53,50 @@ const archiveProjectInputSchema = z.object({
   orgId: orgIdSchema,
 });
 
+export async function getProjectTemplates(): Promise<{ success: boolean; data?: Record<string, unknown>[]; error?: string }> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const insforge = createInsforgeServer(userId);
+    const { data, error } = await insforge.database
+      .from("project_templates")
+      .select("*")
+      .order("name", { ascending: true });
+
+    if (error) {
+      logger.error({ error }, "Failed to fetch project templates");
+      return { success: false, error: "Failed to fetch templates" };
+    }
+
+    return { success: true, data };
+  } catch (err) {
+    logger.error(err, "Unexpected error in getProjectTemplates");
+    Sentry.captureException(err);
+    return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
+  }
+}
+
 export async function createProject(
   name: string,
   description: string | null,
   status: ProjectStatus,
   orgId: string,
-  customStatuses: string[] | null = null
+  customStatuses: string[] | null = null,
+  templateId: string | null = null
 ): Promise<{ success: boolean; data?: { projectId: string }; error?: string }> {
-  const validated = createProjectInputSchema.safeParse({ name, description, status, orgId, custom_statuses: customStatuses });
+  const validated = createProjectInputSchema.safeParse({
+    name,
+    description,
+    status,
+    orgId,
+    custom_statuses: customStatuses,
+    templateId,
+  });
   if (!validated.success) {
+    console.error("createProject validation failed:", validated.error.issues);
     return { success: false, error: validated.error.issues[0].message };
   }
 
@@ -75,6 +111,44 @@ export async function createProject(
       return { success: false, error: "Not a member of this workspace" };
     }
 
+    let finalCustomStatuses = validated.data.custom_statuses || null;
+    interface TemplateTask {
+      key: string;
+      title: string;
+      description?: string | null;
+      status: string;
+      priority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+      assignee_role: string;
+      dependencies?: string[];
+    }
+    let templateTasks: TemplateTask[] = [];
+
+    if (validated.data.templateId) {
+      const { data: template, error: templateErr } = await insforge.database
+        .from("project_templates")
+        .select("*")
+        .eq("id", validated.data.templateId)
+        .single();
+
+      if (templateErr || !template) {
+        logger.error({ templateErr, templateId: validated.data.templateId }, "Failed to find template");
+        return { success: false, error: "Selected template not found" };
+      }
+
+      const schema = template.tasks_schema as {
+        custom_statuses?: string[];
+        tasks?: TemplateTask[];
+      } | null;
+      if (schema) {
+        if (Array.isArray(schema.custom_statuses)) {
+          finalCustomStatuses = schema.custom_statuses;
+        }
+        if (Array.isArray(schema.tasks)) {
+          templateTasks = schema.tasks;
+        }
+      }
+    }
+
     const { data: project, error } = await insforge.database
       .from("projects")
       .insert([
@@ -83,15 +157,88 @@ export async function createProject(
           description: validated.data.description || null,
           status: validated.data.status,
           organization_id: validated.data.orgId,
-          custom_statuses: validated.data.custom_statuses || null,
+          custom_statuses: finalCustomStatuses,
         },
       ])
       .select("id")
       .single();
 
-    if (error) {
+    if (error || !project) {
       logger.error({ error, orgId: validated.data.orgId, name: validated.data.name }, "Failed to create project");
       return { success: false, error: "Failed to create project" };
+    }
+
+    // Scaffold template tasks if any
+    if (templateTasks.length > 0) {
+      // Fetch organization membership roles to resolve default assignments
+      const { data: membersList } = await insforge.database
+        .from("memberships")
+        .select("user_id, role")
+        .eq("organization_id", validated.data.orgId);
+
+      const roleToUserMap: Record<string, string> = {};
+      if (membersList) {
+        for (const member of membersList) {
+          if (!roleToUserMap[member.role]) {
+            roleToUserMap[member.role] = member.user_id;
+          }
+        }
+      }
+
+      const taskKeyToIdMap: Record<string, string> = {};
+
+      for (const t of templateTasks) {
+        const assigneeId = roleToUserMap[t.assignee_role] || userId;
+        const { data: newTask, error: insertTaskErr } = await insforge.database
+          .from("tasks")
+          .insert([
+            {
+              project_id: project.id,
+              organization_id: validated.data.orgId,
+              title: t.title,
+              description: t.description || null,
+              status: t.status,
+              priority: t.priority || "MEDIUM",
+              assignee_id: assigneeId,
+              board_index: 0,
+            },
+          ])
+          .select("id")
+          .single();
+
+        if (insertTaskErr || !newTask) {
+          logger.error({ insertTaskErr }, "Failed to scaffold template task");
+          return { success: false, error: "Failed to scaffold template tasks" };
+        }
+
+        taskKeyToIdMap[t.key] = newTask.id;
+      }
+
+      // Establish dependency relationships
+      for (const t of templateTasks) {
+        if (t.dependencies && t.dependencies.length > 0) {
+          const targetTaskId = taskKeyToIdMap[t.key];
+          for (const depKey of t.dependencies) {
+            const sourceTaskId = taskKeyToIdMap[depKey];
+            if (sourceTaskId && targetTaskId) {
+              const { error: insertDepErr } = await insforge.database
+                .from("task_dependencies")
+                .insert([
+                  {
+                    source_task_id: sourceTaskId,
+                    target_task_id: targetTaskId,
+                    dependency_type: "BLOCKS",
+                  },
+                ]);
+
+              if (insertDepErr) {
+                logger.error({ insertDepErr }, "Failed to scaffold template dependency relation");
+                return { success: false, error: "Failed to link template task dependencies" };
+              }
+            }
+          }
+        }
+      }
     }
 
     await logActivity(validated.data.orgId, project.id, userId, "PROJECT_CREATED", {

@@ -41,6 +41,7 @@ mock.module("@/lib/insforge-server", () => ({
 
 mock.module("@/lib/auth-helpers", () => ({
   verifyMembership: () => Promise.resolve(true),
+  verifyAdminOrOwnerRole: () => Promise.resolve(true),
   getOrganizationMemberships: () => Promise.resolve({ data: [], error: null }),
 }));
 

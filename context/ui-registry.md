@@ -115,6 +115,7 @@ After building any component — update this file with the component name, file 
 - **File Path:** [CreateProjectModal.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/projects/CreateProjectModal.tsx)
 - **Card Wrapper:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-md w-full relative rotate-[0.5deg]`
 - **Input Classes:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary`
+- **Template Select Classes:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer shadow-flat-offset-sm`
 
 ### Task Management Components
 

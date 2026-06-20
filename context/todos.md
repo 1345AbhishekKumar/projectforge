@@ -254,5 +254,5 @@ we are building version 3 (prd_versions/v3.md)
 - [x] **Project Health Metrics:** Calculate project health. Verify metric updates dynamically based on overdue ratios, blocked tasks, and velocity.
 
 ### Feature 3.8: Dependency & Project Templates Verification
-- [ ] **Task Dependency Blocking:** Create dependency Task B blocked by Task A. Attempt to mark Task B as completed. Verify the UI blocks transition and warns of unresolved blocker.
-- [ ] **Template Scaffolding:** Create project from "Website Launch" template. Verify all predefined tasks, statuses, and default assignments are instantiated in the new project.
+- [x] **Task Dependency Blocking:** Create dependency Task B blocked by Task A. Attempt to mark Task B as completed. Verify the UI blocks transition and warns of unresolved blocker.
+- [x] **Template Scaffolding:** Create project from "Website Launch" template. Verify all predefined tasks, statuses, and default assignments are instantiated in the new project.

@@ -5,7 +5,9 @@ import { Loader2, FolderPlus, X } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useQuery } from "@tanstack/react-query";
 import type { ProjectStatus } from "@/types";
+import { getProjectTemplates } from "@/actions/project";
 
 const projectSchema = z.object({
   name: z
@@ -15,6 +17,7 @@ const projectSchema = z.object({
     .max(50, "Project name must be at most 50 characters"),
   description: z.string().trim().max(250, "Description must be at most 250 characters").optional(),
   status: z.enum(["PLANNING", "ACTIVE", "COMPLETED", "ARCHIVED"]),
+  templateId: z.string().optional(),
 });
 
 type ProjectInput = z.infer<typeof projectSchema>;
@@ -22,12 +25,33 @@ type ProjectInput = z.infer<typeof projectSchema>;
 type Props = {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (name: string, description: string | null, status: ProjectStatus) => Promise<{ success: boolean; error?: string }>;
+  onCreate: (
+    name: string,
+    description: string | null,
+    status: ProjectStatus,
+    templateId?: string
+  ) => Promise<{ success: boolean; error?: string }>;
 };
 
 export function CreateProjectModal({ isOpen, onClose, onCreate }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  interface ProjectTemplate {
+    id: string;
+    name: string;
+    description?: string;
+  }
+
+  const { data: templates = [] } = useQuery<ProjectTemplate[]>({
+    queryKey: ["projectTemplates"],
+    queryFn: async () => {
+      const result = await getProjectTemplates();
+      if (!result.success) throw new Error(result.error || "Failed to load templates");
+      return (result.data || []) as ProjectTemplate[];
+    },
+    enabled: isOpen,
+  });
 
   const {
     register,
@@ -41,6 +65,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreate }: Props) {
       name: "",
       description: "",
       status: "PLANNING",
+      templateId: "",
     },
   });
 
@@ -57,7 +82,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreate }: Props) {
     setLoading(true);
 
     try {
-      const result = await onCreate(data.name, data.description || null, data.status);
+      const result = await onCreate(data.name, data.description || null, data.status, data.templateId || undefined);
       if (result.success) {
         reset();
         onClose();
@@ -145,6 +170,23 @@ export function CreateProjectModal({ isOpen, onClose, onCreate }: Props) {
                 {errors.description.message}
               </span>
             )}
+          </div>
+
+          <div>
+            <label className="font-sans text-xs font-semibold mb-1 block">
+              Project Template (Optional)
+            </label>
+            <select
+              {...register("templateId")}
+              className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer shadow-flat-offset-sm"
+            >
+              <option value="">Blank Project (No Template)</option>
+              {templates.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

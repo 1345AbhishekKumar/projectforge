@@ -66,6 +66,7 @@ export async function updateTask(
 ): Promise<{ success: boolean; error?: string }> {
   const validated = updateTaskInputSchema.safeParse({ taskId, projectId, orgId, updates });
   if (!validated.success) {
+    console.error("updateTask validation failed:", validated.error.issues);
     return { success: false, error: validated.error.issues[0].message };
   }
 
@@ -129,6 +130,42 @@ export async function updateTask(
         // Enforce linear rule: forward 1 step or back to backlog (index 0)
         if (!(newIdx === oldIdx + 1 || newIdx === 0)) {
           return { success: false, error: `Invalid status transition from "${oldStatus}" to "${newStatus}". You can only move a task forward one column or back to the first column.` };
+        }
+      }
+
+      // Check task dependency blocking if moving to completed status
+      const completedStatus = allowedStatuses[allowedStatuses.length - 1];
+      if (newStatus === completedStatus) {
+        const { data: blockers, error: blockersError } = await insforge.database
+          .from("task_dependencies")
+          .select(`
+            source_task:tasks!source_task_id(id, title, status)
+          `)
+          .eq("target_task_id", validated.data.taskId);
+
+        if (blockersError) {
+          logger.error({ blockersError, taskId: validated.data.taskId }, "Failed to fetch task blockers for validation");
+          return { success: false, error: "Failed to validate task dependencies" };
+        }
+
+        interface BlockerRow {
+          source_task: {
+            id: string;
+            title: string;
+            status: string;
+          } | null;
+        }
+
+        const activeBlockers = ((blockers as unknown as BlockerRow[]) || [])
+          .map((b) => b.source_task)
+          .filter((t): t is { id: string; title: string; status: string } => !!t && t.status !== completedStatus);
+
+        if (activeBlockers.length > 0) {
+          const blockerNames = activeBlockers.map((b) => `"${b.title}"`).join(", ");
+          return {
+            success: false,
+            error: `Cannot complete task because it is blocked by: ${blockerNames}`,
+          };
         }
       }
     }
@@ -401,6 +438,42 @@ export async function reorderTasks(
           if (oldIdx !== -1) {
             if (!(newIdx === oldIdx + 1 || newIdx === 0)) {
               return { success: false, error: `Invalid status transition for task "${prev.title}" from "${prev.status}" to "${update.status}".` };
+            }
+          }
+
+          // Check task dependency blocking if moving to completed status
+          const completedStatus = allowedStatuses[allowedStatuses.length - 1];
+          if (update.status === completedStatus) {
+            const { data: blockers, error: blockersError } = await insforge.database
+               .from("task_dependencies")
+              .select(`
+                source_task:tasks!source_task_id(id, title, status)
+              `)
+              .eq("target_task_id", update.id);
+
+            if (blockersError) {
+              logger.error({ blockersError, taskId: update.id }, "Failed to fetch task blockers for validation in reorder");
+              return { success: false, error: "Failed to validate task dependencies" };
+            }
+
+            interface BlockerRow {
+              source_task: {
+                id: string;
+                title: string;
+                status: string;
+              } | null;
+            }
+
+            const activeBlockers = ((blockers as unknown as BlockerRow[]) || [])
+              .map((b) => b.source_task)
+              .filter((t): t is { id: string; title: string; status: string } => !!t && t.status !== completedStatus);
+
+            if (activeBlockers.length > 0) {
+              const blockerNames = activeBlockers.map((b) => `"${b.title}"`).join(", ");
+              return {
+                success: false,
+                error: `Cannot complete task "${prev.title}" because it is blocked by: ${blockerNames}`,
+              };
             }
           }
         }
