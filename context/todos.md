@@ -329,12 +329,12 @@ we are building version 4 (prd_versions/v4.md)
 - [x] **Workload Utilization Chart:** View capacity planner. Verify capacity graphs accurately reflect allocations stored in `resource_allocations`.
 
 ### Feature 4.8: Risk Management 
-- [ ] **Risk Registry logging:** Add, update, and resolve risks under a project. Verify fields map correctly in `risks`.
-- [ ] **Mitigation Tracking:** Enforce that high-probability, high-impact risks display warning badges on the project summary screen.
+- [x] **Risk Registry logging:** Add, update, and resolve risks under a project. Verify fields map correctly in `risks`.
+- [x] **Mitigation Tracking:** Enforce that high-probability, high-impact risks display warning badges on the project summary screen.
 
 ### Feature 4.9: Compliance & Governance 
-- [ ] **Immutability of Audit Trails:** Verify that the system records all state modifications into `audit_logs` and that the endpoints reject update/delete requests.
-- [ ] **Data Retention Job:** Run data retention cron. Verify tasks/activity records older than configured retention period are permanently deleted.
+- [x] **Immutability of Audit Trails:** Verify that the system records all state modifications into `audit_logs` and that the endpoints reject update/delete requests.
+- [x] **Data Retention Job:** Run data retention cron. Verify tasks/activity records older than configured retention period are permanently deleted.
 
 ### Feature 4.10: Organization Hierarchies 
 - [ ] **Recursive Department Tree:** Create nested departments. Verify child department metrics roll up to parent departments on reporting views.

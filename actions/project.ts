@@ -245,6 +245,17 @@ export async function createProject(
       projectName: validated.data.name,
     });
 
+    after(() =>
+      writeAuditLog(
+        validated.data.orgId,
+        userId,
+        "project.created",
+        "project",
+        project.id,
+        { name: validated.data.name }
+      )
+    );
+
     revalidatePath("/projects");
     return { success: true, data: { projectId: project.id } };
   } catch (err) {
@@ -436,6 +447,17 @@ export async function updateProject(
       }
     }
 
+    after(() =>
+      writeAuditLog(
+        validated.data.orgId,
+        userId,
+        "project.updated",
+        "project",
+        validated.data.projectId,
+        { name: validated.data.name, status: validated.data.status }
+      )
+    );
+
     revalidatePath("/projects");
     revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };
@@ -492,6 +514,17 @@ export async function archiveProject(
     await logActivity(validated.data.orgId, validated.data.projectId, userId, "PROJECT_ARCHIVED", {
       projectName,
     });
+
+    after(() =>
+      writeAuditLog(
+        validated.data.orgId,
+        userId,
+        "project.archived",
+        "project",
+        validated.data.projectId,
+        { name: projectName }
+      )
+    );
 
     revalidatePath("/projects");
     revalidatePath(`/projects/${validated.data.projectId}`);

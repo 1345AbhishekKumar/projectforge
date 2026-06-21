@@ -8,11 +8,13 @@ We are building Version 3
 ---
 
 ## Current Status
-- **Status:** **Feature 4.7: Resource Management fully implemented**. Added `ResourceAllocation` types, created `actions/resourceAllocation.ts` for managing project capacity allocations, added "Capacity Planner" sidebar navigation link, developed whiteboard-themed `/team/capacity` dashboard view rendering `CapacityAllocationChart` and inline allocations grid, and integrated the `EditAllocationModal` for project assignment management with warning guards for >100% capacity over-allocations.
-- **Active Sprint:** Version 4 enterprise execution platform features.
-- **Target Milestones:** Version 4 enterprise scalability, governance, and reporting.
+- **Status:** **Feature 4.8: Risk Management** and **Feature 4.9: Compliance & Governance** fully implemented. Added risks matrix view (`/projects/[id]/risks`), critical risk alert banner on project dashboard, and Compliance Center (`/settings/compliance`) for retention settings, manual cleanup, and audit logs.
+- **Active Sprint:** Version 4 enterprise execution platform features completed.
+- **Target Milestones:** Version 4 enterprise scalability, governance, and reporting achieved.
  
  ## Progress
+- [x] Implement Feature 4.9: Compliance & Governance — Added data retention policy management to organizations, manual cleanup execution, CSV export utilities for audit trails and risks registers, and designed the `/settings/compliance` Compliance Center whiteboard page with the `<AuditLogsTable>` paginated logs explorer component.
+- [x] Implement Feature 4.8: Risk Management — Created database `public.risks` table with RLS policies, created Server Actions for Risk CRUD, added critical warning banners on project dashboard, and designed the interactive 3x3 Risk Matrix page at `/projects/[id]/risks` using the `<RiskFormModal>` whiteboard component.
 - [x] Implement Feature 4.7: Resource Management — Added `ResourceAllocation` TypeScript type definition. Created Server Actions file `actions/resourceAllocation.ts` supporting Zod-validated inserts, updates, and deletions on `resource_allocations` table with RLS and total capacity warnings. Added sidebar navigation link in `Sidebar.tsx`. Designed dynamic whiteboard-themed `/team/capacity` planner dashboard page integrating stacked allocation charts, member capacity lists, and an interactive `EditAllocationModal` with live-updating validation alerts.
 - [x] Implement Feature 4.6: Enterprise Reporting — Created database tables `departments` and `resource_allocations` with necessary RLS policies and indices. Created server actions `actions/enterpriseReport.ts` delivering rollups for portfolios, programs, departments, and capacity. Designed dynamic layout at `/app/reports/enterprise/page.tsx` with whiteboard-themed builders, SVG charts, and productivity views.
 - [x] Resolve all InsForge Database Advisor findings — Hardened RLS policies for `project_templates` (restricting select to authenticated users and explicitly blocking writes to satisfy `rls-select-only`), `ai_usages`, and `task_dependencies`. Created 5 missing foreign key indexes on `task_dependencies`, `saved_searches`, and `ai_usages` concurrently. Ran all isolation tests successfully.

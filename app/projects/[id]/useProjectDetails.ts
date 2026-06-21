@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useUser, useAuth } from "@clerk/nextjs";
 
 import { getProjectDetails, updateProject, archiveProject } from "@/actions/project";
+import { getProjectRisks } from "@/actions/risk";
 import { getOrganizationMembers, type MemberListItem } from "@/actions/membership";
 import { createTask, getProjectTasks, type TaskWithAssignee } from "@/actions/task";
 import { updateTask, deleteTask } from "@/actions/taskMutation";
@@ -17,7 +18,7 @@ import { initialFilters } from "@/components/tasks/TaskFilters";
 import { useOrgStore } from "@/store/orgStore";
 import { useTaskStore } from "@/store/taskStore";
 import { useTaskFilterStore } from "@/store/taskFilterStore";
-import type { Project, ProjectStatus, TaskStatus, TaskPriority, Sprint, Label, SavedView } from "@/types";
+import type { Project, ProjectStatus, TaskStatus, TaskPriority, Sprint, Label, SavedView, Risk } from "@/types";
 
 export function useProjectDetails(projectId: string) {
   const router = useRouter();
@@ -111,6 +112,21 @@ export function useProjectDetails(projectId: string) {
     },
     enabled: !!activeOrgId,
   });
+
+  const { data: risks = [] } = useQuery<Risk[]>({
+    queryKey: ["risks", projectId, activeOrgId],
+    queryFn: async () => {
+      if (!activeOrgId || !projectId) return [];
+      const result = await getProjectRisks(activeOrgId, projectId);
+      if (!result.success) throw new Error(result.error || "Failed to load risks");
+      return result.data || [];
+    },
+    enabled: !!activeOrgId && !!projectId,
+  });
+
+  const hasCriticalRisk = risks.some(
+    (risk) => risk.probability === "high" && risk.impact === "high"
+  );
 
   // Mutations
   const updateProjectMutation = useMutation({
@@ -430,5 +446,6 @@ export function useProjectDetails(projectId: string) {
     handleDeleteTask,
     handleStatusToggle,
     handleSignOut,
+    hasCriticalRisk,
   };
 }

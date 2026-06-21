@@ -1,7 +1,7 @@
 "use client";
 
 import React, { use } from "react";
-import { User as UserIcon, LogOut, ArrowLeft, Loader2, Calendar, Archive, ClipboardList, FolderKanban, Users, Activity, Settings } from "lucide-react";
+import { User as UserIcon, LogOut, ArrowLeft, Loader2, Calendar, Archive, ClipboardList, FolderKanban, Users, Activity, Settings, AlertTriangle } from "lucide-react";
 
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { NotificationBell } from "@/components/notifications/NotificationBell";
@@ -62,6 +62,7 @@ export default function ProjectDetailsPage({ params }: Props) {
     handleDeleteTask,
     handleStatusToggle,
     handleSignOut,
+    hasCriticalRisk,
   } = useProjectDetails(projectId);
 
   if (!isLoaded) {
@@ -166,6 +167,16 @@ export default function ProjectDetailsPage({ params }: Props) {
             </div>
           ) : (
             <div className="flex flex-col gap-8">
+              {/* Critical Risk Warning Banner */}
+              {hasCriticalRisk && (
+                <div className="bg-accent-pink text-primary border-2 border-black p-4 rounded-sketchy shadow-flat-offset flex items-center gap-3 animate-pulse font-sans font-bold text-sm">
+                  <AlertTriangle className="h-5 w-5 shrink-0" />
+                  <span>
+                    ⚠️ CRITICAL RISK WARNING: This project has active High Probability / High Impact risks. Please review the mitigations.
+                  </span>
+                </div>
+              )}
+
               {/* Project Title Card */}
               <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div className="flex-1 min-w-0">
@@ -277,6 +288,15 @@ export default function ProjectDetailsPage({ params }: Props) {
                     <span className="flex items-center gap-2">
                       <Activity className="h-4 w-4" />
                       Activity
+                    </span>
+                  </button>
+                  <button
+                    onClick={() => router.push(`/projects/${projectId}/risks`)}
+                    className="px-6 py-2.5 text-sm font-bold font-cursive transition-all -mb-0.5 cursor-pointer border-b-2 border-transparent hover:bg-neutral-bg/50 text-secondary"
+                  >
+                    <span className="flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Risks
                     </span>
                   </button>
                   {isAdminOrOwner && (

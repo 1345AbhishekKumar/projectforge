@@ -329,4 +329,29 @@ After building any component — update this file with the component name, file 
 - **Retry Button Classes:** `px-6 py-2.5 bg-accent-yellow border-2 border-black rounded-full text-sm font-bold shadow-flat-offset-sm hover:-translate-y-0.5 active:translate-y-0.5 transition-all cursor-pointer`
 - **Icon Badge Classes:** `w-16 h-16 bg-accent-pink border-2 border-black rounded-full flex items-center justify-center mx-auto mb-6 shadow-flat-offset-sm animate-bounce`
 
+### Risk Management (Feature 4.8)
 
+#### Project Risks Page
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/projects/[id]/risks/page.tsx)
+- **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
+- **Card Wrapper Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6`
+- **3x3 Matrix Grid Classes:** `grid grid-cols-3 gap-3 w-full aspect-square max-w-[400px] border-2 border-black p-3 bg-neutral-bg rounded-sketchy-sm`
+- **Matrix Cells Colors:** `Low Risk: bg-accent-green`, `Medium Risk: bg-accent-yellow`, `Critical Risk: bg-accent-pink`
+
+#### RiskFormModal Component
+- **File Path:** [RiskFormModal.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/risks/RiskFormModal.tsx)
+- **Card Wrapper Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-md w-full relative rotate-[-0.5deg]`
+- **Input Classes:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-1 focus:ring-black text-primary`
+
+### Compliance & Governance (Feature 4.9)
+
+#### Compliance Center Page
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/settings/compliance/page.tsx)
+- **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
+- **Settings Card Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6`
+
+#### AuditLogsTable Component
+- **File Path:** [AuditLogsTable.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/compliance/AuditLogsTable.tsx)
+- **Card Wrapper Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6`
+- **Filter Box Classes:** `grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6 bg-neutral-bg border border-black p-4 rounded-sketchy-sm`
+- **Table Row Classes:** `border-b border-black/10 hover:bg-neutral-bg/25`

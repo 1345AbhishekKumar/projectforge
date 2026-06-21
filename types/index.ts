@@ -288,4 +288,14 @@ export type ResourceAllocation = {
   created_at: string;
 };
 
+export type Risk = {
+  id: string;
+  project_id: string;
+  title: string;
+  probability: "low" | "medium" | "high";
+  impact: "low" | "medium" | "high";
+  mitigation_plan: string | null;
+  created_at: string;
+};
+
 

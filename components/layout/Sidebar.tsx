@@ -58,6 +58,7 @@ export function Sidebar() {
     { href: "/time", label: "Time Tracking", icon: <Clock className="h-4 w-4" />, accent: "bg-accent-pink" },
     { href: "/settings/audit-logs", label: "Audit Logs", icon: <History className="h-4 w-4" />, accent: "bg-accent-green" },
     { href: "/settings/roles", label: "Roles & Permissions", icon: <Shield className="h-4 w-4" />, accent: "bg-accent-yellow" },
+    { href: "/settings/compliance", label: "Compliance Center", icon: <Shield className="h-4 w-4" />, accent: "bg-accent-pink" },
   ];
 
   return (
