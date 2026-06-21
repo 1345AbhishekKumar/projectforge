@@ -280,3 +280,12 @@ export type CustomFieldValue = {
   };
 };
 
+export type ResourceAllocation = {
+  id: string;
+  user_id: string;
+  project_id: string;
+  allocation_percentage: number;
+  created_at: string;
+};
+
+

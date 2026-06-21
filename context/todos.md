@@ -325,8 +325,8 @@ we are building version 4 (prd_versions/v4.md)
 - [x] **Cross-Tenant Leakage Check:** Attempt to view reports using an unauthorized organization token. Verify immediate access denial.
 
 ### Feature 4.7: Resource Management 
-- [ ] **Allocation Validation:** Assign a user to multiple projects. Verify that total allocation percentage warning triggers if it exceeds 100%.
-- [ ] **Workload Utilization Chart:** View capacity planner. Verify capacity graphs accurately reflect allocations stored in `resource_allocations`.
+- [x] **Allocation Validation:** Assign a user to multiple projects. Verify that total allocation percentage warning triggers if it exceeds 100%.
+- [x] **Workload Utilization Chart:** View capacity planner. Verify capacity graphs accurately reflect allocations stored in `resource_allocations`.
 
 ### Feature 4.8: Risk Management 
 - [ ] **Risk Registry logging:** Add, update, and resolve risks under a project. Verify fields map correctly in `risks`.

@@ -52,6 +52,7 @@ export function Sidebar() {
     { href: "/projects", label: "Projects Directory", icon: <FolderKanban className="h-4 w-4" />, accent: "bg-accent-blue" },
     { href: "/sprints", label: "Sprints", icon: <Calendar className="h-4 w-4" />, accent: "bg-accent-pink" },
     { href: "/team", label: "Team Directory", icon: <Users className="h-4 w-4" />, accent: "bg-accent-green" },
+    { href: "/team/capacity", label: "Capacity Planner", icon: <Users className="h-4 w-4" />, accent: "bg-accent-green" },
     { href: "/activity", label: "Activity Feed", icon: <Activity className="h-4 w-4" />, accent: "bg-accent-yellow" },
     { href: "/analytics", label: "Analytics", icon: <BarChart2 className="h-4 w-4" />, accent: "bg-accent-blue" },
     { href: "/time", label: "Time Tracking", icon: <Clock className="h-4 w-4" />, accent: "bg-accent-pink" },
