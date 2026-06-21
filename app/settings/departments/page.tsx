@@ -21,6 +21,7 @@ import {
   assignMemberToDepartment,
 } from "@/actions/department";
 import { getOrganizationMembers } from "@/actions/membership";
+import { getCustomRoles } from "@/actions/role";
 
 type Department = {
   id: string;
@@ -55,6 +56,17 @@ export default function DepartmentsSettingsPage() {
       const res = await getOrganizationMembers(activeOrgId);
       if (!res.success) throw new Error(res.error || "Failed to load members");
       return res.data || [];
+    },
+    enabled: !!activeOrgId,
+  });
+
+  const { data: customRoles = [], isLoading: isRolesLoading } = useQuery({
+    queryKey: ["customRoles", activeOrgId],
+    queryFn: async () => {
+      if (!activeOrgId) return [];
+      const res = await getCustomRoles(activeOrgId);
+      if (!res.success) throw new Error(res.error || "Failed to load custom roles");
+      return (res.data as { id: string; name: string }[]) || [];
     },
     enabled: !!activeOrgId,
   });
@@ -110,7 +122,7 @@ export default function DepartmentsSettingsPage() {
     queryClient.invalidateQueries({ queryKey: ["members", activeOrgId] });
   };
 
-  if (!isLoaded || isDeptsLoading || isMembersLoading) {
+  if (!isLoaded || isDeptsLoading || isMembersLoading || isRolesLoading) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-neutral-bg bg-dot-grid text-primary">
         <span className="font-cursive text-xl animate-pulse">Loading departments whiteboard...</span>
@@ -180,7 +192,12 @@ export default function DepartmentsSettingsPage() {
 
               <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6">
                 <h2 className="font-cursive text-2xl font-bold mb-4">Member Department Assignments</h2>
-                <MemberAssignment departments={departments} members={members} onAssign={handleAssign} />
+                <MemberAssignment
+                  departments={departments}
+                  members={members}
+                  customRoles={customRoles}
+                  onAssign={handleAssign}
+                />
               </div>
             </div>
 

@@ -6,6 +6,11 @@ type Department = {
   name: string;
 };
 
+type CustomRole = {
+  id: string;
+  name: string;
+};
+
 type Member = {
   id: string;
   userId: string;
@@ -13,16 +18,18 @@ type Member = {
   email: string;
   avatarUrl: string | null;
   role: string;
+  customRoleId?: string | null;
   departmentId?: string | null;
 };
 
 type Props = {
   departments: Department[];
   members: Member[];
+  customRoles: CustomRole[];
   onAssign: (membershipId: string, departmentId: string | null) => Promise<{ success: boolean; error?: string }>;
 };
 
-export function MemberAssignment({ departments, members, onAssign }: Props) {
+export function MemberAssignment({ departments, members, customRoles, onAssign }: Props) {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const handleDepartmentChange = async (membershipId: string, value: string) => {
@@ -52,32 +59,38 @@ export function MemberAssignment({ departments, members, onAssign }: Props) {
             </tr>
           </thead>
           <tbody>
-            {members.map((member) => (
-              <tr key={member.id} className="border-b border-black/10 hover:bg-neutral-bg/50 transition-colors">
-                <td className="py-3 px-3">
-                  <div className="flex items-center gap-3">
-                    {member.avatarUrl ? (
-                      <img
-                        src={member.avatarUrl}
-                        alt={member.name}
-                        className="w-8 h-8 rounded-full border-2 border-black object-cover"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full border-2 border-black bg-accent-blue/40 flex items-center justify-center">
-                        <User className="w-4 h-4 text-primary" />
+            {members.map((member) => {
+              const resolvedCustomRole = member.customRoleId
+                ? (customRoles.find((cr) => cr.id === member.customRoleId) ?? null)
+                : null;
+              const displayRole = resolvedCustomRole ? resolvedCustomRole.name : member.role;
+
+              return (
+                <tr key={member.id} className="border-b border-black/10 hover:bg-neutral-bg/50 transition-colors">
+                  <td className="py-3 px-3">
+                    <div className="flex items-center gap-3">
+                      {member.avatarUrl ? (
+                        <img
+                          src={member.avatarUrl}
+                          alt={member.name}
+                          className="w-8 h-8 rounded-full border-2 border-black object-cover"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full border-2 border-black bg-accent-blue/40 flex items-center justify-center">
+                          <User className="w-4 h-4 text-primary" />
+                        </div>
+                      )}
+                      <div className="flex flex-col">
+                        <span className="font-sans text-sm font-bold text-primary">{member.name}</span>
+                        <span className="font-sans text-xs text-secondary">{member.email}</span>
                       </div>
-                    )}
-                    <div className="flex flex-col">
-                      <span className="font-sans text-sm font-bold text-primary">{member.name}</span>
-                      <span className="font-sans text-xs text-secondary">{member.email}</span>
                     </div>
-                  </div>
-                </td>
-                <td className="py-3 px-3">
-                  <span className="font-sans text-xs font-semibold px-2 py-0.5 border border-black rounded-full bg-neutral-bg">
-                    {member.role}
-                  </span>
-                </td>
+                  </td>
+                  <td className="py-3 px-3">
+                    <span className="font-sans text-xs font-semibold px-2 py-0.5 border border-black rounded-full bg-neutral-bg">
+                      {displayRole}
+                    </span>
+                  </td>
                 <td className="py-3 px-3">
                   <div className="flex items-center gap-2">
                     {updatingId === member.id ? (
@@ -100,7 +113,8 @@ export function MemberAssignment({ departments, members, onAssign }: Props) {
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
             {members.length === 0 && (
               <tr>
                 <td colSpan={3} className="py-8 text-center font-sans text-sm text-secondary">

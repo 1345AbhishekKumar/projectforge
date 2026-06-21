@@ -25,6 +25,7 @@ Last updated: 2026-06-21T14:19:00+05:30
 
 - **Recursive Cycle Guards**: Added a descendant verification in `updateDepartment` using `isChildDepartment` to prevent cycle generation (e.g. assigning a child node as its parent's parent).
 - **Escalation Deduplication**: Implemented content-based task ID matching to guarantee that task escalation notifications are not duplicate-sent to supervisors/admins within 24 hours.
+- **V4 RLS Policy Alignment**: Fixed a database-level Row-Level Security policy error on the `departments`, `resource_allocations`, and `risks` tables where they checked an unpopulated `app.current_user_id` session setting; migrated these policies to use the standard `current_user_id()` function.
 
 ## Current state
 
