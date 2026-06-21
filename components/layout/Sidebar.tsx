@@ -13,10 +13,12 @@ import {
   History,
   Briefcase,
   Shield,
+  Download,
 } from "lucide-react";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { SearchTrigger } from "@/components/search/SearchTrigger";
 import { GlobalSearchModal } from "@/components/search/GlobalSearchModal";
+import { useTranslation } from "@/lib/i18n/useTranslation";
 
 type SidebarLinkProps = {
   label: string;
@@ -45,21 +47,23 @@ function SidebarLink({ label, icon, isActive, onClick, accentColor }: SidebarLin
 export function Sidebar() {
   const router = useRouter();
   const pathname = usePathname();
+  const { t } = useTranslation();
 
   const links = [
-    { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" />, accent: "bg-accent-yellow" },
-    { href: "/portfolios", label: "Portfolios", icon: <Briefcase className="h-4 w-4" />, accent: "bg-accent-yellow" },
-    { href: "/projects", label: "Projects Directory", icon: <FolderKanban className="h-4 w-4" />, accent: "bg-accent-blue" },
-    { href: "/sprints", label: "Sprints", icon: <Calendar className="h-4 w-4" />, accent: "bg-accent-pink" },
-    { href: "/team", label: "Team Directory", icon: <Users className="h-4 w-4" />, accent: "bg-accent-green" },
-    { href: "/team/capacity", label: "Capacity Planner", icon: <Users className="h-4 w-4" />, accent: "bg-accent-green" },
-    { href: "/activity", label: "Activity Feed", icon: <Activity className="h-4 w-4" />, accent: "bg-accent-yellow" },
-    { href: "/analytics", label: "Analytics", icon: <BarChart2 className="h-4 w-4" />, accent: "bg-accent-blue" },
-    { href: "/time", label: "Time Tracking", icon: <Clock className="h-4 w-4" />, accent: "bg-accent-pink" },
-    { href: "/settings/audit-logs", label: "Audit Logs", icon: <History className="h-4 w-4" />, accent: "bg-accent-green" },
-    { href: "/settings/roles", label: "Roles & Permissions", icon: <Shield className="h-4 w-4" />, accent: "bg-accent-yellow" },
-    { href: "/settings/compliance", label: "Compliance Center", icon: <Shield className="h-4 w-4" />, accent: "bg-accent-pink" },
-    { href: "/settings/departments", label: "Departments", icon: <Users className="h-4 w-4" />, accent: "bg-accent-blue" },
+    { href: "/dashboard", label: t("sidebar.dashboard", "Dashboard"), icon: <LayoutDashboard className="h-4 w-4" />, accent: "bg-accent-yellow" },
+    { href: "/portfolios", label: t("sidebar.portfolios", "Portfolios"), icon: <Briefcase className="h-4 w-4" />, accent: "bg-accent-yellow" },
+    { href: "/projects", label: t("sidebar.projects", "Projects Directory"), icon: <FolderKanban className="h-4 w-4" />, accent: "bg-accent-blue" },
+    { href: "/sprints", label: t("sidebar.sprints", "Sprints"), icon: <Calendar className="h-4 w-4" />, accent: "bg-accent-pink" },
+    { href: "/team", label: t("sidebar.team", "Team Directory"), icon: <Users className="h-4 w-4" />, accent: "bg-accent-green" },
+    { href: "/team/capacity", label: t("sidebar.capacity", "Capacity Planner"), icon: <Users className="h-4 w-4" />, accent: "bg-accent-green" },
+    { href: "/activity", label: t("sidebar.activity", "Activity Feed"), icon: <Activity className="h-4 w-4" />, accent: "bg-accent-yellow" },
+    { href: "/analytics", label: t("sidebar.analytics", "Analytics"), icon: <BarChart2 className="h-4 w-4" />, accent: "bg-accent-blue" },
+    { href: "/time", label: t("sidebar.time", "Time Tracking"), icon: <Clock className="h-4 w-4" />, accent: "bg-accent-pink" },
+    { href: "/settings/audit-logs", label: t("sidebar.auditLogs", "Audit Logs"), icon: <History className="h-4 w-4" />, accent: "bg-accent-green" },
+    { href: "/settings/roles", label: t("sidebar.roles", "Roles & Permissions"), icon: <Shield className="h-4 w-4" />, accent: "bg-accent-yellow" },
+    { href: "/settings/compliance", label: t("sidebar.compliance", "Compliance Center"), icon: <Shield className="h-4 w-4" />, accent: "bg-accent-pink" },
+    { href: "/settings/departments", label: t("sidebar.departments", "Departments"), icon: <Users className="h-4 w-4" />, accent: "bg-accent-blue" },
+    { href: "/settings/export", label: t("export.title", "Data Export Center"), icon: <Download className="h-4 w-4" />, accent: "bg-accent-yellow" },
   ];
 
   return (
@@ -81,19 +85,19 @@ export function Sidebar() {
 
         {/* Org Switcher */}
         <div className="border-b border-black/10 pb-4">
-          <label className="font-sans text-[10px] font-bold text-secondary uppercase mb-2 block">Workspace</label>
+          <label className="font-sans text-[10px] font-bold text-secondary uppercase mb-2 block">{t("sidebar.workspace", "Workspace")}</label>
           <OrgSwitcher />
         </div>
 
         {/* Search Trigger */}
         <div>
-          <label className="font-sans text-[10px] font-bold text-secondary uppercase mb-2 block">Search</label>
+          <label className="font-sans text-[10px] font-bold text-secondary uppercase mb-2 block">{t("sidebar.search", "Search")}</label>
           <SearchTrigger />
         </div>
 
         {/* Nav links */}
         <nav className="flex flex-col gap-3.5 flex-grow overflow-y-auto pr-1">
-          <label className="font-sans text-[10px] font-bold text-secondary uppercase block">Navigation</label>
+          <label className="font-sans text-[10px] font-bold text-secondary uppercase block">{t("sidebar.navigation", "Navigation")}</label>
           {links.map((link) => (
             <SidebarLink
               key={link.href}

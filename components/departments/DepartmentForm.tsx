@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { Check, X } from "lucide-react";
 
 type Department = {
@@ -35,25 +35,11 @@ export function DepartmentForm({
   onCreate,
   onUpdate,
 }: Props) {
-  const [name, setName] = useState("");
-  const [parentId, setParentId] = useState<string>("");
-  const [managerId, setManagerId] = useState<string>("");
+  const [name, setName] = useState(editingDept ? editingDept.name : "");
+  const [parentId, setParentId] = useState<string>(editingDept ? (editingDept.parent_department_id || "") : "");
+  const [managerId, setManagerId] = useState<string>(editingDept ? (editingDept.manager_id || "") : "");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    if (editingDept) {
-      setName(editingDept.name);
-      setParentId(editingDept.parent_department_id || "");
-      setManagerId(editingDept.manager_id || "");
-      setError(null);
-    } else {
-      setName("");
-      setParentId("");
-      setManagerId("");
-      setError(null);
-    }
-  }, [editingDept]);
 
   // Filter out the editing department and its descendants from the parent list
   // to prevent cycles in client dropdown

@@ -208,6 +208,7 @@ export default function DepartmentsSettingsPage() {
                 {editingDept ? "Edit Department" : "New Department"}
               </h2>
               <DepartmentForm
+                key={editingDept ? editingDept.id : "new-department"}
                 orgId={activeOrgId || ""}
                 members={members}
                 departments={departments}

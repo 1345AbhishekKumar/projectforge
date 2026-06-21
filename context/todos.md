@@ -349,12 +349,12 @@ we are building version 4 (prd_versions/v4.md)
 - [x] **Escalation Actions:** Verify that overdue task alerts trigger and notify supervisors if ignored.
 
 ### Feature 4.13: Data Export
-- [ ] **Format Validation:** Export data in CSV, Excel, and PDF formats. Check that values, date stamps, and layouts match target templates.
-- [ ] **Tamper-Proof Log Export:** Export audit logs to PDF. Verify cryptographic hashes or signature headers exist to guarantee integrity.
+- [x] **Format Validation:** Export data in CSV, Excel, and PDF formats. Check that values, date stamps, and layouts match target templates.
+- [x] **Tamper-Proof Log Export:** Export audit logs to PDF. Verify cryptographic hashes or signature headers exist to guarantee integrity.
 
 ### Feature 4.14: Multi-Language Support 
-- [ ] **UI i18n Translation:** Toggle UI locale. Verify all labels, tooltips, validation alerts, and placeholders render in the selected language.
-- [ ] **Locale Persistence:** Log out and log back in. Verify the preferred locale is retrieved from user profile metadata.
+- [x] **UI i18n Translation:** Toggle UI locale. Verify all labels, tooltips, validation alerts, and placeholders render in the selected language.
+- [x] **Locale Persistence:** Log out and log back in. Verify the preferred locale is retrieved from user profile metadata.
 
 ### Feature 4.15: SSO & Enterprise Authentication
 - [ ] **SSO Auth Handshake:** Perform Okta / Entra ID logins. Verify JWT verification succeeds and redirects user into active workspace.

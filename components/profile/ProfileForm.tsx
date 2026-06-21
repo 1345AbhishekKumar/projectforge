@@ -4,8 +4,10 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, User, Image as ImageIcon, Save, XCircle, CheckCircle } from "lucide-react";
+import { Loader2, User, Image as ImageIcon, Save, XCircle, CheckCircle, Globe } from "lucide-react";
 import { updateProfile } from "@/actions/profile";
+import { useTranslation } from "@/lib/i18n/useTranslation";
+import { SupportedLocale } from "@/lib/i18n/translations";
 
 const profileSchema = z.object({
   fullName: z
@@ -20,6 +22,7 @@ const profileSchema = z.object({
     .or(z.literal(""))
     .nullable()
     .optional(),
+  locale: z.enum(["en", "es", "fr", "de", "ja"]).default("en"),
 });
 
 type ProfileInput = z.infer<typeof profileSchema>;
@@ -29,10 +32,12 @@ type Props = {
     fullName: string | null;
     avatarUrl: string | null;
     email: string;
+    locale: string;
   };
 };
 
 export function ProfileForm({ initialProfile }: Props) {
+  const { t, setLocale } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
@@ -46,6 +51,7 @@ export function ProfileForm({ initialProfile }: Props) {
     defaultValues: {
       fullName: initialProfile.fullName || "",
       avatarUrl: initialProfile.avatarUrl || "",
+      locale: (initialProfile.locale as SupportedLocale) || "en",
     },
   });
 
@@ -57,14 +63,15 @@ export function ProfileForm({ initialProfile }: Props) {
   async function onSubmit(data: ProfileInput) {
     setLoading(true);
     try {
-      const res = await updateProfile(data.fullName, data.avatarUrl || null);
+      const res = await updateProfile(data.fullName, data.avatarUrl || null, data.locale);
       if (res.success) {
-        showBanner("success", "Profile updated successfully!");
+        setLocale(data.locale);
+        showBanner("success", t("profile.updateSuccess", "Profile updated successfully!"));
       } else {
-        showBanner("error", res.error || "Failed to update profile");
+        showBanner("error", res.error || t("profile.updateError", "Failed to update profile"));
       }
     } catch {
-      showBanner("error", "An unexpected error occurred");
+      showBanner("error", t("profile.unexpectedError", "An unexpected error occurred"));
     } finally {
       setLoading(false);
     }
@@ -96,9 +103,9 @@ export function ProfileForm({ initialProfile }: Props) {
           <User className="h-5 w-5" />
         </div>
         <div>
-          <h2 className="font-cursive text-3xl font-bold">Edit Profile</h2>
+          <h2 className="font-cursive text-3xl font-bold">{t("profile.title", "Edit Profile")}</h2>
           <p className="font-sans text-xs text-secondary">
-            Manage your personal profile details.
+            {t("profile.description", "Manage your personal profile details.")}
           </p>
         </div>
       </div>
@@ -106,7 +113,7 @@ export function ProfileForm({ initialProfile }: Props) {
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-6">
         <div>
           <label className="font-sans text-xs font-semibold mb-1 block text-secondary">
-            Email Address (Read-Only)
+            {t("profile.emailReadOnly", "Email Address (Read-Only)")}
           </label>
           <input
             type="email"
@@ -118,7 +125,7 @@ export function ProfileForm({ initialProfile }: Props) {
 
         <div>
           <label htmlFor="fullName" className="font-sans text-xs font-semibold mb-1 block">
-            Full Name
+            {t("profile.fullName", "Full Name")}
           </label>
           <div className="relative">
             <User className="absolute left-3 top-2.5 h-4 w-4 text-secondary/50" />
@@ -126,7 +133,7 @@ export function ProfileForm({ initialProfile }: Props) {
               id="fullName"
               type="text"
               {...register("fullName")}
-              placeholder="Your Name"
+              placeholder={t("profile.fullNamePlaceholder", "Your Name")}
               className={`w-full pl-10 pr-4 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow ${
                 errors.fullName ? "border-rose-500 bg-rose-50/20" : ""
               }`}
@@ -141,7 +148,7 @@ export function ProfileForm({ initialProfile }: Props) {
 
         <div>
           <label htmlFor="avatarUrl" className="font-sans text-xs font-semibold mb-1 block">
-            Avatar Image URL
+            {t("profile.avatarUrl", "Avatar Image URL")}
           </label>
           <div className="relative">
             <ImageIcon className="absolute left-3 top-2.5 h-4 w-4 text-secondary/50" />
@@ -149,7 +156,7 @@ export function ProfileForm({ initialProfile }: Props) {
               id="avatarUrl"
               type="text"
               {...register("avatarUrl")}
-              placeholder="https://example.com/avatar.jpg"
+              placeholder={t("profile.avatarUrlPlaceholder", "https://example.com/avatar.jpg")}
               className={`w-full pl-10 pr-4 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow ${
                 errors.avatarUrl ? "border-rose-500 bg-rose-50/20" : ""
               }`}
@@ -162,6 +169,27 @@ export function ProfileForm({ initialProfile }: Props) {
           )}
         </div>
 
+        <div>
+          <label htmlFor="locale" className="font-sans text-xs font-semibold mb-1 block">
+            {t("profile.language", "Preferred Language")}
+          </label>
+          <div className="relative">
+            <Globe className="absolute left-3 top-2.5 h-4 w-4 text-secondary/50 pointer-events-none" />
+            <select
+              id="locale"
+              {...register("locale")}
+              className="w-full pl-10 pr-4 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow appearance-none cursor-pointer"
+            >
+              <option value="en">English</option>
+              <option value="es">Español (Spanish)</option>
+              <option value="fr">Français (French)</option>
+              <option value="de">Deutsch (German)</option>
+              <option value="ja">日本語 (Japanese)</option>
+            </select>
+            <div className="absolute right-3 top-3.5 pointer-events-none w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[6px] border-t-black" />
+          </div>
+        </div>
+
         <button
           type="submit"
           disabled={loading}
@@ -170,12 +198,12 @@ export function ProfileForm({ initialProfile }: Props) {
           {loading ? (
             <>
               <Loader2 className="h-4 w-4 animate-spin" />
-              Saving Changes...
+              {t("profile.saving", "Saving Changes...")}
             </>
           ) : (
             <>
               <Save className="h-4.5 w-4.5" />
-              Save Changes
+              {t("profile.saveChanges", "Save Changes")}
             </>
           )}
         </button>
@@ -183,3 +211,4 @@ export function ProfileForm({ initialProfile }: Props) {
     </div>
   );
 }
+

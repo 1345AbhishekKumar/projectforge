@@ -70,6 +70,7 @@ export function MemberAssignment({ departments, members, customRoles, onAssign }
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-3">
                       {member.avatarUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={member.avatarUrl}
                           alt={member.name}

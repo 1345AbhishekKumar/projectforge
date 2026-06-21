@@ -8,11 +8,12 @@ We are building Version 3
 ---
 
 ## Current Status
-- **Status:** **Feature 4.10: Organization Hierarchies** and **Feature 4.12: Advanced Notifications** fully implemented. Created recursive department tree structures, scoped project and member views for department managers, role-targeted notification alerts, and overdue task supervisor escalations.
+- **Status:** **Feature 4.13: Data Export** and **Feature 4.14: Multi-Language Support** fully implemented. Created a secure, cryptographic HMAC-signed Data Export Center supporting CSV, Excel, and custom print layout PDF, and built locale persistence with synchronization using browser cookies to prevent flashes of un-translated content across Spanish, French, German, and Japanese locales.
 - **Active Sprint:** Version 4 enterprise execution platform features completed.
-- **Target Milestones:** Version 4 enterprise scalability, hierarchies, and advanced alerting achieved.
+- **Target Milestones:** Version 4 enterprise scalability, data portability, and internationalization achieved.
  
  ## Progress
+- [x] Implement Feature 4.13 & 4.14: Data Export & Multi-Language Support — Created the Data Export Center at `/settings/export` supporting projects, tasks, compliance reports, and audit logs with custom CSV, Excel HTML worksheets, and auto-print PDF layout. Built dynamic client and server i18n translation systems supporting Spanish, French, German, and Japanese locales, syncing choices to database profiles and local cookies to prevent un-translated flashes.
 - [x] Implement Feature 4.10 & 4.12: Organization Hierarchies & Advanced Notifications — Designed recursive department trees with loop cycle prevention, department manager scoping for project and memberships, custom roles/role-targeted notification fan-out, and supervisor overdue task escalations. Built departments management dashboard at `/settings/departments`.
 - [x] Implement Feature 4.9: Compliance & Governance — Added data retention policy management to organizations, manual cleanup execution, CSV export utilities for audit trails and risks registers, and designed the `/settings/compliance` Compliance Center whiteboard page with the `<AuditLogsTable>` paginated logs explorer component.
 - [x] Implement Feature 4.8: Risk Management — Created database `public.risks` table with RLS policies, created Server Actions for Risk CRUD, added critical warning banners on project dashboard, and designed the interactive 3x3 Risk Matrix page at `/projects/[id]/risks` using the `<RiskFormModal>` whiteboard component.

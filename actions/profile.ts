@@ -2,6 +2,7 @@
 
 import * as Sentry from "@sentry/nextjs";
 import { auth, currentUser } from "@clerk/nextjs/server";
+import { cookies } from "next/headers";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
@@ -67,12 +68,14 @@ export async function syncProfile(): Promise<{
 
 const updateProfileSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters").max(50),
-  avatarUrl: z.string().url("Invalid avatar URL").nullable().optional(),
+  avatarUrl: z.string().url("Invalid avatar URL").nullable().optional().or(z.literal("")),
+  locale: z.enum(["en", "es", "fr", "de", "ja"]).default("en"),
 });
 
 export async function updateProfile(
   fullName: string,
-  avatarUrl?: string | null
+  avatarUrl?: string | null,
+  locale?: string
 ): Promise<{ success: boolean; error?: string }> {
   let userId: string | null = null;
   try {
@@ -80,7 +83,7 @@ export async function updateProfile(
     userId = authRes.userId;
     if (!userId) return { success: false, error: "Unauthorized" };
 
-    const validated = updateProfileSchema.safeParse({ fullName, avatarUrl });
+    const validated = updateProfileSchema.safeParse({ fullName, avatarUrl, locale });
     if (!validated.success) {
       return { success: false, error: validated.error.issues[0].message };
     }
@@ -92,6 +95,7 @@ export async function updateProfile(
       .update({
         full_name: validated.data.fullName,
         avatar_url: validated.data.avatarUrl || null,
+        locale: validated.data.locale,
         updated_at: new Date().toISOString(),
       })
       .eq("id", userId);
@@ -100,6 +104,14 @@ export async function updateProfile(
       logger.error({ error, userId }, "Failed to update profile in database");
       return { success: false, error: "Failed to update profile" };
     }
+
+    const cookieStore = await cookies();
+    cookieStore.set("locale", validated.data.locale, {
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+      httpOnly: false,
+      sameSite: "lax",
+    });
 
     return { success: true };
   } catch (err) {

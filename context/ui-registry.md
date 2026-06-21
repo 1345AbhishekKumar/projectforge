@@ -373,3 +373,22 @@ After building any component — update this file with the component name, file 
 #### MemberAssignment Component
 - **File Path:** [MemberAssignment.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/departments/MemberAssignment.tsx)
 - **Container Classes:** `flex flex-col gap-4`
+
+### Data Export (Feature 4.13)
+
+#### Data Export Center Page
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/settings/export/page.tsx)
+- **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
+- **Card Wrapper Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col justify-between gap-4`
+- **Integrity Verification Card:** `bg-accent-yellow/10 border-2 border-black rounded-sketchy p-6 shadow-flat-offset flex flex-col gap-3 relative rotate-[0.5deg]`
+
+#### Print View Page
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/settings/export/print/page.tsx)
+- **Container Classes:** `w-full min-h-screen bg-white text-black p-8 font-sans print:p-0`
+- **Integrity Signature block:** `border-2 border-black p-4 mb-6 bg-accent-yellow rounded-sketchy shadow-flat-offset-sm font-mono text-[10px] break-all leading-normal relative rotate-[0.5deg]`
+
+### Multi-Language Support (Feature 4.14)
+
+#### ProfileForm Component updates
+- **File Path:** [ProfileForm.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/profile/ProfileForm.tsx)
+- **Language Selector Classes:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer`
