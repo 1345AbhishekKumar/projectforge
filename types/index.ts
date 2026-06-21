@@ -118,7 +118,8 @@ export type NotificationType =
   | "SPRINT_STARTED"
   | "SPRINT_ENDED"
   | "MEMBER_INVITED"
-  | "PROJECT_COMPLETED";
+  | "PROJECT_COMPLETED"
+  | "TASK_ESCALATION";
 
 export type Notification = {
   id: string;

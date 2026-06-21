@@ -337,16 +337,16 @@ we are building version 4 (prd_versions/v4.md)
 - [x] **Data Retention Job:** Run data retention cron. Verify tasks/activity records older than configured retention period are permanently deleted.
 
 ### Feature 4.10: Organization Hierarchies 
-- [ ] **Recursive Department Tree:** Create nested departments. Verify child department metrics roll up to parent departments on reporting views.
-- [ ] **Scoped Permissions by Node:** Assign a Manager to a department node. Verify they only have access to projects and members within that branch.
+- [x] **Recursive Department Tree:** Create nested departments. Verify child department metrics roll up to parent departments on reporting views.
+- [x] **Scoped Permissions by Node:** Assign a Manager to a department node. Verify they only have access to projects and members within that branch.
 
 ### Feature 4.11: Enterprise Integrations 
-- [ ] **Jira State Sync:** Trigger task change in Jira. Verify webhook syncs task status in ProjectForge.
-- [ ] **Teams/Slack Alerts:** Post updates in ProjectForge. Verify notifications successfully dispatch to mapped channels.
-
+- [] **Jira State Sync:** Trigger task change in Jira. Verify webhook syncs task status in ProjectForge.
+- [] **Teams/Slack Alerts:** Post updates in ProjectForge. Verify notifications successfully dispatch to mapped channels.
+  
 ### Feature 4.12: Advanced Notifications 
-- [ ] **Role-Targeted Alerts:** Send notification targeted to `Auditor` and `Manager` roles. Verify only users matching those roles receive the notification.
-- [ ] **Escalation Actions:** Verify that overdue task alerts trigger and notify supervisors if ignored.
+- [x] **Role-Targeted Alerts:** Send notification targeted to `Auditor` and `Manager` roles. Verify only users matching those roles receive the notification.
+- [x] **Escalation Actions:** Verify that overdue task alerts trigger and notify supervisors if ignored.
 
 ### Feature 4.13: Data Export
 - [ ] **Format Validation:** Export data in CSV, Excel, and PDF formats. Check that values, date stamps, and layouts match target templates.

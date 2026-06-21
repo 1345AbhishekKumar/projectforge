@@ -11,13 +11,14 @@ import type { Project, ProjectStatus } from "@/types";
 import { logActivity } from "@/actions/activity";
 import { createNotification } from "@/actions/notification";
 import { orgIdSchema, projectIdSchema } from "@/lib/utils";
-import { verifyMembership, verifyPermission } from "@/lib/auth-helpers";
+import { verifyMembership, verifyPermission, getManagedDepartmentId, verifyDepartmentScopeForProject } from "@/lib/auth-helpers";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 const projectSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters").max(50),
   description: z.string().max(250).nullable().optional(),
   status: z.enum(["PLANNING", "ACTIVE", "COMPLETED", "ARCHIVED"]),
+  departmentId: z.string().uuid().nullable().optional(),
   custom_statuses: z
     .array(z.string().trim().min(1, "Status cannot be empty").max(30))
     .min(2, "Must specify at least 2 statuses")
@@ -85,7 +86,8 @@ export async function createProject(
   status: ProjectStatus,
   orgId: string,
   customStatuses: string[] | null = null,
-  templateId: string | null = null
+  templateId: string | null = null,
+  departmentId: string | null = null
 ): Promise<{ success: boolean; data?: { projectId: string }; error?: string }> {
   const validated = createProjectInputSchema.safeParse({
     name,
@@ -94,6 +96,7 @@ export async function createProject(
     orgId,
     custom_statuses: customStatuses,
     templateId,
+    departmentId,
   });
   if (!validated.success) {
     console.error("createProject validation failed:", validated.error.issues);
@@ -158,6 +161,7 @@ export async function createProject(
           status: validated.data.status,
           organization_id: validated.data.orgId,
           custom_statuses: finalCustomStatuses,
+          department_id: validated.data.departmentId || null,
         },
       ])
       .select("id")
@@ -286,11 +290,44 @@ export async function getUserProjects(
       return { success: false, error: "Not a member of this workspace", data: [] };
     }
 
-    const { data, error } = await insforge.database
+    const { data: depts } = await insforge.database
+      .from("departments")
+      .select("id, parent_department_id")
+      .eq("organization_id", validated.data.orgId);
+
+    const managedDeptId = await getManagedDepartmentId(insforge, validated.data.orgId, userId);
+
+    let query = insforge.database
       .from("projects")
       .select("*")
-      .eq("organization_id", validated.data.orgId)
-      .order("updated_at", { ascending: false });
+      .eq("organization_id", validated.data.orgId);
+
+    if (managedDeptId) {
+      const childDeptIds = new Set<string>();
+      if (depts) {
+        const deptChildrenMap = new Map<string, string[]>();
+        depts.forEach((d) => {
+          if (d.parent_department_id) {
+            if (!deptChildrenMap.has(d.parent_department_id)) {
+              deptChildrenMap.set(d.parent_department_id, []);
+            }
+            deptChildrenMap.get(d.parent_department_id)!.push(d.id);
+          }
+        });
+
+        const collectDeptIds = (deptId: string) => {
+          childDeptIds.add(deptId);
+          const children = deptChildrenMap.get(deptId) || [];
+          children.forEach(collectDeptIds);
+        };
+
+        collectDeptIds(managedDeptId);
+      }
+
+      query = query.in("department_id", Array.from(childDeptIds));
+    }
+
+    const { data, error } = await query.order("updated_at", { ascending: false });
 
     if (error) {
       logger.error({ error, orgId: validated.data.orgId }, "Failed to fetch user projects");
@@ -327,6 +364,11 @@ export async function getProjectDetails(
       return { success: false, error: "Not a member of this workspace" };
     }
 
+    const hasDeptAccess = await verifyDepartmentScopeForProject(insforge, validated.data.orgId, userId, validated.data.projectId);
+    if (!hasDeptAccess) {
+      return { success: false, error: "Access denied: Scoped to department branch" };
+    }
+
     const { data, error } = await insforge.database
       .from("projects")
       .select("*")
@@ -355,7 +397,8 @@ export async function updateProject(
   description: string | null,
   status: ProjectStatus,
   orgId: string,
-  customStatuses?: string[] | null
+  customStatuses?: string[] | null,
+  departmentId: string | null = null
 ): Promise<{ success: boolean; error?: string }> {
   const validated = updateProjectInputSchema.safeParse({
     projectId,
@@ -364,6 +407,7 @@ export async function updateProject(
     status,
     orgId,
     custom_statuses: customStatuses === undefined ? undefined : customStatuses,
+    departmentId,
   });
   if (!validated.success) {
     return { success: false, error: validated.error.issues[0].message };
@@ -378,6 +422,11 @@ export async function updateProject(
     const isAllowed = await verifyPermission(insforge, validated.data.orgId, userId, "projects", "update");
     if (!isAllowed) {
       return { success: false, error: "You do not have permission to update projects in this workspace." };
+    }
+
+    const hasDeptAccess = await verifyDepartmentScopeForProject(insforge, validated.data.orgId, userId, validated.data.projectId);
+    if (!hasDeptAccess) {
+      return { success: false, error: "Access denied: Scoped to department branch" };
     }
 
     // Task conflict guard if custom_statuses is updated/cleared
@@ -409,6 +458,7 @@ export async function updateProject(
       name: validated.data.name,
       description: validated.data.description || null,
       status: validated.data.status,
+      department_id: validated.data.departmentId || null,
       updated_at: new Date().toISOString(),
     };
 
@@ -490,6 +540,11 @@ export async function archiveProject(
       return { success: false, error: "You do not have permission to archive projects in this workspace." };
     }
 
+    const hasDeptAccess = await verifyDepartmentScopeForProject(insforge, validated.data.orgId, userId, validated.data.projectId);
+    if (!hasDeptAccess) {
+      return { success: false, error: "Access denied: Scoped to department branch" };
+    }
+
     const { data: projData } = await insforge.database
       .from("projects")
       .select("name")
@@ -561,6 +616,11 @@ export async function deleteProject(
     const isAllowed = await verifyPermission(insforge, validated.data.orgId, userId, "projects", "delete");
     if (!isAllowed) {
       return { success: false, error: "You do not have permission to delete projects in this workspace." };
+    }
+
+    const hasDeptAccess = await verifyDepartmentScopeForProject(insforge, validated.data.orgId, userId, validated.data.projectId);
+    if (!hasDeptAccess) {
+      return { success: false, error: "Access denied: Scoped to department branch" };
     }
 
     // Fetch project details for logging

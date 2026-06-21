@@ -355,3 +355,21 @@ After building any component — update this file with the component name, file 
 - **Card Wrapper Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6`
 - **Filter Box Classes:** `grid grid-cols-2 sm:grid-cols-5 gap-3 mb-6 bg-neutral-bg border border-black p-4 rounded-sketchy-sm`
 - **Table Row Classes:** `border-b border-black/10 hover:bg-neutral-bg/25`
+
+### Organization Hierarchies (Feature 4.10)
+
+#### Departments Settings Page
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/settings/departments/page.tsx)
+- **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
+
+#### DepartmentTree Component
+- **File Path:** [DepartmentTree.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/departments/DepartmentTree.tsx)
+- **Container Classes:** `flex flex-col gap-4`
+
+#### DepartmentForm Component
+- **File Path:** [DepartmentForm.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/departments/DepartmentForm.tsx)
+- **Container Classes:** `flex flex-col gap-4`
+
+#### MemberAssignment Component
+- **File Path:** [MemberAssignment.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/departments/MemberAssignment.tsx)
+- **Container Classes:** `flex flex-col gap-4`

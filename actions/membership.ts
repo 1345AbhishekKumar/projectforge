@@ -10,6 +10,7 @@ import { z } from "zod";
 import type { MembershipRole } from "@/types";
 import { orgIdSchema, membershipIdSchema } from "@/lib/utils";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
+import { getManagedDepartmentId } from "@/lib/auth-helpers";
 
 
 const getOrganizationMembersInputSchema = z.object({
@@ -37,6 +38,7 @@ export type MemberListItem = {
   name: string;
   email: string;
   avatarUrl: string | null;
+  departmentId?: string | null;
 };
 
 export async function getOrganizationMembers(
@@ -65,13 +67,14 @@ export async function getOrganizationMembers(
       return { success: false, error: "Not a member of this organization", data: [] };
     }
 
-    // Fetch members with profiles and custom_role_id joined
+    // Fetch members with profiles, custom_role_id and department_id joined
     const { data, error } = await insforge.database
       .from("memberships")
       .select(`
         id,
         role,
         custom_role_id,
+        department_id,
         created_at,
         user_id,
         profiles (
@@ -88,7 +91,40 @@ export async function getOrganizationMembers(
       return { success: false, error: "Failed to fetch members", data: [] };
     }
 
-    const members: MemberListItem[] = (data || []).map((m) => {
+    let filteredData = data || [];
+    const managedDeptId = await getManagedDepartmentId(insforge, validated.data.orgId, userId);
+
+    if (managedDeptId && filteredData.length > 0) {
+      const { data: depts } = await insforge.database
+        .from("departments")
+        .select("id, parent_department_id")
+        .eq("organization_id", validated.data.orgId);
+
+      const childDeptIds = new Set<string>();
+      if (depts) {
+        const deptChildrenMap = new Map<string, string[]>();
+        depts.forEach((d) => {
+          if (d.parent_department_id) {
+            if (!deptChildrenMap.has(d.parent_department_id)) {
+              deptChildrenMap.set(d.parent_department_id, []);
+            }
+            deptChildrenMap.get(d.parent_department_id)!.push(d.id);
+          }
+        });
+
+        const collectDeptIds = (deptId: string) => {
+          childDeptIds.add(deptId);
+          const children = deptChildrenMap.get(deptId) || [];
+          children.forEach(collectDeptIds);
+        };
+
+        collectDeptIds(managedDeptId);
+      }
+
+      filteredData = filteredData.filter((m) => m.department_id && childDeptIds.has(m.department_id));
+    }
+
+    const members: MemberListItem[] = filteredData.map((m) => {
       const profile = Array.isArray(m.profiles) ? m.profiles[0] : m.profiles;
       return {
         id: m.id,
@@ -100,6 +136,7 @@ export async function getOrganizationMembers(
         name: profile?.full_name || "Unknown Member",
         email: profile?.email || "",
         avatarUrl: profile?.avatar_url || null,
+        departmentId: m.department_id,
       };
     });
 

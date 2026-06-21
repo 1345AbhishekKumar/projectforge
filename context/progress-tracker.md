@@ -8,11 +8,12 @@ We are building Version 3
 ---
 
 ## Current Status
-- **Status:** **Feature 4.8: Risk Management** and **Feature 4.9: Compliance & Governance** fully implemented. Added risks matrix view (`/projects/[id]/risks`), critical risk alert banner on project dashboard, and Compliance Center (`/settings/compliance`) for retention settings, manual cleanup, and audit logs.
+- **Status:** **Feature 4.10: Organization Hierarchies** and **Feature 4.12: Advanced Notifications** fully implemented. Created recursive department tree structures, scoped project and member views for department managers, role-targeted notification alerts, and overdue task supervisor escalations.
 - **Active Sprint:** Version 4 enterprise execution platform features completed.
-- **Target Milestones:** Version 4 enterprise scalability, governance, and reporting achieved.
+- **Target Milestones:** Version 4 enterprise scalability, hierarchies, and advanced alerting achieved.
  
  ## Progress
+- [x] Implement Feature 4.10 & 4.12: Organization Hierarchies & Advanced Notifications — Designed recursive department trees with loop cycle prevention, department manager scoping for project and memberships, custom roles/role-targeted notification fan-out, and supervisor overdue task escalations. Built departments management dashboard at `/settings/departments`.
 - [x] Implement Feature 4.9: Compliance & Governance — Added data retention policy management to organizations, manual cleanup execution, CSV export utilities for audit trails and risks registers, and designed the `/settings/compliance` Compliance Center whiteboard page with the `<AuditLogsTable>` paginated logs explorer component.
 - [x] Implement Feature 4.8: Risk Management — Created database `public.risks` table with RLS policies, created Server Actions for Risk CRUD, added critical warning banners on project dashboard, and designed the interactive 3x3 Risk Matrix page at `/projects/[id]/risks` using the `<RiskFormModal>` whiteboard component.
 - [x] Implement Feature 4.7: Resource Management — Added `ResourceAllocation` TypeScript type definition. Created Server Actions file `actions/resourceAllocation.ts` supporting Zod-validated inserts, updates, and deletions on `resource_allocations` table with RLS and total capacity warnings. Added sidebar navigation link in `Sidebar.tsx`. Designed dynamic whiteboard-themed `/team/capacity` planner dashboard page integrating stacked allocation charts, member capacity lists, and an interactive `EditAllocationModal` with live-updating validation alerts.

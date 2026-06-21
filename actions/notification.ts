@@ -16,6 +16,7 @@ const ALL_NOTIFICATION_TYPES: NotificationType[] = [
   "SPRINT_ENDED",
   "MEMBER_INVITED",
   "PROJECT_COMPLETED",
+  "TASK_ESCALATION",
 ];
 
 const preferenceSchema = z.object({
@@ -26,6 +27,7 @@ const preferenceSchema = z.object({
     "SPRINT_ENDED",
     "MEMBER_INVITED",
     "PROJECT_COMPLETED",
+    "TASK_ESCALATION",
   ]),
   inApp: z.boolean(),
   email: z.boolean(),
@@ -395,6 +397,53 @@ export async function upsertNotificationPreference(
     return { success: true };
   } catch (err) {
     logger.error({ error: err, type }, "upsertNotificationPreference error");
+    Sentry.captureException(err);
+    return { success: false, error: "An unexpected error occurred" };
+  } finally {
+    flushLogsAfterResponse();
+  }
+}
+
+export async function sendRoleTargetedNotification(
+  orgId: string,
+  targetRoles: string[],
+  content: string,
+  type: NotificationType = "GENERAL"
+): Promise<{ success: boolean; count?: number; error?: string }> {
+  try {
+    const { userId } = await auth();
+    if (!userId) return { success: false, error: "Unauthorized" };
+
+    const insforge = createInsforgeServer(userId);
+
+    // Verify caller is a member
+    const isMember = await verifyMembership(insforge, orgId, userId);
+    if (!isMember) return { success: false, error: "Not a member of this workspace" };
+
+    // Fetch all memberships in the organization
+    const { data: memberships, error } = await insforge.database
+      .from("memberships")
+      .select("user_id, role")
+      .eq("organization_id", orgId);
+
+    if (error) {
+      logger.error({ error, orgId }, "Failed to fetch memberships for role targeted notification");
+      return { success: false, error: "Failed to fetch memberships" };
+    }
+
+    const rolesUpper = targetRoles.map((r) => r.toUpperCase());
+    const targetUsers = memberships
+      .filter((m) => rolesUpper.includes(m.role.toUpperCase()))
+      .map((m) => m.user_id);
+
+    // Send notification to each user
+    for (const targetUserId of targetUsers) {
+      await createNotification(targetUserId, content, type);
+    }
+
+    return { success: true, count: targetUsers.length };
+  } catch (err) {
+    logger.error({ error: err, orgId, targetRoles }, "sendRoleTargetedNotification failed");
     Sentry.captureException(err);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
