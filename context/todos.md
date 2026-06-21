@@ -277,16 +277,16 @@ we are building version 4 (prd_versions/v4.md)
 - [ ] **`role_permissions` Table:** Verify fields: `role_id`, `permission_id`. Enforce FKs to `roles.id` and `permissions.id` with a composite primary key.
 - [ ] **`custom_fields` Table:** Verify fields: `id`, `organization_id`, `entity_type` (e.g. 'TASK', 'PROJECT'), `name`, `field_type` (e.g. 'TEXT', 'NUMBER', 'SELECT'), `created_at`. Enforce FK to `organizations.id`.
 - [ ] **`custom_field_values` Table:** Verify fields: `id`, `custom_field_id`, `entity_id` (UUID), `value` (text), `created_at`. Enforce FK to `custom_fields.id`.
-- [ ] **`resource_allocations` Table:** Verify fields: `id`, `user_id`, `project_id`, `allocation_percentage` (int), `created_at`. Enforce FK to `profiles.id` and `projects.id`.
+- [x] **`resource_allocations` Table:** Verify fields: `id`, `user_id`, `project_id`, `allocation_percentage` (int), `created_at`. Enforce FK to `profiles.id` and `projects.id`.
 - [ ] **`risks` Table:** Verify fields: `id`, `project_id`, `title`, `probability` (low, medium, high), `impact` (low, medium, high), `mitigation_plan` (text), `created_at`. Enforce FK to `projects.id`.
-- [ ] **`departments` Table:** Verify fields: `id`, `organization_id`, `name`, `parent_department_id` (nullable), `created_at`. Enforce FK to `organizations.id` and self-referential FK.
+- [x] **`departments` Table:** Verify fields: `id`, `organization_id`, `name`, `parent_department_id` (nullable), `created_at`. Enforce FK to `organizations.id` and self-referential FK.
 
 ### Page Routing & Directory Scaffolding
 - [ ] **Portfolios Dashboard (`/portfolios`):** Verify page routing and display of aggregated portfolio-level KPIs.
 - [ ] **Portfolio & Program Detail Views (`/portfolios/[id]`, `/programs/[id]`):** Verify dynamic routes, project mappings, and status monitoring interfaces.
 - [ ] **Custom Roles Settings (`/settings/roles`):** Verify interface for listing, creating, and modifying RBAC permissions.
 - [ ] **Custom Fields Dashboard (`/settings/custom-fields`):** Verify management of dynamic attributes for tasks and projects.
-- [ ] **Enterprise Analytics & Reporting (`/reports/enterprise`):** Verify custom reports builder, capacity allocation charts, and department productivity view.
+- [x] **Enterprise Analytics & Reporting (`/reports/enterprise`):** Verify custom reports builder, capacity allocation charts, and department productivity view.
 - [ ] **Resource Planner (`/team/capacity`):** Verify resource allocation grids and utilization forecast visuals.
 - [ ] **Risk Registry Matrix (`/projects/[id]/risks`):** Verify interactive risk matrix view showing probability vs. impact.
 - [ ] **Compliance Center (`/settings/compliance`):** Verify logs table, data retention policies editor, and download options.
@@ -317,12 +317,12 @@ we are building version 4 (prd_versions/v4.md)
 - [x] **Search & Filter Integration:** Filter task search results using custom field criteria. Verify matching records return.
 
 ### Feature 4.5: Advanced Workflow Engine
-- [ ] **Approval Chains:** Create a multi-step approval workflow (e.g. Contributor -> Manager -> Director). Verify task status stays locked until all approvals are logged.
-- [ ] **Escalation Trigger Execution:** Simulate overdue task conditions. Verify the workflow engine executes the escalation action (assignee change, priority bump, and notifications).
+- [x] **Approval Chains:** Create a multi-step approval workflow (e.g. Contributor -> Manager -> Director). Verify task status stays locked until all approvals are logged.
+- [x] **Escalation Trigger Execution:** Simulate overdue task conditions. Verify the workflow engine executes the escalation action (assignee change, priority bump, and notifications).
 
 ### Feature 4.6: Enterprise Reporting 
-- [ ] **Health & Financial Aggregations:** Generate reports incorporating project health metrics and resource cost centers. Verify mathematical formulas roll up accurately.
-- [ ] **Cross-Tenant Leakage Check:** Attempt to view reports using an unauthorized organization token. Verify immediate access denial.
+- [x] **Health & Financial Aggregations:** Generate reports incorporating project health metrics and resource cost centers. Verify mathematical formulas roll up accurately.
+- [x] **Cross-Tenant Leakage Check:** Attempt to view reports using an unauthorized organization token. Verify immediate access denial.
 
 ### Feature 4.7: Resource Management 
 - [ ] **Allocation Validation:** Assign a user to multiple projects. Verify that total allocation percentage warning triggers if it exceeds 100%.

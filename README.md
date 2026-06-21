@@ -3,6 +3,8 @@ ProjectForge App Preview
 ![ProjectForge App Preview](public/image.png)
 
 
+![Sprint preview](public/sprint.png)
+
 ## Getting Started
 
 First, run the development server:

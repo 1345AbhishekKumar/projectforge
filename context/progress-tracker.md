@@ -8,11 +8,12 @@ We are building Version 3
 ---
 
 ## Current Status
-- **Status:** **Database security policies and indexes fully updated to resolve Advisor findings**. Configured RLS policies for `project_templates`, `ai_usages`, and `task_dependencies`. Created 5 missing foreign key indexes on `task_dependencies`, `saved_searches`, and `ai_usages`. Verified via test suite.
-- **Active Sprint:** Version 3 execution platform features.
-- **Target Milestones:** Version 3 automation & integrations core.
+- **Status:** **Feature 4.6: Enterprise Reporting fully implemented**. Created `departments` and `resource_allocations` tables with indices and RLS policies. Implemented `actions/enterpriseReport.ts` server actions and `/reports/enterprise/page.tsx` view with custom report builders, capacity charts, and department rollups. Verified tenant isolation.
+- **Active Sprint:** Version 4 enterprise execution platform features.
+- **Target Milestones:** Version 4 enterprise scalability, governance, and reporting.
  
  ## Progress
+- [x] Implement Feature 4.6: Enterprise Reporting — Created database tables `departments` and `resource_allocations` with necessary RLS policies and indices. Created server actions `actions/enterpriseReport.ts` delivering rollups for portfolios, programs, departments, and capacity. Designed dynamic layout at `/app/reports/enterprise/page.tsx` with whiteboard-themed builders, SVG charts, and productivity views.
 - [x] Resolve all InsForge Database Advisor findings — Hardened RLS policies for `project_templates` (restricting select to authenticated users and explicitly blocking writes to satisfy `rls-select-only`), `ai_usages`, and `task_dependencies`. Created 5 missing foreign key indexes on `task_dependencies`, `saved_searches`, and `ai_usages` concurrently. Ran all isolation tests successfully.
 - [x] Implement Feature 3.9: Database Seeding — Scaled database seeding capability in `actions/seeddata.ts` to populate exactly 55 projects, 55 tasks per project (3,025 tasks total), 3,025 comments (commits), 45 sprints contiguously scheduled, 55 members, 45 time entries, 45 audit logs, and 25 workflow automations. Extracted helper operations into `lib/seedingUtils.ts` to comply with the 200–300 lines limit, batch-inserted entries in chunks of 500, bypassed profile insertion RLS using dynamic mock clients, and wrote a complete unit test suite in `tests/seeddata.test.ts`.
 - [x] Implement Feature 3.8: Dependency & Project Templates Verification — Scaffolded project creation from standard "Website Launch" templates including customizable status schemas, pre-defined tasks, role-to-user assignment maps, and task dependency blocks. Developed task transition blockers checking database-level `task_dependencies` and throwing descriptive blocker messages on update, and verified with all assertions passing on the Bun/Vitest test suite (`tests/dependencyTemplates.test.ts`).

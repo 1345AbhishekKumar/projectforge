@@ -22,6 +22,13 @@ const taskCreateSchema = z.object({
   due_date: z.string().nullable().optional(),
 });
 
+const approvalActionSchema = z.object({
+  steps: z.array(z.object({
+    role: z.string().min(1),
+  })).min(1),
+  target_status: z.string().min(1),
+});
+
 type WorkflowContext = {
   depth: number;
   executedIds: string[];
@@ -212,6 +219,57 @@ async function executeAction(
 
     const content = (actionData?.content || "Workflow notification triggered.") as string;
     await createNotification(targetUserId, content, "GENERAL");
+  } else if (action.type === "require_approval") {
+    const taskId = (taskObj?.id || payloadObj?.id) as string | undefined;
+    if (!taskId) {
+      logger.warn({ action, payload }, "require_approval action skipped: taskId not found in payload");
+      return;
+    }
+
+    const validated = approvalActionSchema.safeParse(action.data);
+    if (!validated.success) {
+      logger.error({ errors: validated.error.issues, data: action.data }, "Invalid require_approval action data");
+      return;
+    }
+
+    // Check if task already has approvals configured to avoid duplicate creations
+    const { data: existing } = await insforge.database
+      .from("task_approvals")
+      .select("id")
+      .eq("task_id", taskId)
+      .limit(1);
+
+    if (existing && existing.length > 0) {
+      return;
+    }
+
+    const approvalRows = validated.data.steps.map((step, idx) => ({
+      task_id: taskId,
+      organization_id: orgId,
+      role_name: step.role,
+      step_number: idx + 1,
+      status: idx === 0 ? "PENDING" : "QUEUED",
+      target_status: validated.data.target_status,
+    }));
+
+    const { error: insertError } = await insforge.database
+      .from("task_approvals")
+      .insert(approvalRows);
+
+    if (insertError) {
+      logger.error({ error: insertError, taskId }, "Failed to create task approvals in require_approval action");
+      return;
+    }
+
+    // Notify users with the first role
+    const firstRole = validated.data.steps[0].role;
+    const taskTitle = (taskObj?.title || payloadObj?.title || "Task") as string;
+    await notifyRoleMembers(
+      orgId,
+      firstRole,
+      `Task "${taskTitle}" requires your approval.`,
+      insforge
+    );
   } else {
     logger.warn({ actionType: action.type }, "Unsupported workflow action type");
   }
@@ -325,3 +383,53 @@ export async function triggerWorkflowEvent(
     Sentry.captureException(err);
   }
 }
+
+async function notifyRoleMembers(
+  orgId: string,
+  roleName: string,
+  content: string,
+  insforge: ReturnType<typeof createInsforgeServer>
+): Promise<void> {
+  const { data: memberships, error } = await insforge.database
+    .from("memberships")
+    .select(`
+      user_id,
+      role,
+      custom_role_id
+    `)
+    .eq("organization_id", orgId);
+
+  if (error || !memberships) {
+    logger.error({ error, orgId }, "Failed to fetch memberships for role notification");
+    return;
+  }
+
+  const { data: roles } = await insforge.database
+    .from("roles")
+    .select("id, name")
+    .eq("organization_id", orgId);
+
+  const roleIdToName = new Map<string, string>();
+  if (roles) {
+    for (const r of roles) {
+      roleIdToName.set(r.id, r.name);
+    }
+  }
+
+  const targetUserIds: string[] = [];
+  for (const m of memberships) {
+    const isDefaultMatch = m.role?.toLowerCase() === roleName.toLowerCase();
+    const customRoleName = m.custom_role_id ? roleIdToName.get(m.custom_role_id) : null;
+    const isCustomMatch = customRoleName?.toLowerCase() === roleName.toLowerCase();
+
+    if (isDefaultMatch || isCustomMatch) {
+      targetUserIds.push(m.user_id);
+    }
+  }
+
+  const promises = targetUserIds.map((uid) =>
+    createNotification(uid, content, "GENERAL")
+  );
+  await Promise.all(promises);
+}
+

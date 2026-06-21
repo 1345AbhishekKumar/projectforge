@@ -123,6 +123,26 @@ export async function updateTask(
         return { success: false, error: `Invalid status "${newStatus}". Must be one of: ${allowedStatuses.join(", ")}` };
       }
 
+      // Check task approval lock
+      const { data: pendingApprovals } = await insforge.database
+        .from("task_approvals")
+        .select("id")
+        .eq("task_id", validated.data.taskId)
+        .eq("status", "PENDING");
+
+      if (pendingApprovals && pendingApprovals.length > 0) {
+        if (newStatus === allowedStatuses[0]) {
+          // Reverting to backlog cancels/rejects the active approvals
+          await insforge.database
+            .from("task_approvals")
+            .update({ status: "REJECTED", updated_at: new Date().toISOString() })
+            .eq("task_id", validated.data.taskId)
+            .in("status", ["PENDING", "QUEUED"]);
+        } else {
+          return { success: false, error: "Cannot update task status: this task is locked pending approval." };
+        }
+      }
+
       const oldIdx = allowedStatuses.indexOf(oldStatus);
       const newIdx = allowedStatuses.indexOf(newStatus);
 
@@ -431,7 +451,27 @@ export async function reorderTasks(
           if (!allowedStatuses.includes(update.status)) {
             return { success: false, error: `Invalid status "${update.status}". Must be one of: ${allowedStatuses.join(", ")}` };
           }
-          
+
+          // Check task approval lock
+          const { data: pendingApprovals } = await insforge.database
+            .from("task_approvals")
+            .select("id")
+            .eq("task_id", update.id)
+            .eq("status", "PENDING");
+
+          if (pendingApprovals && pendingApprovals.length > 0) {
+            if (update.status === allowedStatuses[0]) {
+              // Reverting to backlog cancels/rejects the active approvals
+              await insforge.database
+                .from("task_approvals")
+                .update({ status: "REJECTED", updated_at: new Date().toISOString() })
+                .eq("task_id", update.id)
+                .in("status", ["PENDING", "QUEUED"]);
+            } else {
+              return { success: false, error: `Cannot update task status for "${prev.title}": this task is locked pending approval.` };
+            }
+          }
+
           const oldIdx = allowedStatuses.indexOf(prev.status);
           const newIdx = allowedStatuses.indexOf(update.status);
           
