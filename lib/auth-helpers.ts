@@ -74,26 +74,20 @@ export async function verifyPermission(
   resource: string,
   action: string
 ): Promise<boolean> {
-  // 1. Get user role
+  // 1. Get user membership — include custom_role_id FK
   const { data: memberData } = await insforge.database
     .from("memberships")
-    .select("role")
+    .select("role, custom_role_id")
     .eq("organization_id", orgId)
     .eq("user_id", userId)
     .maybeSingle();
 
   if (!memberData) return false;
-  const roleName = memberData.role;
+  const roleName = memberData.role as string;
+  const customRoleId = (memberData as Record<string, unknown>).custom_role_id as string | null;
 
-  // 2. Check for custom database role
-  const { data: roleData } = await insforge.database
-    .from("roles")
-    .select("id")
-    .eq("organization_id", orgId)
-    .eq("name", roleName)
-    .maybeSingle();
-
-  if (roleData) {
+  // 2. Check custom role by FK (UUID) — no name matching needed
+  if (customRoleId) {
     const { data: rpData } = await insforge.database
       .from("role_permissions")
       .select(`
@@ -103,7 +97,7 @@ export async function verifyPermission(
           action
         )
       `)
-      .eq("role_id", roleData.id);
+      .eq("role_id", customRoleId);
 
     if (rpData && Array.isArray(rpData)) {
       type RPRecord = { permissions: { resource: string; action: string } | null };

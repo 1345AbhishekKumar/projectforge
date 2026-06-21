@@ -12,6 +12,7 @@ import { getOrganizationMembers, type MemberListItem } from "@/actions/membershi
 import { getOrganizationInvitations, type OrgInvitationItem } from "@/actions/invitation";
 import { getUserOrganizations } from "@/actions/org";
 import { getWorkflows } from "@/actions/workflow";
+import { getCustomRoles } from "@/actions/role";
 import type { MembershipRole } from "@/types";
 import type { WorkflowRow } from "@/components/orgs/WorkflowsTab";
 
@@ -30,15 +31,17 @@ export default async function SettingsPage() {
   let initialMembers: MemberListItem[] = [];
   let initialInvitations: OrgInvitationItem[] = [];
   let initialWorkflows: WorkflowRow[] = [];
+  let initialCustomRoles: { id: string; name: string }[] = [];
   let activeOrgName = "";
   let currentUserRole: MembershipRole = "MEMBER";
 
   if (activeOrgId) {
-    const [membersRes, invitesRes, orgsRes, workflowsRes] = await Promise.all([
+    const [membersRes, invitesRes, orgsRes, workflowsRes, rolesRes] = await Promise.all([
       getOrganizationMembers(activeOrgId),
       getOrganizationInvitations(activeOrgId),
       getUserOrganizations(),
       getWorkflows(activeOrgId),
+      getCustomRoles(activeOrgId),
     ]);
 
     if (membersRes.success) {
@@ -49,6 +52,9 @@ export default async function SettingsPage() {
     }
     if (workflowsRes.success) {
       initialWorkflows = workflowsRes.data as WorkflowRow[];
+    }
+    if (rolesRes.success && rolesRes.data) {
+      initialCustomRoles = (rolesRes.data as { id: string; name: string }[]);
     }
     if (orgsRes.success && orgsRes.data) {
       const activeOrg = orgsRes.data.find((o) => o.id === activeOrgId);
@@ -134,6 +140,7 @@ export default async function SettingsPage() {
               initialMembers={initialMembers}
               initialInvitations={initialInvitations}
               initialWorkflows={initialWorkflows}
+              initialCustomRoles={initialCustomRoles}
               activeOrgId={activeOrgId}
               activeOrgName={activeOrgName}
               currentUserId={userId}

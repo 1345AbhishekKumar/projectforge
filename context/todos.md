@@ -316,51 +316,51 @@ we are building version 4 (prd_versions/v4.md)
 - [x] **Zod Input Validation:** Ensure custom field values match target types (e.g. enforce numeric check for 'NUMBER' field) before saving.
 - [x] **Search & Filter Integration:** Filter task search results using custom field criteria. Verify matching records return.
 
-### Feature 4.5: Advanced Workflow Engine Verification
+### Feature 4.5: Advanced Workflow Engine
 - [ ] **Approval Chains:** Create a multi-step approval workflow (e.g. Contributor -> Manager -> Director). Verify task status stays locked until all approvals are logged.
 - [ ] **Escalation Trigger Execution:** Simulate overdue task conditions. Verify the workflow engine executes the escalation action (assignee change, priority bump, and notifications).
 
-### Feature 4.6: Enterprise Reporting Verification
+### Feature 4.6: Enterprise Reporting 
 - [ ] **Health & Financial Aggregations:** Generate reports incorporating project health metrics and resource cost centers. Verify mathematical formulas roll up accurately.
 - [ ] **Cross-Tenant Leakage Check:** Attempt to view reports using an unauthorized organization token. Verify immediate access denial.
 
-### Feature 4.7: Resource Management Verification
+### Feature 4.7: Resource Management 
 - [ ] **Allocation Validation:** Assign a user to multiple projects. Verify that total allocation percentage warning triggers if it exceeds 100%.
 - [ ] **Workload Utilization Chart:** View capacity planner. Verify capacity graphs accurately reflect allocations stored in `resource_allocations`.
 
-### Feature 4.8: Risk Management Verification
+### Feature 4.8: Risk Management 
 - [ ] **Risk Registry logging:** Add, update, and resolve risks under a project. Verify fields map correctly in `risks`.
 - [ ] **Mitigation Tracking:** Enforce that high-probability, high-impact risks display warning badges on the project summary screen.
 
-### Feature 4.9: Compliance & Governance Verification
+### Feature 4.9: Compliance & Governance 
 - [ ] **Immutability of Audit Trails:** Verify that the system records all state modifications into `audit_logs` and that the endpoints reject update/delete requests.
 - [ ] **Data Retention Job:** Run data retention cron. Verify tasks/activity records older than configured retention period are permanently deleted.
 
-### Feature 4.10: Organization Hierarchies Verification
+### Feature 4.10: Organization Hierarchies 
 - [ ] **Recursive Department Tree:** Create nested departments. Verify child department metrics roll up to parent departments on reporting views.
 - [ ] **Scoped Permissions by Node:** Assign a Manager to a department node. Verify they only have access to projects and members within that branch.
 
-### Feature 4.11: Enterprise Integrations Verification
+### Feature 4.11: Enterprise Integrations 
 - [ ] **Jira State Sync:** Trigger task change in Jira. Verify webhook syncs task status in ProjectForge.
 - [ ] **Teams/Slack Alerts:** Post updates in ProjectForge. Verify notifications successfully dispatch to mapped channels.
 
-### Feature 4.12: Advanced Notifications Verification
+### Feature 4.12: Advanced Notifications 
 - [ ] **Role-Targeted Alerts:** Send notification targeted to `Auditor` and `Manager` roles. Verify only users matching those roles receive the notification.
 - [ ] **Escalation Actions:** Verify that overdue task alerts trigger and notify supervisors if ignored.
 
-### Feature 4.13: Data Export Verification
+### Feature 4.13: Data Export
 - [ ] **Format Validation:** Export data in CSV, Excel, and PDF formats. Check that values, date stamps, and layouts match target templates.
 - [ ] **Tamper-Proof Log Export:** Export audit logs to PDF. Verify cryptographic hashes or signature headers exist to guarantee integrity.
 
-### Feature 4.14: Multi-Language Support Verification
+### Feature 4.14: Multi-Language Support 
 - [ ] **UI i18n Translation:** Toggle UI locale. Verify all labels, tooltips, validation alerts, and placeholders render in the selected language.
 - [ ] **Locale Persistence:** Log out and log back in. Verify the preferred locale is retrieved from user profile metadata.
 
-### Feature 4.15: SSO & Enterprise Authentication Verification
+### Feature 4.15: SSO & Enterprise Authentication
 - [ ] **SSO Auth Handshake:** Perform Okta / Entra ID logins. Verify JWT verification succeeds and redirects user into active workspace.
 - [ ] **JIT Provisioning:** Verify a new employee logging in via SSO has their profile, organization membership, and default role auto-created.
 
-### Feature 4.16: Distributed Architecture & Infrastructure Verification
+### Feature 4.16: Distributed Architecture & Infrastructure
 - [ ] **API Gateway Routing:** Verify that request routes are properly split and dispatched to independent services (Auth, Org, Project, etc.).
 - [ ] **Event Bus Delivery:** Verify that event dispatching works asynchronously and failures are handled with retries and dead-letter queues.
 - [ ] **Telemetry & Tracing:** Run load tests. Verify OpenTelemetry captures distributed traces across all service boundaries and lists them in Grafana.

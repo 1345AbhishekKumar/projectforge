@@ -27,6 +27,7 @@ type Props = {
   initialMembers: MemberListItem[];
   initialInvitations: OrgInvitationItem[];
   initialWorkflows: WorkflowRow[];
+  initialCustomRoles: { id: string; name: string }[];
   activeOrgId: string;
   activeOrgName: string;
   currentUserId: string;
@@ -37,6 +38,7 @@ export function SettingsForm({
   initialMembers,
   initialInvitations,
   initialWorkflows,
+  initialCustomRoles,
   activeOrgId,
   activeOrgName,
   currentUserId,
@@ -69,19 +71,33 @@ export function SettingsForm({
     return res;
   }
 
-  async function handleUpdateRole(membershipId: string, newRole: "ADMIN" | "MEMBER") {
+  async function handleUpdateRole(membershipId: string, newRole: string) {
     const res = await updateMemberRole(membershipId, activeOrgId, newRole);
     if (res.success) {
       showBanner("success", "Role updated successfully!");
-      // Reload members
-      const membersRes = await getOrganizationMembers(activeOrgId);
-      if (membersRes.success) setMembers(membersRes.data);
+      // Optimistic update — no refetch needed, we know exactly what changed
+      const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      const isCustomRole = UUID_REGEX.test(newRole);
+      setMembers((prev) =>
+        prev.map((m) =>
+          m.id === membershipId
+            ? {
+                ...m,
+                // Custom role: keep base role as MEMBER, set customRoleId to UUID
+                // Default role: clear customRoleId, update role to ADMIN/MEMBER
+                role: isCustomRole ? "MEMBER" : (newRole as MembershipRole),
+                customRoleId: isCustomRole ? newRole : null,
+                customRoleName: null, // derived from customRoles prop in MemberList
+              }
+            : m
+        )
+      );
     } else {
       showBanner("error", res.error || "Failed to update role");
     }
   }
-
   async function handleRemoveMember(membershipId: string) {
+
     const res = await removeMember(membershipId, activeOrgId);
     if (res.success) {
       showBanner("success", "Member removed from workspace.");
@@ -222,6 +238,7 @@ export function SettingsForm({
         <div className="lg:col-span-2 flex flex-col gap-8">
           <MemberList
             members={members}
+            customRoles={initialCustomRoles}
             currentUserId={currentUserId}
             currentUserRole={currentUserRole}
             onUpdateRole={handleUpdateRole}

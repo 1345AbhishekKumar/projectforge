@@ -31,6 +31,8 @@ export type MemberListItem = {
   id: string;
   userId: string;
   role: MembershipRole;
+  customRoleId: string | null;
+  customRoleName: string | null;
   createdAt: string;
   name: string;
   email: string;
@@ -63,12 +65,13 @@ export async function getOrganizationMembers(
       return { success: false, error: "Not a member of this organization", data: [] };
     }
 
-    // Fetch members with profiles joined
+    // Fetch members with profiles and custom_role_id joined
     const { data, error } = await insforge.database
       .from("memberships")
       .select(`
         id,
         role,
+        custom_role_id,
         created_at,
         user_id,
         profiles (
@@ -91,6 +94,8 @@ export async function getOrganizationMembers(
         id: m.id,
         userId: m.user_id,
         role: m.role as MembershipRole,
+        customRoleId: (m as Record<string, unknown>).custom_role_id as string | null,
+        customRoleName: null, // derived client-side from customRoles prop
         createdAt: m.created_at,
         name: profile?.full_name || "Unknown Member",
         email: profile?.email || "",
@@ -159,10 +164,20 @@ export async function updateMemberRole(
       return { success: false, error: "Admins cannot modify other admins." };
     }
 
+    // Determine if newRole is a UUID (custom role) or a default role string
+    const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const isCustomRole = UUID_REGEX.test(validated.data.newRole);
+
     // Perform update
     const { error } = await insforge.database
       .from("memberships")
-      .update({ role: validated.data.newRole })
+      .update(
+        isCustomRole
+          ? // Custom role: set FK, keep base role as MEMBER
+            { custom_role_id: validated.data.newRole, role: "MEMBER" }
+          : // Default role: clear custom_role_id, set role to the string
+            { custom_role_id: null, role: validated.data.newRole }
+      )
       .eq("id", validated.data.membershipId)
       .eq("organization_id", validated.data.orgId);
 
