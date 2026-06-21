@@ -217,6 +217,7 @@ After building any component — update this file with the component name, file 
 - **File Path:** [Sidebar.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/layout/Sidebar.tsx)
 - **Container Classes:** `w-64 bg-white border-r-2 border-black flex flex-col h-screen sticky top-0 z-40 p-6 gap-6`
 - **Link Button Classes:** `w-full text-left flex items-center gap-3 px-4 py-2.5 border-2 border-black font-sans text-sm font-bold shadow-flat-offset-sm transition-all duration-200`
+- **User Profile Integration:** Navigates to `/profile`, allowing users to customize their personal profile and switch preferred languages (localized across English, Spanish, French, German, and Japanese).
 
 ### Kanban Board Components
 

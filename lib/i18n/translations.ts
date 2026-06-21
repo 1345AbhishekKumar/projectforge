@@ -17,6 +17,7 @@ export const translations = {
       navigation: "Navigation",
       workspace: "Workspace",
       search: "Search",
+      profile: "Profile Settings",
     },
     profile: {
       title: "Edit Profile",
@@ -76,6 +77,7 @@ export const translations = {
       navigation: "Navegación",
       workspace: "Espacio de Trabajo",
       search: "Buscar",
+      profile: "Configuración del Perfil",
     },
     profile: {
       title: "Editar Perfil",
@@ -135,6 +137,7 @@ export const translations = {
       navigation: "Navigation",
       workspace: "Espace de Travail",
       search: "Rechercher",
+      profile: "Paramètres du Profil",
     },
     profile: {
       title: "Modifier le Profil",
@@ -194,6 +197,7 @@ export const translations = {
       navigation: "Navigation",
       workspace: "Arbeitsbereich",
       search: "Suchen",
+      profile: "Profileinstellungen",
     },
     profile: {
       title: "Profil Bearbeiten",
@@ -253,6 +257,7 @@ export const translations = {
       navigation: "ナビゲーション",
       workspace: "ワークスペース",
       search: "検索",
+      profile: "プロフィール設定",
     },
     profile: {
       title: "プロフィール編集",
