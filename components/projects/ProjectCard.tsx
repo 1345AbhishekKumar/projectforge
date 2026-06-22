@@ -61,7 +61,7 @@ export function ProjectCard({ project }: Props) {
         <div className="flex items-center justify-between text-[10px] text-secondary/60 font-sans mt-auto">
           <div className="flex items-center gap-1">
             <Calendar className="h-3 w-3" />
-            <span>{formattedDate}</span>
+            <span suppressHydrationWarning>{formattedDate}</span>
           </div>
           <span className="font-bold underline decoration-tertiary decoration-2">Open Board →</span>
         </div>

@@ -15,7 +15,7 @@ export default function BentoHighlight() {
 
   return (
     <div
-      className="bento-card md:col-span-1 border-2 rounded-sketchy p-8 shadow-flat-offset flex flex-col justify-between min-h-[240px] group transition-all duration-300 bg-white border-black shadow-flat-offset"
+      className="bento-card md:col-span-1 border-2 rounded-sketchy p-8 flex flex-col justify-between min-h-[240px] group transition-[transform,box-shadow] duration-300 bg-white border-black shadow-flat-offset"
     >
       <div>
         <span
@@ -31,12 +31,12 @@ export default function BentoHighlight() {
       </div>
 
       <div
-        className="p-4 rounded-none border text-xs leading-relaxed font-mono transition-all duration-300 bg-[#FFF2B2] border-black/10 text-black shadow-[2px_3px_0px_rgba(0,0,0,1)]"
+        className="p-4 rounded-sketchy-sm border-2 text-xs leading-relaxed font-mono transition-[background-color,box-shadow] duration-300 bg-accent-yellow border-black text-black shadow-[2px_3px_0px_rgba(0,0,0,1)]"
       >
         <span
           className={
             highlightWordIdx === 0
-              ? "bg-[#00a099] text-white px-1 rounded transition-colors duration-300 font-bold"
+              ? "bg-tertiary text-white px-1 rounded transition-colors duration-300 font-bold"
               : "transition-colors duration-300"
           }
         >
@@ -46,7 +46,7 @@ export default function BentoHighlight() {
         <span
           className={
             highlightWordIdx === 1
-              ? "bg-[#00a099] text-white px-1 rounded transition-colors duration-300 font-bold"
+              ? "bg-tertiary text-white px-1 rounded transition-colors duration-300 font-bold"
               : "transition-colors duration-300"
           }
         >
@@ -56,7 +56,7 @@ export default function BentoHighlight() {
         <span
           className={
             highlightWordIdx === 2
-              ? "bg-[#00a099] text-white px-1 rounded transition-colors duration-300 font-bold"
+              ? "bg-tertiary text-white px-1 rounded transition-colors duration-300 font-bold"
               : "transition-colors duration-300"
           }
         >
@@ -66,7 +66,7 @@ export default function BentoHighlight() {
         <span
           className={
             highlightWordIdx === 3
-              ? "bg-[#00a099] text-white px-1 rounded transition-colors duration-300 font-bold"
+              ? "bg-tertiary text-white px-1 rounded transition-colors duration-300 font-bold"
               : "transition-colors duration-300"
           }
         >

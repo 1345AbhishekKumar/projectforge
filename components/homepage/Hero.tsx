@@ -10,10 +10,10 @@ import CollaboratorCursor from "./hero/CollaboratorCursor";
 import PartnerMarquee from "./hero/PartnerMarquee";
 
 const INITIAL_STICKIES: StickyNote[] = [
-  { id: 1, text: "Draft project blueprints 🎨", color: "bg-[#FFF2B2]", x: 6, y: 26, rotate: -2, status: "todo", author: "Priya" },
-  { id: 2, text: "Hook up OAuth auth webhooks", color: "bg-[#D0E1FD]", x: 6, y: 58, rotate: 1.5, status: "todo", author: "Jordan" },
-  { id: 3, text: "Refactor database models ⚡", color: "bg-[#FFD2D2]", x: 39, y: 42, rotate: -1.5, status: "doing", author: "You" },
-  { id: 4, text: "Install GSAP & verify motion ✨", color: "bg-[#D4EDDA]", x: 72, y: 32, rotate: 2, status: "done", author: "Priya" },
+  { id: 1, text: "Draft project blueprints 🎨", color: "bg-accent-yellow", x: 6, y: 26, rotate: -2, status: "todo", author: "Priya" },
+  { id: 2, text: "Hook up OAuth auth webhooks", color: "bg-accent-blue", x: 6, y: 58, rotate: 1.5, status: "todo", author: "Jordan" },
+  { id: 3, text: "Refactor database models ⚡", color: "bg-accent-pink", x: 39, y: 42, rotate: -1.5, status: "doing", author: "You" },
+  { id: 4, text: "Install GSAP & verify motion ✨", color: "bg-accent-green", x: 72, y: 32, rotate: 2, status: "done", author: "Priya" },
 ];
 
 export default function Hero() {
@@ -44,6 +44,10 @@ export default function Hero() {
 
   // Digital Puppet Show timeline orchestrator
   const startPuppetShow = () => {
+    if (isBoardClosed || !cursorPriyaRef.current || !cursorJordanRef.current) {
+      return;
+    }
+
     if (puppetTimelineRef.current) {
       puppetTimelineRef.current.kill();
       puppetTimelineRef.current = null;
@@ -67,6 +71,7 @@ export default function Hero() {
       onComplete: () => {
         // Wait 3.5 seconds at the end of the sequence to let the user review it
         resumeTimeoutRef.current = setTimeout(() => {
+          if (isBoardClosed || !cursorPriyaRef.current || !cursorJordanRef.current) return;
           // Animate back to initial layout smoothly before restarting the loop
           const resetTl = gsap.timeline({
             onComplete: () => {
@@ -94,7 +99,7 @@ export default function Hero() {
       .call(() => {
         setStickies(prev => prev.map(s => s.id === 1 ? { ...s, x: 39, y: 70, status: "doing", rotate: 0 } : s));
         requestAnimationFrame(() => {
-          gsap.set(cursorPriyaRef.current, { clearProps: "scale" });
+          if (cursorPriyaRef.current) gsap.set(cursorPriyaRef.current, { clearProps: "scale" });
           gsap.set(".sticky-note-1", { clearProps: "transform,scale,rotate" });
         });
       });
@@ -107,7 +112,7 @@ export default function Hero() {
       .call(() => {
         setStickies(prev => prev.map(s => s.id === 3 ? { ...s, x: 72, y: 62, status: "done", rotate: 0 } : s));
         requestAnimationFrame(() => {
-          gsap.set(cursorJordanRef.current, { clearProps: "scale" });
+          if (cursorJordanRef.current) gsap.set(cursorJordanRef.current, { clearProps: "scale" });
           gsap.set(".sticky-note-3", { clearProps: "transform,scale,rotate" });
         });
       });
@@ -120,7 +125,7 @@ export default function Hero() {
       .call(() => {
         setStickies(prev => prev.map(s => s.id === 4 ? { ...s, x: 6, y: 26, status: "todo", rotate: 0 } : s));
         requestAnimationFrame(() => {
-          gsap.set(cursorPriyaRef.current, { clearProps: "scale" });
+          if (cursorPriyaRef.current) gsap.set(cursorPriyaRef.current, { clearProps: "scale" });
           gsap.set(".sticky-note-4", { clearProps: "transform,scale,rotate" });
         });
       });
@@ -133,24 +138,35 @@ export default function Hero() {
       .call(() => {
         setStickies(prev => prev.map(s => s.id === 2 ? { ...s, x: 39, y: 36, status: "doing", rotate: 0 } : s));
         requestAnimationFrame(() => {
-          gsap.set(cursorJordanRef.current, { clearProps: "scale" });
+          if (cursorJordanRef.current) gsap.set(cursorJordanRef.current, { clearProps: "scale" });
           gsap.set(".sticky-note-2", { clearProps: "transform,scale,rotate" });
         });
       });
   };
 
-  // Lifecycle control for the puppet show on mount
+  // Lifecycle control for the puppet show based on board state
   useEffect(() => {
-    const initialDelay = setTimeout(() => {
-      startPuppetShow();
-    }, 2000);
-    return () => {
-      clearTimeout(initialDelay);
-      if (puppetTimelineRef.current) puppetTimelineRef.current.kill();
-      if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
-    };
+    if (isBoardClosed) {
+      if (puppetTimelineRef.current) {
+        puppetTimelineRef.current.kill();
+        puppetTimelineRef.current = null;
+      }
+      if (resumeTimeoutRef.current) {
+        clearTimeout(resumeTimeoutRef.current);
+        resumeTimeoutRef.current = null;
+      }
+    } else {
+      const delay = setTimeout(() => {
+        startPuppetShow();
+      }, 2000);
+      return () => {
+        clearTimeout(delay);
+        if (puppetTimelineRef.current) puppetTimelineRef.current.kill();
+        if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+      };
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isBoardClosed]);
 
   // Handle Dragging Sticky Notes via Pointer Events
   const handlePointerDown = (e: React.PointerEvent<HTMLDivElement>, stickyId: number) => {
@@ -168,8 +184,10 @@ export default function Hero() {
       resumeTimeoutRef.current = null;
     }
     // Smoothly return Priya & Jordan's cursors back to idle
-    gsap.to(cursorPriyaRef.current, { left: "12%", top: "45%", scale: 1, duration: 0.8 });
-    gsap.to(cursorJordanRef.current, { left: "80%", top: "68%", scale: 1, duration: 0.8 });
+    if (cursorPriyaRef.current && cursorJordanRef.current) {
+      gsap.to(cursorPriyaRef.current, { left: "12%", top: "45%", scale: 1, duration: 0.8 });
+      gsap.to(cursorJordanRef.current, { left: "80%", top: "68%", scale: 1, duration: 0.8 });
+    }
     
     const element = e.currentTarget;
     const rect = element.getBoundingClientRect();
@@ -321,7 +339,7 @@ export default function Hero() {
     // Dynamic spring entrance for individual sticky notes
     tl.fromTo(
       ".sticky-note-element",
-      { scale: 0, opacity: 0 },
+      { scale: 0.9, opacity: 0 },
       { scale: 1, opacity: 1, duration: 0.8, stagger: 0.1, ease: "back.out(1.6)" },
       "-=0.6"
     );
@@ -347,6 +365,7 @@ export default function Hero() {
 
   // Magnetic Button Physics
   const handleButtonMouseMove = (e: React.MouseEvent<HTMLButtonElement>, btnRef: React.RefObject<HTMLButtonElement | null>) => {
+    if (typeof window !== "undefined" && !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
     if (!btnRef.current) return;
     const btn = btnRef.current;
     const rect = btn.getBoundingClientRect();
@@ -426,7 +445,9 @@ export default function Hero() {
           
           {/* Headline - 2-Line Iron Rule */}
           <h1 className="hero-heading opacity-0 font-cursive text-[3.2rem] sm:text-[4rem] md:text-[4.5rem] lg:text-[4.2rem] xl:text-[4.8rem] leading-[1.05] font-extrabold tracking-tight max-w-2xl mb-6 text-primary">
-            Work, <span className="inline-block w-14 h-7 sm:w-16 sm:h-8 md:w-20 md:h-10 rounded-full align-middle bg-cover bg-center border-2 shadow-flat-offset-sm mx-1 cursor-pointer transform hover:scale-105 active:scale-95 transition-all border-primary" style={{ backgroundImage: "url('https://picsum.photos/seed/forge/400/200')" }}></span> together, <br />
+            Work, <span className="inline-block w-14 h-7 sm:w-16 sm:h-8 md:w-20 md:h-10 rounded-full align-middle bg-cover  bg-no-repeat bg-center border-2 shadow-flat-offset-sm mx-1 cursor-pointer transform hover:scale-105 active:scale-95 transition-all border-primary" 
+                  style={{ backgroundImage: "url('https://t3.ftcdn.net/jpg/06/96/33/02/360_F_696330225_iYZotWAvwIj5HLidQP8sZJQTfky1RYQN.jpg')" }}>
+              </span> together, <br />
             right now.
           </h1>
           

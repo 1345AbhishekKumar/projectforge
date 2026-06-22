@@ -37,11 +37,23 @@ export default function ShowcaseAccordionItem({
 
   const cardBgClass = `${item.color} border-black text-black shadow-flat-offset`;
 
+  const handleMouseEnter = () => {
+    if (typeof window !== "undefined" && window.matchMedia("(hover: hover)").matches) {
+      onMouseEnter();
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (typeof window !== "undefined" && window.matchMedia("(hover: hover)").matches) {
+      onMouseLeave();
+    }
+  };
+
   return (
     <div
       className={`relative overflow-hidden rounded-sketchy border-2 flex flex-col justify-between p-8 transition-[width,background-color,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] showcase-reveal cursor-pointer group min-h-[360px] md:min-h-0 ${cardBgClass} ${widthClass}`}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onClick={onClick}
       role="button"
       tabIndex={0}
@@ -72,7 +84,7 @@ export default function ShowcaseAccordionItem({
 
         {/* Horizontal Accordion indicator */}
         <span
-          className="text-xs font-mono font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-all duration-300 text-black"
+          className="text-xs font-mono font-bold uppercase tracking-wider opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-black"
         >
           Explore Phase &rarr;
         </span>
@@ -88,7 +100,7 @@ export default function ShowcaseAccordionItem({
 
         {/* Collapsible details depending on width */}
         <div
-          className={`transition-all duration-500 overflow-hidden ${
+          className={`transition-[max-height,opacity,margin-top] duration-500 overflow-hidden ${
             isCurrentHovered
               ? "max-h-[150px] opacity-100 mt-2"
               : "max-h-0 md:max-h-0 opacity-0 md:opacity-0"

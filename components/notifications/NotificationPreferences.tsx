@@ -33,6 +33,10 @@ const TYPE_LABELS: Record<NotificationType, { label: string; description: string
     label: "Project Completed",
     description: "Notified when a project is marked as Completed",
   },
+  TASK_ESCALATION: {
+    label: "Task Escalation",
+    description: "Alerts when a task is escalated to you by a supervisor",
+  },
 };
 
 type ToggleSwitchProps = {
@@ -51,9 +55,9 @@ function ToggleSwitch({ checked, onChange, disabled, label }: ToggleSwitchProps)
       disabled={disabled}
       onClick={() => !disabled && onChange(!checked)}
       className={[
-        "relative inline-flex h-6 w-11 shrink-0 items-center border-2 border-black rounded-full transition-all duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tertiary",
+        "relative inline-flex h-6 w-11 shrink-0 items-center border-2 border-black rounded-full transition-colors duration-200 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-tertiary",
         checked ? "bg-accent-green" : "bg-neutral-bg",
-        disabled ? "opacity-40 cursor-not-allowed" : "hover:-translate-y-0.5 shadow-flat-offset-sm",
+        disabled ? "opacity-40 cursor-not-allowed" : "hover:-translate-y-0.5 active:scale-95 shadow-flat-offset-sm",
       ].join(" ")}
     >
       <span

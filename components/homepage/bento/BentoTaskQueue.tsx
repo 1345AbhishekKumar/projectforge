@@ -18,7 +18,7 @@ const INITIAL_TASKS: TaskItem[] = [
     priority: "High",
     status: "Review",
     time: "2m ago",
-    color: "bg-[#FFD2D2]",
+    color: "bg-accent-pink",
   },
   {
     id: "2",
@@ -26,7 +26,7 @@ const INITIAL_TASKS: TaskItem[] = [
     priority: "High",
     status: "Pending",
     time: "15m ago",
-    color: "bg-[#FFF2B2]",
+    color: "bg-accent-yellow",
   },
   {
     id: "3",
@@ -34,7 +34,7 @@ const INITIAL_TASKS: TaskItem[] = [
     priority: "Medium",
     status: "Pending",
     time: "1h ago",
-    color: "bg-[#D0E1FD]",
+    color: "bg-accent-blue",
   },
   {
     id: "4",
@@ -42,7 +42,7 @@ const INITIAL_TASKS: TaskItem[] = [
     priority: "Low",
     status: "Done",
     time: "3h ago",
-    color: "bg-[#D4EDDA]",
+    color: "bg-accent-green",
   },
 ];
 
@@ -69,7 +69,7 @@ export default function BentoTaskQueue() {
 
   return (
     <div
-      className="bento-card md:col-span-1 md:row-span-2 border-2 rounded-sketchy p-8 flex flex-col justify-between min-h-[500px] transition-all duration-300 bg-white border-black shadow-flat-offset"
+      className="bento-card md:col-span-1 md:row-span-2 border-2 rounded-sketchy p-8 flex flex-col justify-between min-h-[500px] transition-[transform,box-shadow] duration-300 bg-white border-black shadow-flat-offset"
     >
       <div>
         <span
@@ -101,7 +101,7 @@ export default function BentoTaskQueue() {
             <div
               key={task.id}
               style={{ contentVisibility: "auto" }}
-              className={`p-4 border rounded-none flex flex-col gap-2 relative group transition-all duration-300 ${cardBgClass} ${cardShadow} ${rotation}`}
+              className={`p-4 border-2 border-black rounded-sketchy-sm flex flex-col gap-2 relative group transition-[transform,background-color] duration-300 ${cardBgClass} ${cardShadow} ${rotation}`}
             >
               <div className="flex items-center justify-between">
                 <span

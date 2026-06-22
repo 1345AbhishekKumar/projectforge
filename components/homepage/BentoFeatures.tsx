@@ -3,6 +3,9 @@
 import React, { useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 import BentoTerminal from "./bento/BentoTerminal";
 import BentoTaskQueue from "./bento/BentoTaskQueue";
 import BentoHighlight from "./bento/BentoHighlight";

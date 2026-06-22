@@ -87,7 +87,7 @@ export function TaskRow({ task, onClick, onStatusToggle }: Props) {
             title={isOverdue ? "Overdue task!" : "Due date"}
           >
             <Calendar className="h-3 w-3 shrink-0" />
-            <span>{formattedDate}</span>
+            <span suppressHydrationWarning>{formattedDate}</span>
           </div>
         )}
 

@@ -65,4 +65,5 @@ We are building Version 3
  ## Notes
 - Ensure all styling variables are derived directly from HSL tokens defined inside `app/globals.css`.
 - Server Actions (`/actions`) must manage validation and database writes exclusively; Page Components (`/app`) should handle presentation shell rendering.
+- Fixed GSAP null-ref animation issues in Hero component when board is closed/minimized. Registered ScrollTrigger plugin across BentoFeatures, HorizontalShowcase, and PricingCTA. Added missing TASK_ESCALATION key to TYPE_LABELS in NotificationPreferences. Optimised resource allocations query to fetch without .in() filter to resolve 502 Bad Gateway timeouts.
 

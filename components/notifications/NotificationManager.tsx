@@ -158,8 +158,8 @@ export function NotificationManager({ initialNotifications }: Props) {
             filtered.map((item) => (
               <div
                 key={item.id}
-                className={`bg-white border-2 border-black rounded-sketchy-sm p-4 shadow-flat-offset-sm transition-all flex items-start gap-4 ${
-                  !item.is_read ? "border-l-4 border-l-tertiary" : "opacity-80"
+                className={`border-2 border-black rounded-sketchy-sm p-4 shadow-flat-offset-sm transition-[background-color,opacity,box-shadow] duration-200 flex items-start gap-4 ${
+                  !item.is_read ? "bg-accent-yellow/20" : "bg-white opacity-80"
                 }`}
               >
                 <div className="p-2 border border-black/15 bg-neutral-bg rounded-lg shrink-0">
@@ -168,6 +168,9 @@ export function NotificationManager({ initialNotifications }: Props) {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    {!item.is_read && (
+                      <span className="block w-2.5 h-2.5 rounded-full bg-tertiary border border-black shrink-0 animate-pulse" title="Unread" />
+                    )}
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded border border-black/10 bg-neutral-bg uppercase text-secondary">
                       {getTypeBadge(item.type)}
                     </span>

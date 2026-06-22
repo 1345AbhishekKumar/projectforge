@@ -33,7 +33,7 @@ function SidebarLink({ label, icon, isActive, onClick, accentColor }: SidebarLin
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left flex items-center gap-3 px-4 py-2.5 border-2 border-black font-sans text-sm font-bold shadow-flat-offset-sm transition-all duration-200 cursor-pointer ${
+      className={`w-full text-left flex items-center gap-3 px-4 py-2.5 border-2 border-black font-sans text-sm font-bold shadow-flat-offset-sm transition-[transform,background-color,box-shadow] duration-200 active:scale-[0.97] cursor-pointer ${
         isActive
           ? `${accentColor} rotate-[-1deg] translate-y-0.5 shadow-none`
           : "bg-white hover:bg-neutral-bg hover:rotate-[0.5deg] hover:-translate-y-0.5"
@@ -77,7 +77,7 @@ export function Sidebar() {
       <aside className="w-64 bg-white border-r-2 border-black flex flex-col h-screen sticky top-0 z-40 p-6 gap-6">
         {/* Brand logo */}
         <div
-          className="flex items-center gap-2 cursor-pointer border-2 border-black p-3 bg-accent-yellow rounded-sketchy shadow-flat-offset-sm hover:-translate-y-0.5 active:translate-y-0.5 transition-all"
+          className="flex items-center gap-2 cursor-pointer border-2 border-black p-3 bg-accent-yellow rounded-sketchy shadow-flat-offset-sm hover:-translate-y-0.5 active:scale-[0.97] transition-[transform,box-shadow] duration-200"
           onClick={() => router.push("/dashboard")}
         >
           <div className="w-8 h-8 rounded-full bg-tertiary border-2 border-primary flex items-center justify-center font-cursive text-white text-lg font-bold">

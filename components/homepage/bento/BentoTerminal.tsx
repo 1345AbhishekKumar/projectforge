@@ -43,16 +43,16 @@ export default function BentoTerminal() {
 
   return (
     <div
-      className="bg-black text-zinc-100 rounded-lg p-5 border-2 transition-colors duration-300 font-mono text-sm overflow-hidden relative border-black"
+      className="bg-black text-zinc-100 rounded-lg p-5 border-2 transition-[border-color,background-color] duration-300 font-mono text-sm overflow-hidden relative border-black"
     >
       <div className="flex items-center gap-2 text-zinc-500 mb-3 border-b border-zinc-800 pb-2">
         <span className="text-xs">projectforge-cli</span>
       </div>
 
       <div className="flex items-center gap-1.5">
-        <span className="text-[#00a099]">$</span>
+        <span className="text-tertiary">$</span>
         <span className="min-h-[20px] inline-block">{commandText}</span>
-        <span className="animate-pulse w-1.5 h-4 bg-[#00a099] inline-block align-middle"></span>
+        <span className="animate-pulse w-1.5 h-4 bg-tertiary inline-block align-middle"></span>
       </div>
 
       {/* Shimmering Processing Bar */}
@@ -60,10 +60,10 @@ export default function BentoTerminal() {
         <div className="mt-4 space-y-2.5">
           <div className="flex items-center justify-between text-xs text-zinc-400">
             <span>Running pipeline…</span>
-            <span className="text-[#00a099]">92%</span>
+            <span className="text-tertiary">92%</span>
           </div>
           <div className="h-2 w-full bg-zinc-900 border border-zinc-800 rounded-full overflow-hidden relative">
-            <div className="absolute top-0 left-0 h-full w-[92%] bg-[#00a099] rounded-full animate-pulse"></div>
+            <div className="absolute top-0 left-0 h-full w-[92%] bg-tertiary rounded-full animate-pulse"></div>
           </div>
         </div>
       )}

@@ -34,14 +34,14 @@ export function StatsGrid({
       value: activeProjects,
       description: "Currently actively tracked",
       icon: FolderKanban,
-      bgClass: "bg-[#D0E1FD]", // Muted Blue
+      bgClass: "bg-accent-blue", // Muted Blue
     },
     {
       title: "Completed Projects",
       value: completedProjects,
       description: "Successfully shipped boards",
       icon: FolderKanban,
-      bgClass: "bg-[#D4EDDA]", // Muted Green
+      bgClass: "bg-accent-green", // Muted Green
     },
     {
       title: "Total Tasks",
@@ -55,14 +55,14 @@ export function StatsGrid({
       value: completedTasks,
       description: "Tasks in DONE status",
       icon: ClipboardList,
-      bgClass: "bg-[#D4EDDA]", // Muted Green
+      bgClass: "bg-accent-green", // Muted Green
     },
     {
       title: "Overdue Tasks",
       value: overdueTasks,
       description: "Missed target due dates",
       icon: AlertTriangle,
-      bgClass: "bg-[#FFD2D2]", // Muted Pink
+      bgClass: "bg-accent-pink", // Muted Pink
       warning: overdueTasks > 0,
     },
     {
@@ -70,7 +70,7 @@ export function StatsGrid({
       value: totalMembers,
       description: "Active collaborators in org",
       icon: Users,
-      bgClass: "bg-[#FFF2B2]", // Muted Yellow
+      bgClass: "bg-accent-yellow", // Muted Yellow
     },
   ];
 
@@ -85,7 +85,7 @@ export function StatsGrid({
         return (
           <div
             key={stat.title}
-            className={`border-2 border-black rounded-sketchy p-6 shadow-flat-offset-sm hover:-translate-y-0.5 hover:shadow-flat-offset transition-all duration-200 ${stat.bgClass} ${rot}`}
+            className={`border-2 border-black rounded-sketchy p-6 shadow-flat-offset-sm hover:-translate-y-0.5 hover:shadow-flat-offset active:scale-[0.98] transition-[transform,box-shadow] duration-200 ${stat.bgClass} ${rot}`}
           >
             <div className="flex items-center justify-between mb-2">
               <span className="font-cursive text-lg font-bold text-secondary">{stat.title}</span>

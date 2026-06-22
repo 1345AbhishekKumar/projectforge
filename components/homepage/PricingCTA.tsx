@@ -3,6 +3,9 @@
 import React, { useState, useRef } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 import WaitlistForm from "./pricing/WaitlistForm";
 import PricingCard from "./pricing/PricingCard";
 

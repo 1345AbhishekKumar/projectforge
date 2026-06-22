@@ -110,6 +110,7 @@ export const KanbanCard = React.memo(function KanbanCard({
           {/* Due Date Indicator */}
           {formattedDate && (
             <span 
+              suppressHydrationWarning
               className={`flex items-center gap-0.5 text-[9px] px-1.5 py-0.5 rounded-full border border-black font-sans font-bold ${
                 isOverdue
                   ? "bg-accent-pink text-primary animate-pulse"

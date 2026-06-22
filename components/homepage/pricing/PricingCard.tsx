@@ -10,13 +10,13 @@ export default function PricingCard({ onDeploy }: PricingCardProps) {
   return (
     <div className="md:col-span-5 cta-reveal">
       <div
-        className="border-2 rounded-sketchy-lg p-8 md:p-10 flex flex-col justify-between min-h-[480px] transition-all duration-300 bg-[#D0E1FD] text-black border-black shadow-flat-offset"
+        className="border-2 rounded-sketchy-lg p-8 md:p-10 flex flex-col justify-between min-h-[480px] transition-[transform,box-shadow,background-color] duration-300 bg-accent-blue text-black border-black shadow-flat-offset"
       >
         <div>
           <div className="flex items-center justify-between mb-8">
             <div>
               <span
-                className="text-xs font-mono font-bold tracking-widest uppercase transition-colors duration-300 text-slate-700"
+                className="text-xs font-mono font-bold tracking-widest uppercase transition-colors duration-300 text-secondary/70"
               >
                 Pricing Tier
               </span>
@@ -25,7 +25,7 @@ export default function PricingCard({ onDeploy }: PricingCardProps) {
 
             {/* Visual Accent Badge */}
             <span
-              className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border transition-all duration-300 bg-white text-black border-black shadow-flat-offset-sm"
+              className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border transition-[transform,box-shadow] duration-200 bg-white text-primary border-black shadow-flat-offset-sm"
             >
               Popular
             </span>
@@ -35,7 +35,7 @@ export default function PricingCard({ onDeploy }: PricingCardProps) {
           <div className="flex items-baseline gap-1.5 mb-8">
             <span className="text-5xl font-bold tracking-tight font-mono">$19</span>
             <span
-              className="text-sm font-mono transition-colors duration-300 text-slate-700"
+              className="text-sm font-mono transition-colors duration-300 text-secondary/70"
             >
               /&nbsp;mo
             </span>
@@ -45,7 +45,7 @@ export default function PricingCard({ onDeploy }: PricingCardProps) {
           <ul className="space-y-4 mb-10 text-sm font-bold">
             <li className="flex items-start gap-3">
               <svg
-                className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-900"
+                className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="3"
@@ -58,7 +58,7 @@ export default function PricingCard({ onDeploy }: PricingCardProps) {
             </li>
             <li className="flex items-start gap-3">
               <svg
-                className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-900"
+                className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="3"
@@ -71,7 +71,7 @@ export default function PricingCard({ onDeploy }: PricingCardProps) {
             </li>
             <li className="flex items-start gap-3">
               <svg
-                className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-900"
+                className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="3"
@@ -84,7 +84,7 @@ export default function PricingCard({ onDeploy }: PricingCardProps) {
             </li>
             <li className="flex items-start gap-3">
               <svg
-                className="w-4 h-4 mt-0.5 flex-shrink-0 text-slate-900"
+                className="w-4 h-4 mt-0.5 flex-shrink-0 text-primary"
                 fill="none"
                 stroke="currentColor"
                 strokeWidth="3"
@@ -101,7 +101,7 @@ export default function PricingCard({ onDeploy }: PricingCardProps) {
         {/* Primary Action Button */}
         <button
           onClick={onDeploy}
-          className="w-full py-3.5 rounded-full font-mono text-sm font-bold bg-[#00a099] border-2 hover:bg-[#008B8B] text-white transition-all duration-150 ease-out active:scale-[0.97] cursor-pointer border-black shadow-flat-offset-sm"
+          className="w-full py-3.5 rounded-full font-mono text-sm font-bold bg-tertiary border-2 hover:bg-tertiary-hover text-white transition-[transform,background-color,box-shadow] duration-150 ease-out active:scale-[0.97] cursor-pointer border-black shadow-flat-offset-sm"
         >
           Deploy Pro Cluster
         </button>
