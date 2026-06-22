@@ -23,6 +23,7 @@ After building any component — update this file with the component name, file 
 #### Login Screen (Sign-In)
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/(auth)/sign-in/[[...sign-in]]/page.tsx)
 - **Container Classes:** `min-h-screen w-full flex items-center justify-center bg-neutral-bg bg-dot-grid text-primary relative py-12 px-4`
+- **SSO Form Panel Classes:** `flex flex-col gap-4` with input container `relative`, input box `w-full font-sans text-sm pl-10 pr-4 py-3 bg-neutral-bg border-2 border-black rounded-sketchy-sm focus:outline-none focus:ring-2 focus:ring-tertiary focus:bg-white transition-all` and button `w-full bg-tertiary text-white font-sans font-bold text-sm py-3 px-6 rounded-full border-2 border-black shadow-flat-offset-sm hover:bg-tertiary-hover active:translate-y-0.5 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2`
 
 #### Signup Screen (Sign-Up)
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/(auth)/sign-up/[[...sign-up]]/page.tsx)
@@ -393,3 +394,12 @@ After building any component — update this file with the component name, file 
 #### ProfileForm Component updates
 - **File Path:** [ProfileForm.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/profile/ProfileForm.tsx)
 - **Language Selector Classes:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer`
+
+### Telemetry & Tracing (Feature 4.16)
+
+#### Telemetry Visualizer Page
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/settings/telemetry/page.tsx)
+- **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
+- **Main Title Card:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4`
+- **Stats Card:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset flex justify-around items-center divide-x-2 divide-black/10 rotate-[-0.5deg]`
+- **Logs Grid Card:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset flex flex-col gap-4`

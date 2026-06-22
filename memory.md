@@ -1,40 +1,37 @@
-# Memory — Organization Hierarchies & Advanced Notifications
+# Memory — Multi-Language Support & Data Export
 
-Last updated: 2026-06-21T14:19:00+05:30
+Last updated: 2026-06-21T15:30:00+05:30
 
 ## What was built
 
-- **Feature 4.10: Organization Hierarchies**:
-  - Database schema alterations: Added `manager_id` (TEXT) to `departments` and `department_id` (UUID) to `memberships`, with corresponding indexes.
-  - Security Helpers: Implemented `isChildDepartment`, `getManagedDepartmentId`, `verifyDepartmentScopeForProject`, and `verifyDepartmentScopeForMember` in [lib/auth-helpers.ts](file:///d:/MyProjects/ongoing_Projects/projectforge/lib/auth-helpers.ts).
-  - Server Actions: Created [actions/department.ts](file:///d:/MyProjects/ongoing_Projects/projectforge/actions/department.ts) for department CRUD and membership assignment.
-  - Access Scoping: Updated project and membership actions to filter and authorize data scoped to a department manager's descendant tree.
-  - UI Settings Dashboard: Built [app/settings/departments/page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/settings/departments/page.tsx) integrating whiteboard components [DepartmentTree.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/departments/DepartmentTree.tsx), [DepartmentForm.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/departments/DepartmentForm.tsx), and [MemberAssignment.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/departments/MemberAssignment.tsx).
-  - Sidebar Navigation: Added Departments settings link to [Sidebar.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/layout/Sidebar.tsx).
-- **Feature 4.12: Advanced Notifications**:
-  - Added `"TASK_ESCALATION"` to `NotificationType` in [types/index.ts](file:///d:/MyProjects/ongoing_Projects/projectforge/types/index.ts).
-  - Added `sendRoleTargetedNotification` server action in [actions/notification.ts](file:///d:/MyProjects/ongoing_Projects/projectforge/actions/notification.ts) to fan-out alerts to users matching specific roles.
-  - Implemented recursive supervisor lookup and task escalation in [actions/escalation.ts](file:///d:/MyProjects/ongoing_Projects/projectforge/actions/escalation.ts) to escalate tasks overdue by >24h to department managers (or fallback to org owners/admins).
+- **Feature 4.14: Multi-Language Support (i18n)**:
+  - Added localized strings for `sidebar.profile` ("Profile Settings") across all 5 supported locales (`en`, `es`, `fr`, `de`, `ja`) in [translations.ts](file:///d:/MyProjects/ongoing_Projects/projectforge/lib/i18n/translations.ts).
+  - Added a localized navigation link in [Sidebar.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/layout/Sidebar.tsx) pointing to `/profile` with custom purple accent layout.
+  - Built cookie-based locale persistence to eliminate client-side translation flashing.
+- **Feature 4.13: Data Export**:
+  - Created Data Export Center at `/settings/export` and print layout at `/settings/export/print` supporting projects, tasks, compliance reports, and audit logs.
+  - Outputs supported in CSV, custom styled Excel HTML worksheets, and auto-print PDF layout with SHA-256 HMAC cryptographic signatures.
 
 ## Decisions made
 
-- **Supervisor Resolution**: A task's supervisor is resolved by checking the assignee's department manager, tracing recursively up the tree node-by-node if the manager is unassigned, and falling back to the organization owner/admin.
-- **Strict Separation & File Limits**: Kept features decoupled and components modular to adhere strictly to the 200–300 lines limit for all new files.
+- **Client Component Import Isolation**: Kept client-side translations and Zustand store separate from `next/headers` to prevent client-side build errors.
+- **Sidebar Integration**: Integrated `/profile` into the sidebar to ensure users have access to language selection.
 
 ## Problems solved
 
-- **Recursive Cycle Guards**: Added a descendant verification in `updateDepartment` using `isChildDepartment` to prevent cycle generation (e.g. assigning a child node as its parent's parent).
-- **Escalation Deduplication**: Implemented content-based task ID matching to guarantee that task escalation notifications are not duplicate-sent to supervisors/admins within 24 hours.
-- **V4 RLS Policy Alignment**: Fixed a database-level Row-Level Security policy error on the `departments`, `resource_allocations`, and `risks` tables where they checked an unpopulated `app.current_user_id` session setting; migrated these policies to use the standard `current_user_id()` function.
+- **Form State Reset**: Replaced synchronous state-resetting `useEffect` hooks in `DepartmentForm.tsx` with React's native `key` prop on `<DepartmentForm key={editingDept?.id || 'new'} />` to reset state natively.
+- **Hex Color Violations**: Replaced raw hex class values (`hover:bg-[#FFB2B2]`) in export layout buttons with Tailwind opacity-modified theme tokens (`hover:bg-accent-pink/80`).
+- **Layout Access**: Resolved missing UI access to language-switching profile form by adding a new settings link to the global sidebar navigation.
 
 ## Current state
 
-- Features 4.10 and 4.12 are fully implemented, compile cleanly, and are integrated into the application settings and navigation layout.
-- The automated test suite was skipped per explicit user instruction.
+- Both Feature 4.13 and Feature 4.14 are fully implemented, localized, and linked.
+- The project lints cleanly (`eslint` has 0 errors/warnings) and builds successfully.
+- All 10 unit/integration tests (`tests/i18n.test.ts` and `tests/export.test.ts`) pass.
 
 ## Next session starts with
 
-- Open [context/todos.md](file:///d:/MyProjects/ongoing_Projects/projectforge/context/todos.md) and review the checklist/todos for remaining V4 features or next tasks.
+- Open [context/todos.md](file:///d:/MyProjects/ongoing_Projects/projectforge/context/todos.md) and review next tasks for Version 4 or start planning Version 5 (Intelligent Organizational OS features).
 
 ## Open questions
 

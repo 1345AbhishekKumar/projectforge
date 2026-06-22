@@ -3,7 +3,7 @@
 import { useSignIn } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { Mail, Lock, Key, ArrowRight, Loader2 } from "lucide-react";
+import { Mail, Lock, Key, ArrowRight, Loader2, Building2 } from "lucide-react";
 import Link from "next/link";
 
 export default function SignInPage() {
@@ -12,7 +12,7 @@ export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
-  const [mode, setMode] = useState<"password" | "otp" | "verify-otp">("password");
+  const [mode, setMode] = useState<"password" | "otp" | "verify-otp" | "sso">("password");
   const [errorMsg, setErrorMsg] = useState("");
 
   const isLoading = fetchStatus === "fetching";
@@ -55,6 +55,16 @@ export default function SignInPage() {
       const res = await signIn!.emailCode.verifyCode({ code });
       await finalizeSession();
       return res;
+    });
+
+  const onEnterpriseSignIn = (e: React.FormEvent) =>
+    handleAction(e, async () => {
+      return await signIn!.authenticateWithRedirect({
+        strategy: "saml",
+        identifier: email,
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: "/dashboard",
+      });
     });
 
   const onSSOSignIn = async (strategy: "oauth_google" | "oauth_github") => {
@@ -114,7 +124,10 @@ export default function SignInPage() {
             <button type="submit" disabled={isLoading} className="w-full bg-tertiary text-white font-sans font-bold text-sm py-3 px-6 rounded-full border-2 border-black shadow-flat-offset-sm hover:bg-tertiary-hover active:translate-y-0.5 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2">
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Continue <ArrowRight className="h-4 w-4" /></>}
             </button>
-            <button type="button" onClick={() => setMode("otp")} className="text-xs font-semibold text-secondary hover:text-tertiary transition-colors mt-4 text-center cursor-pointer focus:outline-none">Sign in with Email OTP instead</button>
+            <div className="flex flex-col gap-2 mt-4 items-center">
+              <button type="button" onClick={() => setMode("otp")} className="text-xs font-semibold text-secondary hover:text-tertiary transition-colors cursor-pointer focus:outline-none">Sign in with Email OTP instead</button>
+              <button type="button" onClick={() => setMode("sso")} className="text-xs font-semibold text-tertiary hover:underline transition-colors cursor-pointer focus:outline-none">Sign in with Enterprise SSO</button>
+            </div>
           </form>
         )}
 
@@ -130,7 +143,29 @@ export default function SignInPage() {
             <button type="submit" disabled={isLoading} className="w-full bg-tertiary text-white font-sans font-bold text-sm py-3 px-6 rounded-full border-2 border-black shadow-flat-offset-sm hover:bg-tertiary-hover active:translate-y-0.5 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2">
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Send One-Time Code <ArrowRight className="h-4 w-4" /></>}
             </button>
-            <button type="button" onClick={() => setMode("password")} className="text-xs font-semibold text-secondary hover:text-tertiary transition-colors mt-4 text-center cursor-pointer focus:outline-none">Sign in with password instead</button>
+            <div className="flex flex-col gap-2 mt-4 items-center">
+              <button type="button" onClick={() => setMode("password")} className="text-xs font-semibold text-secondary hover:text-tertiary transition-colors cursor-pointer focus:outline-none">Sign in with password instead</button>
+              <button type="button" onClick={() => setMode("sso")} className="text-xs font-semibold text-tertiary hover:underline transition-colors cursor-pointer focus:outline-none">Sign in with Enterprise SSO</button>
+            </div>
+          </form>
+        )}
+
+        {mode === "sso" && (
+          <form onSubmit={onEnterpriseSignIn} className="flex flex-col gap-4">
+            <div>
+              <label className="font-sans text-xs font-bold uppercase tracking-wider text-secondary mb-1 block">Enterprise Email / Domain</label>
+              <div className="relative">
+                <Building2 className="absolute left-3 top-3.5 h-4 w-4 text-secondary z-20" />
+                <input type="email" required placeholder="you@company.com" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full font-sans text-sm pl-10 pr-4 py-3 bg-neutral-bg border-2 border-black rounded-sketchy-sm focus:outline-none focus:ring-2 focus:ring-tertiary focus:bg-white transition-all" disabled={isLoading} />
+              </div>
+            </div>
+            <button type="submit" disabled={isLoading} className="w-full bg-tertiary text-white font-sans font-bold text-sm py-3 px-6 rounded-full border-2 border-black shadow-flat-offset-sm hover:bg-tertiary-hover active:translate-y-0.5 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2">
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Sign In with SSO <ArrowRight className="h-4 w-4" /></>}
+            </button>
+            <div className="flex flex-col gap-2 mt-4 items-center">
+              <button type="button" onClick={() => setMode("password")} className="text-xs font-semibold text-secondary hover:text-tertiary transition-colors cursor-pointer focus:outline-none">Sign in with password instead</button>
+              <button type="button" onClick={() => setMode("otp")} className="text-xs font-semibold text-secondary hover:text-tertiary transition-colors cursor-pointer focus:outline-none">Sign in with Email OTP instead</button>
+            </div>
           </form>
         )}
 

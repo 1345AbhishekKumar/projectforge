@@ -130,6 +130,100 @@ export async function POST(req: NextRequest) {
       }
 
       logger.info({ userId: id }, "Successfully created user profile in InsForge database");
+
+      // JIT Provisioning for Enterprise SSO users
+      const emailDomain = email.split("@")[1]?.toLowerCase();
+      const publicDomains = ["gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com", "aol.com", "icloud.com"];
+
+      if (emailDomain && !publicDomains.includes(emailDomain)) {
+        logger.info({ userId: id, emailDomain }, "Processing corporate domain JIT provisioning");
+        const domainPrefix = emailDomain.split(".")[0];
+        
+        // 1. Search for existing organization by slug or name
+        let { data: org } = await insforge.database
+          .from("organizations")
+          .select("id")
+          .eq("slug", domainPrefix)
+          .maybeSingle();
+
+        if (!org) {
+          const { data: orgByName } = await insforge.database
+            .from("organizations")
+            .select("id")
+            .ilike("name", domainPrefix)
+            .maybeSingle();
+          org = orgByName;
+        }
+
+        const targetOrgId = org?.id;
+
+        if (targetOrgId) {
+          logger.info({ userId: id, orgId: targetOrgId }, "Matching organization found, auto-joining as MEMBER");
+          // 2. Link user as MEMBER
+          const { error: memberError } = await insforge.database
+            .from("memberships")
+            .insert([
+              {
+                organization_id: targetOrgId,
+                user_id: id,
+                role: "MEMBER",
+              },
+            ]);
+
+          if (memberError) {
+            logger.error({ error: memberError, userId: id, orgId: targetOrgId }, "Failed to auto-join user to organization");
+          }
+        } else {
+          logger.info({ userId: id, emailDomain }, "No matching organization found, auto-creating workspace");
+          // 3. Auto-create organization
+          const orgName = `${domainPrefix.charAt(0).toUpperCase()}${domainPrefix.slice(1)} Workspace`;
+          const { data: newOrg, error: createOrgError } = await insforge.database
+            .from("organizations")
+            .insert([{ name: orgName, slug: domainPrefix }])
+            .select("id")
+            .single();
+
+          let createdOrg = newOrg;
+
+          if (createOrgError && (createOrgError.message?.includes("duplicate") || createOrgError.message?.includes("unique"))) {
+            // Slug taken, fallback to full domain slug
+            const fallbackSlug = emailDomain.replace(/\./g, "-");
+            logger.info({ userId: id, fallbackSlug }, "Workspace slug already taken, falling back to full domain slug");
+            const { data: fallbackOrg, error: fallbackError } = await insforge.database
+              .from("organizations")
+              .insert([{ name: orgName, slug: fallbackSlug }])
+              .select("id")
+              .single();
+            
+            if (fallbackError) {
+              logger.error({ error: fallbackError, userId: id }, "Failed to create fallback organization");
+            } else {
+              createdOrg = fallbackOrg;
+            }
+          } else if (createOrgError) {
+            logger.error({ error: createOrgError, userId: id }, "Failed to auto-create organization");
+          }
+
+          if (createdOrg?.id) {
+            logger.info({ userId: id, orgId: createdOrg.id }, "Successfully created organization, assigning OWNER role");
+            const { error: ownerError } = await insforge.database
+              .from("memberships")
+              .insert([
+                {
+                  organization_id: createdOrg.id,
+                  user_id: id,
+                  role: "OWNER",
+                },
+              ]);
+
+            if (ownerError) {
+              logger.error({ error: ownerError, userId: id, orgId: createdOrg.id }, "Failed to assign OWNER role for auto-created organization");
+            }
+          }
+        }
+      } else {
+        logger.info({ userId: id, emailDomain }, "Skipped JIT provisioning for public or empty email domain");
+      }
     } catch (error) {
       logger.error({ error }, "Unexpected error creating profile in database");
       Sentry.captureException(error);

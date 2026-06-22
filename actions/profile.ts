@@ -56,6 +56,117 @@ export async function syncProfile(): Promise<{
       return { success: false, error: "Failed to sync profile" };
     }
 
+    // JIT Provisioning fallback for Enterprise SSO users
+    const email = user.emailAddresses[0]?.emailAddress ?? "";
+    const emailDomain = email.split("@")[1]?.toLowerCase();
+    const publicDomains = ["gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com", "aol.com", "icloud.com"];
+
+    if (emailDomain && !publicDomains.includes(emailDomain)) {
+      logger.info({ userId, emailDomain }, "Processing fallback JIT provisioning for corporate domain");
+      const domainPrefix = emailDomain.split(".")[0];
+      
+      // 1. Search for existing organization by slug or name
+      let { data: org } = await insforge.database
+        .from("organizations")
+        .select("id")
+        .eq("slug", domainPrefix)
+        .maybeSingle();
+
+      if (!org) {
+        const { data: orgByName } = await insforge.database
+          .from("organizations")
+          .select("id")
+          .ilike("name", domainPrefix)
+          .maybeSingle();
+        org = orgByName;
+      }
+
+      const targetOrgId = org?.id;
+
+      if (targetOrgId) {
+        logger.info({ userId, orgId: targetOrgId }, "Matching organization found in fallback, auto-joining as MEMBER");
+        // 2. Link user as MEMBER
+        const { error: memberError } = await insforge.database
+          .from("memberships")
+          .insert([
+            {
+              organization_id: targetOrgId,
+              user_id: userId,
+              role: "MEMBER",
+            },
+          ]);
+
+        if (memberError) {
+          logger.error({ error: memberError, userId, orgId: targetOrgId }, "Fallback: Failed to auto-join user to organization");
+        } else {
+          // Set active_org_id cookie
+          const cookieStore = await cookies();
+          cookieStore.set("active_org_id", targetOrgId, {
+            path: "/",
+            maxAge: 60 * 60 * 24 * 365,
+            httpOnly: false,
+            sameSite: "lax",
+          });
+        }
+      } else {
+        logger.info({ userId, emailDomain }, "Fallback: No matching organization found, auto-creating workspace");
+        // 3. Auto-create organization
+        const orgName = `${domainPrefix.charAt(0).toUpperCase()}${domainPrefix.slice(1)} Workspace`;
+        const { data: newOrg, error: createOrgError } = await insforge.database
+          .from("organizations")
+          .insert([{ name: orgName, slug: domainPrefix }])
+          .select("id")
+          .single();
+
+        let createdOrg = newOrg;
+
+        if (createOrgError && (createOrgError.message?.includes("duplicate") || createOrgError.message?.includes("unique"))) {
+          // Slug taken, fallback to full domain slug
+          const fallbackSlug = emailDomain.replace(/\./g, "-");
+          logger.info({ userId, fallbackSlug }, "Fallback: Workspace slug already taken, falling back to full domain slug");
+          const { data: fallbackOrg, error: fallbackError } = await insforge.database
+            .from("organizations")
+            .insert([{ name: orgName, slug: fallbackSlug }])
+            .select("id")
+            .single();
+          
+          if (fallbackError) {
+            logger.error({ error: fallbackError, userId }, "Fallback: Failed to create fallback organization");
+          } else {
+            createdOrg = fallbackOrg;
+          }
+        } else if (createOrgError) {
+          logger.error({ error: createOrgError, userId }, "Fallback: Failed to auto-create organization");
+        }
+
+        if (createdOrg?.id) {
+          logger.info({ userId, orgId: createdOrg.id }, "Fallback: Successfully created organization, assigning OWNER role");
+          const { error: ownerError } = await insforge.database
+            .from("memberships")
+            .insert([
+              {
+                organization_id: createdOrg.id,
+                user_id: userId,
+                role: "OWNER",
+              },
+            ]);
+
+          if (ownerError) {
+            logger.error({ error: ownerError, userId, orgId: createdOrg.id }, "Fallback: Failed to assign OWNER role for auto-created organization");
+          } else {
+            // Set active_org_id cookie
+            const cookieStore = await cookies();
+            cookieStore.set("active_org_id", createdOrg.id, {
+              path: "/",
+              maxAge: 60 * 60 * 24 * 365,
+              httpOnly: false,
+              sameSite: "lax",
+            });
+          }
+        }
+      }
+    }
+
     return { success: true };
   } catch (err) {
     logger.error({ error: err }, "Unexpected error in syncProfile Server Action");

@@ -65,6 +65,7 @@ export function Sidebar() {
     { href: "/settings/compliance", label: t("sidebar.compliance", "Compliance Center"), icon: <Shield className="h-4 w-4" />, accent: "bg-accent-pink" },
     { href: "/settings/departments", label: t("sidebar.departments", "Departments"), icon: <Users className="h-4 w-4" />, accent: "bg-accent-blue" },
     { href: "/settings/export", label: t("export.title", "Data Export Center"), icon: <Download className="h-4 w-4" />, accent: "bg-accent-yellow" },
+    { href: "/settings/telemetry", label: t("sidebar.telemetry", "Telemetry Visualizer"), icon: <Activity className="h-4 w-4" />, accent: "bg-accent-blue" },
     { href: "/profile", label: t("sidebar.profile", "Profile Settings"), icon: <User className="h-4 w-4" />, accent: "bg-accent-purple" },
   ];
 
