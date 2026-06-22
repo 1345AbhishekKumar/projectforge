@@ -1,12 +1,12 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { auth, currentUser } from "@clerk/nextjs/server";
-import { ArrowLeft, Building2, ShieldAlert, User as UserIcon } from "lucide-react";
+import { auth } from "@clerk/nextjs/server";
+import { ArrowLeft, Building2, ShieldAlert } from "lucide-react";
 import Link from "next/link";
 
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { Navbar } from "@/components/layout/Navbar";
 import { CustomFieldsSettings } from "@/components/orgs/CustomFieldsSettings";
 import { getUserOrganizations } from "@/actions/org";
 import type { MembershipRole } from "@/types";
@@ -17,8 +17,7 @@ export default async function CustomFieldsPage() {
     redirect("/sign-in");
   }
 
-  const user = await currentUser();
-  const email = user?.emailAddresses[0]?.emailAddress ?? "";
+
 
   const cookieStore = await cookies();
   const activeOrgId = cookieStore.get("active_org_id")?.value;
@@ -46,27 +45,13 @@ export default async function CustomFieldsPage() {
       </div>
 
       <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
-        <header className="w-full bg-white border-b-2 border-black px-6 py-3 flex items-center justify-between sticky top-0 z-50">
-          <div className="flex items-center gap-4">
-            <div className="flex md:hidden items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-tertiary border-2 border-primary flex items-center justify-center font-cursive text-white text-lg font-bold shadow-flat-offset-sm">
-                P
-              </div>
-              <span className="font-cursive text-2xl font-bold tracking-tight">ProjectForge</span>
-            </div>
-            <div className="md:hidden">
-              <OrgSwitcher />
-            </div>
-          </div>
+        {/* Navbar */}
+        <Navbar />
 
-          <div className="flex items-center gap-4">
-            <NotificationBell />
-            <div className="hidden sm:flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-neutral-bg">
-              <UserIcon className="h-4 w-4 text-secondary" />
-              <span className="font-sans text-xs font-semibold text-secondary">{email}</span>
-            </div>
-          </div>
-        </header>
+        {/* Mobile Org Switcher */}
+        <div className="md:hidden px-6 pt-4">
+          <OrgSwitcher />
+        </div>
 
         <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-6">
           <div>

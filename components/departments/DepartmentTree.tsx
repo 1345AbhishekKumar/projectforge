@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useState, useEffect } from "react";
 import { Edit2, Trash2, User, Users } from "lucide-react";
 
 type Department = {
@@ -24,6 +26,22 @@ type Props = {
 };
 
 export function DepartmentTree({ departments, members, onEdit, onDelete }: Props) {
+  const [isPointerFine, setIsPointerFine] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const mediaQuery = window.matchMedia("(pointer: fine)");
+      const timer = setTimeout(() => {
+        setIsPointerFine(mediaQuery.matches);
+      }, 0);
+      const handler = (e: MediaQueryListEvent) => setIsPointerFine(e.matches);
+      mediaQuery.addEventListener("change", handler);
+      return () => {
+        clearTimeout(timer);
+        mediaQuery.removeEventListener("change", handler);
+      };
+    }
+  }, []);
   // Build a parent-child map
   const roots = departments.filter((d) => !d.parent_department_id);
   const childrenMap = new Map<string, Department[]>();
@@ -43,7 +61,9 @@ export function DepartmentTree({ departments, members, onEdit, onDelete }: Props
 
     return (
       <div key={dept.id} className="flex flex-col gap-2">
-        <div className="flex items-center justify-between p-4 border-2 border-black rounded-sketchy bg-white shadow-flat-offset-sm hover:-translate-y-0.5 transition-all duration-200 gap-4">
+        <div className={`flex items-center justify-between p-4 border-2 border-black rounded-sketchy bg-white shadow-flat-offset-sm transition-[transform,background-color,box-shadow,color] duration-150 gap-4 ${
+          isPointerFine ? "hover:-translate-y-0.5" : ""
+        }`}>
           <div className="flex flex-col gap-1">
             <span className="font-cursive text-lg font-bold text-primary">{dept.name}</span>
             <div className="flex flex-wrap items-center gap-3 text-xs text-secondary font-sans">
@@ -61,14 +81,18 @@ export function DepartmentTree({ departments, members, onEdit, onDelete }: Props
           <div className="flex items-center gap-2">
             <button
               onClick={() => onEdit(dept)}
-              className="p-1.5 hover:bg-neutral-bg border border-black rounded shadow-flat-offset-xs transition-all cursor-pointer bg-white"
+              className={`p-1.5 border border-black rounded shadow-flat-offset-xs transition-[transform,background-color,box-shadow] duration-150 cursor-pointer bg-white ${
+                isPointerFine ? "hover:bg-neutral-bg" : ""
+              }`}
               title="Edit Department"
             >
               <Edit2 className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => onDelete(dept.id)}
-              className="p-1.5 bg-accent-pink hover:bg-opacity-80 border border-black rounded shadow-flat-offset-xs transition-all cursor-pointer text-primary"
+              className={`p-1.5 bg-accent-pink border border-black rounded shadow-flat-offset-xs transition-[transform,background-color,box-shadow] duration-150 cursor-pointer text-primary ${
+                isPointerFine ? "hover:bg-opacity-80" : ""
+              }`}
               title="Delete Department"
             >
               <Trash2 className="h-3.5 w-3.5" />

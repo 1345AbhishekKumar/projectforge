@@ -1,12 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useUser, useAuth } from "@clerk/nextjs";
-import { LogOut, User as UserIcon, Plus, Briefcase, Loader2 } from "lucide-react";
+import { Plus, Briefcase, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { Navbar } from "@/components/layout/Navbar";
 import { CreatePortfolioModal } from "@/components/portfolios/CreatePortfolioModal";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { getPortfolios } from "@/actions/portfolio";
@@ -16,19 +15,12 @@ import { useOrgStore } from "@/store/orgStore";
 
 export default function PortfoliosDirectoryPage() {
   const router = useRouter();
-  const { user, isLoaded } = useUser();
-  const { signOut } = useAuth();
 
   const { activeOrgId, activeOrgName, userRole } = useOrgStore();
   const [portfolios, setPortfolios] = useState<(Portfolio & PortfolioRollupData)[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const handleSignOut = async () => {
-    await signOut();
-    router.push("/sign-in");
-  };
 
   const [reloadTrigger, setReloadTrigger] = useState(0);
   const loadPortfolios = () => setReloadTrigger((prev) => prev + 1);
@@ -78,13 +70,7 @@ export default function PortfoliosDirectoryPage() {
 
   const canManage = userRole === "OWNER" || userRole === "ADMIN";
 
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-neutral-bg bg-dot-grid text-primary">
-        <span className="font-cursive text-xl animate-pulse">Loading portfolios...</span>
-      </div>
-    );
-  }
+
 
   return (
     <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
@@ -95,47 +81,12 @@ export default function PortfoliosDirectoryPage() {
 
       <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
         {/* Navbar */}
-        <header className="w-full bg-white border-b-2 border-black px-6 py-3 flex items-center justify-between sticky top-0 z-50">
-          <div className="flex items-center gap-4">
-            <div className="flex md:hidden items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-tertiary border-2 border-primary flex items-center justify-center font-cursive text-white text-lg font-bold shadow-flat-offset-sm">
-                P
-              </div>
-              <span className="font-cursive text-xl font-bold">ProjectForge</span>
-            </div>
-            <div className="hidden md:block">
-              <span className="font-cursive text-sm text-secondary">Whiteboard / Portfolios</span>
-            </div>
-          </div>
+        <Navbar />
 
-          <div className="flex items-center gap-4">
-            <NotificationBell />
-            {user && (
-              <div className="flex items-center gap-3 border-l-2 border-black/10 pl-4">
-                <div 
-                  onClick={() => router.push("/profile")}
-                  className="w-9 h-9 rounded-full border-2 border-black overflow-hidden bg-accent-yellow shadow-flat-offset-xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
-                >
-                  {user.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={user.imageUrl} alt={user.fullName || "User avatar"} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <UserIcon className="h-4 w-4 text-primary" />
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={handleSignOut}
-                  className="p-2 border-2 border-black rounded-full hover:bg-accent-pink hover:rotate-[-2deg] transition-all cursor-pointer shadow-flat-offset-xs"
-                  title="Logout"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-          </div>
-        </header>
+        {/* Mobile Org Switcher */}
+        <div className="md:hidden px-6 pt-4">
+          <OrgSwitcher />
+        </div>
 
         {/* Content Body */}
         <main className="flex-grow p-6 md:p-8 max-w-7xl w-full mx-auto flex flex-col gap-8">

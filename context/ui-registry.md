@@ -214,6 +214,11 @@ After building any component — update this file with the component name, file 
 - **Completed Sprint Classes:** `bg-white/40 border-dashed`
 - **Sprint Card Classes:** `border-2 border-black rounded-sketchy-sm p-4 bg-accent-blue/10 flex flex-col gap-3`
 
+#### Navbar Component
+- **File Path:** [Navbar.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/layout/Navbar.tsx)
+- **Container Classes:** `w-full bg-white border-b-2 border-black px-6 py-3 flex items-center justify-between sticky top-0 z-50`
+- **Sign Out Button Colors:** `bg-accent-pink hover:bg-accent-pink/80 text-primary border-2 border-black`
+
 #### Sidebar Component
 - **File Path:** [Sidebar.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/layout/Sidebar.tsx)
 - **Container Classes:** `w-64 bg-white border-r-2 border-black flex flex-col h-screen sticky top-0 z-40 p-6 gap-6`

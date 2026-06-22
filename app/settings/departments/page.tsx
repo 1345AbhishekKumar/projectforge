@@ -7,8 +7,8 @@ import { Network, Plus } from "lucide-react";
 
 import { useOrgStore } from "@/store/orgStore";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
+import { Navbar } from "@/components/layout/Navbar";
 import { DepartmentTree } from "@/components/departments/DepartmentTree";
 import { DepartmentForm } from "@/components/departments/DepartmentForm";
 import { MemberAssignment } from "@/components/departments/MemberAssignment";
@@ -136,34 +136,35 @@ export default function DepartmentsSettingsPage() {
   if (!isAdminOrOwner) {
     return (
       <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
+      <div className="hidden md:block">
         <Sidebar />
-        <div className="flex-grow flex items-center justify-center p-6">
-          <div className="bg-accent-pink border-2 border-black rounded-sketchy p-8 text-center max-w-lg shadow-flat-offset">
-            <h2 className="font-cursive text-2xl font-bold mb-2">Access Restrained</h2>
-            <p className="font-sans text-sm text-secondary">
-              Only workspace administrators or owners can access organizational settings.
-            </p>
-          </div>
+      </div>
+      <div className="flex-grow flex items-center justify-center p-6">
+        <div className="bg-accent-pink border-2 border-black rounded-sketchy p-8 text-center max-w-lg shadow-flat-offset">
+          <h2 className="font-cursive text-2xl font-bold mb-2">Access Restrained</h2>
+          <p className="font-sans text-sm text-secondary">
+            Only workspace administrators or owners can access organizational settings.
+          </p>
         </div>
+      </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
-      <Sidebar />
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
 
       <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
-        {/* Header */}
-        <header className="border-b-2 border-black bg-white px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-flat-offset-sm">
+        {/* Navbar */}
+        <Navbar />
+
+        {/* Mobile Org Switcher */}
+        <div className="md:hidden px-6 pt-4">
           <OrgSwitcher />
-          <div className="flex items-center gap-4">
-            <NotificationBell />
-            <div className="hidden sm:flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-neutral-bg text-xs font-semibold text-secondary">
-              {user?.primaryEmailAddress?.emailAddress}
-            </div>
-          </div>
-        </header>
+        </div>
 
         {/* Content */}
         <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-8">

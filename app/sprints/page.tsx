@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { Calendar, Loader2, Plus, LogOut, User as UserIcon } from "lucide-react";
+import { Calendar, Loader2, Plus } from "lucide-react";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { Navbar } from "@/components/layout/Navbar";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { TaskDetailsSheet } from "@/components/tasks/TaskDetailsSheet";
 import { SprintColumn } from "@/components/tasks/sprints/SprintColumn";
@@ -34,39 +34,7 @@ export default function SprintsPage() {
 
       <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
         {/* Navbar */}
-        <header className="w-full bg-white border-b-2 border-black px-6 py-3 flex items-center justify-between sticky top-0 z-50">
-          <div className="flex items-center gap-4">
-            <div className="flex md:hidden items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-tertiary border-2 border-primary flex items-center justify-center font-cursive text-white text-lg font-bold shadow-flat-offset-sm">
-                P
-              </div>
-              <span className="font-cursive text-2xl font-bold tracking-tight">ProjectForge</span>
-            </div>
-
-            <div className="md:hidden">
-              <OrgSwitcher />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <NotificationBell />
-
-            <div className="hidden sm:flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-neutral-bg">
-              <UserIcon className="h-4 w-4 text-secondary" />
-              <span className="font-sans text-xs font-semibold text-secondary">
-                {page.user?.primaryEmailAddress?.emailAddress}
-              </span>
-            </div>
-
-            <button
-              onClick={page.handleSignOut}
-              className="flex items-center gap-2 bg-accent-pink hover:bg-[#FFB2B2] text-primary border-2 border-black font-sans text-xs font-bold px-4 py-2 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Sign Out
-            </button>
-          </div>
-        </header>
+        <Navbar />
 
         {/* Mobile Org Switcher */}
         <div className="md:hidden px-6 pt-4">

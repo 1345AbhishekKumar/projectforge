@@ -2,11 +2,11 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { useUser, useAuth } from "@clerk/nextjs";
-import { LogOut, User as UserIcon, Plus, ArrowLeft, Layers, Loader2, Folder } from "lucide-react";
+import { Plus, ArrowLeft, Layers, Loader2, Folder } from "lucide-react";
 
 import { Sidebar } from "@/components/layout/Sidebar";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { Navbar } from "@/components/layout/Navbar";
+import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { CreateProgramModal } from "@/components/portfolios/CreateProgramModal";
 import { getPortfolioDetails } from "@/actions/portfolio";
 import type { Portfolio } from "@/types";
@@ -20,19 +20,11 @@ type Props = {
 export default function PortfolioDetailsPage({ params }: Props) {
   const router = useRouter();
   const { id: portfolioId } = use(params);
-  const { user, isLoaded } = useUser();
-  const { signOut } = useAuth();
-
   const { activeOrgId, userRole } = useOrgStore();
   const [portfolio, setPortfolio] = useState<(Portfolio & PortfolioRollupData) | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const handleSignOut = async () => {
-    await signOut();
-    router.push("/sign-in");
-  };
 
   const [reloadTrigger, setReloadTrigger] = useState(0);
   const loadDetails = () => setReloadTrigger((prev) => prev + 1);
@@ -76,13 +68,7 @@ export default function PortfolioDetailsPage({ params }: Props) {
 
   const canManage = userRole === "OWNER" || userRole === "ADMIN";
 
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-neutral-bg bg-dot-grid text-primary">
-        <span className="font-cursive text-xl animate-pulse">Loading portfolio...</span>
-      </div>
-    );
-  }
+
 
   const healthColors = {
     ON_TRACK: "bg-accent-green text-primary border-black",
@@ -99,49 +85,24 @@ export default function PortfolioDetailsPage({ params }: Props) {
 
       <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
         {/* Navbar */}
-        <header className="w-full bg-white border-b-2 border-black px-6 py-3 flex items-center justify-between sticky top-0 z-50">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => router.push("/portfolios")}
-              className="flex items-center gap-1.5 px-3 py-1 border-2 border-black rounded-full bg-white hover:bg-neutral-bg font-sans text-xs font-bold shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
-            >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Portfolios
-            </button>
-            <span className="font-cursive text-sm text-secondary hidden sm:inline">/ Details</span>
-          </div>
+        <Navbar />
 
-          <div className="flex items-center gap-4">
-            <NotificationBell />
-            {user && (
-              <div className="flex items-center gap-3 border-l-2 border-black/10 pl-4">
-                <div 
-                  onClick={() => router.push("/profile")}
-                  className="w-9 h-9 rounded-full border-2 border-black overflow-hidden bg-accent-yellow shadow-flat-offset-xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
-                >
-                  {user.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={user.imageUrl} alt={user.fullName || "User avatar"} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <UserIcon className="h-4 w-4 text-primary" />
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={handleSignOut}
-                  className="p-2 border-2 border-black rounded-full hover:bg-accent-pink hover:rotate-[-2deg] transition-all cursor-pointer shadow-flat-offset-xs"
-                  title="Logout"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-          </div>
-        </header>
+        {/* Mobile Org Switcher */}
+        <div className="md:hidden px-6 pt-4">
+          <OrgSwitcher />
+        </div>
 
         {/* Content Body */}
         <main className="flex-grow p-6 md:p-8 max-w-7xl w-full mx-auto flex flex-col gap-8">
+          <div>
+            <button
+              onClick={() => router.push("/portfolios")}
+              className="flex items-center gap-1.5 font-sans text-sm text-secondary hover:text-primary mb-2 transition-colors cursor-pointer"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Portfolios
+            </button>
+          </div>
           
           {loading ? (
             <div className="flex-grow flex items-center justify-center py-12">

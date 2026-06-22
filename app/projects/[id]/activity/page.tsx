@@ -2,21 +2,18 @@
 
 import React, { useState, useEffect, useCallback, use } from "react";
 import { useRouter } from "next/navigation";
-import { useUser, useAuth } from "@clerk/nextjs";
 import { 
   ArrowLeft, 
-  User as UserIcon, 
   Loader2, 
   Calendar, 
   Users, 
   ClipboardList, 
-  LogOut, 
   FolderKanban,
   Activity
 } from "lucide-react";
 
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { Navbar } from "@/components/layout/Navbar";
 import { getProjectDetails } from "@/actions/project";
 import { getProjectActivities, type ActivityWithActor } from "@/actions/activity";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -32,20 +29,12 @@ import { useOrgStore } from "@/store/orgStore";
 export default function ProjectActivityPage({ params }: Props) {
   const router = useRouter();
   const { id: projectId } = use(params);
-  const { user, isLoaded } = useUser();
-  const { signOut } = useAuth();
-
   const { activeOrgId } = useOrgStore();
   const [project, setProject] = useState<Project | null>(null);
   const [activities, setActivities] = useState<ActivityWithActor[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingActivities, setLoadingActivities] = useState(true);
   const [error, setError] = useState("");
-
-  const handleSignOut = async () => {
-    await signOut();
-    router.push("/sign-in");
-  };
 
   // Fetch project details
   useEffect(() => {
@@ -95,13 +84,7 @@ export default function ProjectActivityPage({ params }: Props) {
     }
   }, [activeOrgId, router]);
 
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-neutral-bg bg-dot-grid text-primary">
-        <span className="font-cursive text-xl animate-pulse">Loading board details...</span>
-      </div>
-    );
-  }
+
 
   const statusColors: Record<ProjectStatus, string> = {
     PLANNING: "bg-accent-yellow border-2 border-black",
@@ -121,41 +104,7 @@ export default function ProjectActivityPage({ params }: Props) {
 
       <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
         {/* Navbar */}
-        <header className="w-full bg-white border-b-2 border-black px-6 py-3 flex items-center justify-between sticky top-0 z-50">
-          <div className="flex items-center gap-4">
-            {/* Brand Logo - Mobile only */}
-            <div className="flex md:hidden items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-tertiary border-2 border-primary flex items-center justify-center font-cursive text-white text-lg font-bold shadow-flat-offset-sm">
-                P
-              </div>
-              <span className="font-cursive text-2xl font-bold tracking-tight">ProjectForge</span>
-            </div>
-
-            {/* Org Switcher - Mobile only */}
-            <div className="md:hidden">
-              <OrgSwitcher />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <NotificationBell />
-
-            <div className="hidden sm:flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-neutral-bg">
-              <UserIcon className="h-4 w-4 text-secondary" />
-              <span className="font-sans text-xs font-semibold text-secondary">
-                {user?.primaryEmailAddress?.emailAddress}
-              </span>
-            </div>
-
-            <button
-              onClick={handleSignOut}
-              className="flex items-center gap-2 bg-accent-pink hover:bg-[#FFB2B2] text-primary border-2 border-black font-sans text-xs font-bold px-4 py-2 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Sign Out
-            </button>
-          </div>
-        </header>
+        <Navbar />
 
         {/* Mobile Org Switcher */}
         <div className="md:hidden px-6 pt-4">

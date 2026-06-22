@@ -2,11 +2,11 @@
 
 import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
-import { useUser, useAuth } from "@clerk/nextjs";
-import { LogOut, User as UserIcon, Plus, ArrowLeft, Loader2, Folder, ShieldAlert, CheckCircle2, AlertTriangle, Unlink } from "lucide-react";
+import { User as UserIcon, Plus, ArrowLeft, Loader2, Folder, ShieldAlert, CheckCircle2, AlertTriangle, Unlink } from "lucide-react";
 
 import { Sidebar } from "@/components/layout/Sidebar";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { Navbar } from "@/components/layout/Navbar";
+import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { ProjectLinker } from "@/components/portfolios/ProjectLinker";
 import { getProgramDetails, unlinkProjectFromProgram } from "@/actions/program";
 import type { Program } from "@/types";
@@ -20,20 +20,12 @@ type Props = {
 export default function ProgramDetailsPage({ params }: Props) {
   const router = useRouter();
   const { id: programId } = use(params);
-  const { user, isLoaded } = useUser();
-  const { signOut } = useAuth();
-
   const { activeOrgId, userRole } = useOrgStore();
   const [program, setProgram] = useState<(Program & ProgramRollupData & { portfolio_id: string; manager?: { full_name: string | null; email: string; avatar_url: string | null } | null }) | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [isLinkerOpen, setIsLinkerOpen] = useState(false);
   const [unlinkingId, setUnlinkingId] = useState<string | null>(null);
-
-  const handleSignOut = async () => {
-    await signOut();
-    router.push("/sign-in");
-  };
 
   const [reloadTrigger, setReloadTrigger] = useState(0);
   const loadDetails = () => setReloadTrigger((prev) => prev + 1);
@@ -94,13 +86,7 @@ export default function ProgramDetailsPage({ params }: Props) {
     }
   }
 
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen w-full flex items-center justify-center bg-neutral-bg bg-dot-grid text-primary">
-        <span className="font-cursive text-xl animate-pulse">Loading program...</span>
-      </div>
-    );
-  }
+
 
   const healthColors = {
     ON_TRACK: "bg-accent-green text-primary border-black",
@@ -123,8 +109,16 @@ export default function ProgramDetailsPage({ params }: Props) {
 
       <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
         {/* Navbar */}
-        <header className="w-full bg-white border-b-2 border-black px-6 py-3 flex items-center justify-between sticky top-0 z-50">
-          <div className="flex items-center gap-4">
+        <Navbar />
+
+        {/* Mobile Org Switcher */}
+        <div className="md:hidden px-6 pt-4">
+          <OrgSwitcher />
+        </div>
+
+        {/* Content Body */}
+        <main className="flex-grow p-6 md:p-8 max-w-7xl w-full mx-auto flex flex-col gap-8">
+          <div>
             <button
               onClick={() => {
                 if (program?.portfolio_id) {
@@ -133,45 +127,12 @@ export default function ProgramDetailsPage({ params }: Props) {
                   router.push("/portfolios");
                 }
               }}
-              className="flex items-center gap-1.5 px-3 py-1 border-2 border-black rounded-full bg-white hover:bg-neutral-bg font-sans text-xs font-bold shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 font-sans text-sm text-secondary hover:text-primary mb-2 transition-colors cursor-pointer"
             >
-              <ArrowLeft className="h-3.5 w-3.5" />
-              Portfolio Details
+              <ArrowLeft className="h-4 w-4" />
+              Back to Portfolio
             </button>
-            <span className="font-cursive text-sm text-secondary hidden sm:inline">/ Program Scope</span>
           </div>
-
-          <div className="flex items-center gap-4">
-            <NotificationBell />
-            {user && (
-              <div className="flex items-center gap-3 border-l-2 border-black/10 pl-4">
-                <div 
-                  onClick={() => router.push("/profile")}
-                  className="w-9 h-9 rounded-full border-2 border-black overflow-hidden bg-accent-yellow shadow-flat-offset-xs hover:scale-105 active:scale-95 transition-all cursor-pointer"
-                >
-                  {user.imageUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={user.imageUrl} alt={user.fullName || "User avatar"} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <UserIcon className="h-4 w-4 text-primary" />
-                    </div>
-                  )}
-                </div>
-                <button
-                  onClick={handleSignOut}
-                  className="p-2 border-2 border-black rounded-full hover:bg-accent-pink hover:rotate-[-2deg] transition-all cursor-pointer shadow-flat-offset-xs"
-                  title="Logout"
-                >
-                  <LogOut className="h-4 w-4" />
-                </button>
-              </div>
-            )}
-          </div>
-        </header>
-
-        {/* Content Body */}
-        <main className="flex-grow p-6 md:p-8 max-w-7xl w-full mx-auto flex flex-col gap-8">
           
           {loading ? (
             <div className="flex-grow flex items-center justify-center py-12">

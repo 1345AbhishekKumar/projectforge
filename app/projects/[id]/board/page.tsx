@@ -1,9 +1,9 @@
 "use client";
 
 import React from "react";
-import { ArrowLeft, Loader2, Archive, LogOut, FolderKanban } from "lucide-react";
+import { ArrowLeft, Loader2, Archive, FolderKanban } from "lucide-react";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
+import { Navbar } from "@/components/layout/Navbar";
 import { TaskFilters } from "@/components/tasks/TaskFilters";
 import { CreateTaskModal } from "@/components/tasks/CreateTaskModal";
 import { TaskDetailsSheet } from "@/components/tasks/TaskDetailsSheet";
@@ -63,25 +63,19 @@ export default function KanbanBoardPage({ params }: Props) {
 
   return (
     <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
-      <Sidebar />
+      {/* Sidebar - Desktop only */}
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
 
       <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
-        {/* Navigation Header */}
-        <header className="border-b-2 border-black bg-white px-6 py-4 flex items-center justify-between sticky top-0 z-40 select-none shadow-flat-offset-sm">
-          <div className="flex items-center gap-4">
-            <OrgSwitcher />
-          </div>
-          <div className="flex items-center gap-4">
-            <NotificationBell />
-            <button
-              onClick={board.handleSignOut}
-              className="flex items-center gap-2 px-3 py-1.5 border-2 border-black bg-white hover:bg-neutral-bg text-xs font-bold rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
-            >
-              <LogOut className="h-3.5 w-3.5" />
-              Sign Out
-            </button>
-          </div>
-        </header>
+        {/* Navbar */}
+        <Navbar />
+
+        {/* Mobile Org Switcher */}
+        <div className="md:hidden px-6 pt-4">
+          <OrgSwitcher />
+        </div>
 
         {/* Board Main Body */}
         <div className="flex-grow w-full mx-auto p-6 md:p-12 flex flex-col gap-6">

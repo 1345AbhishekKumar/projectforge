@@ -11,13 +11,15 @@ import {
   History, 
   ShieldCheck, 
   FileSpreadsheet, 
-  FileText 
+  FileText,
+  CheckCircle,
+  XCircle
 } from "lucide-react";
 
 import { useOrgStore } from "@/store/orgStore";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
+import { Navbar } from "@/components/layout/Navbar";
 import { getOrganizationMembers } from "@/actions/membership";
 import { exportDataAction } from "@/actions/export";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -30,6 +32,12 @@ export default function ExportCenterPage() {
   const [exporting, setExporting] = useState<string | null>(null);
   const [integrityHash, setIntegrityHash] = useState<string>("");
   const [hashEntity, setHashEntity] = useState<string>("");
+  const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
+
+  const showBanner = (type: "success" | "error", text: string) => {
+    setBanner({ type, text });
+    setTimeout(() => setBanner(null), 4000);
+  };
 
   const { data: members = [] } = useQuery({
     queryKey: ["members", activeOrgId],
@@ -68,16 +76,17 @@ export default function ExportCenterPage() {
       const res = await exportDataAction(activeOrgId, type, format);
       if (res.success && res.data) {
         const mime = format === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel;charset=utf-8;";
-        triggerDownload(res.data, res.filename || `export.${format}`, mime);
+        triggerDownload(res.data as string, res.filename || `export.${format}`, mime);
         if (res.hash) {
           setIntegrityHash(res.hash);
           setHashEntity(type.replace("_", " ").toUpperCase());
         }
+        showBanner("success", t("export.success", "Data exported successfully."));
       } else {
-        alert(res.error || t("common.error", "Failed to export data"));
+        showBanner("error", res.error || t("common.error", "Failed to export data"));
       }
     } catch (err) {
-      alert(err instanceof Error ? err.message : t("common.error", "An error occurred"));
+      showBanner("error", err instanceof Error ? err.message : t("common.error", "An error occurred"));
     } finally {
       setExporting(null);
     }
@@ -127,19 +136,37 @@ export default function ExportCenterPage() {
 
   return (
     <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
-      <Sidebar />
+      {/* Toast Notification Banner */}
+      {banner && (
+        <div
+          role="alert"
+          className={`fixed top-4 right-4 z-[300] max-w-md border-2 border-black rounded-sketchy p-4 shadow-flat-offset transition-[transform,opacity] transform ${
+            banner.type === "success" ? "bg-accent-green" : "bg-accent-pink"
+          }`}
+        >
+          <div className="flex items-center gap-2 font-sans font-bold text-sm">
+            {banner.type === "success" ? (
+              <CheckCircle className="h-5 w-5 text-primary" />
+            ) : (
+              <XCircle className="h-5 w-5 text-primary" />
+            )}
+            {banner.text}
+          </div>
+        </div>
+      )}
+
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
 
       <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
-        {/* Header */}
-        <header className="border-b-2 border-black bg-white px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-flat-offset-sm">
+        {/* Navbar */}
+        <Navbar />
+
+        {/* Mobile Org Switcher */}
+        <div className="md:hidden px-6 pt-4">
           <OrgSwitcher />
-          <div className="flex items-center gap-4">
-            <NotificationBell />
-            <div className="hidden sm:flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-neutral-bg text-xs font-semibold text-secondary">
-              {user?.primaryEmailAddress?.emailAddress}
-            </div>
-          </div>
-        </header>
+        </div>
 
         {/* Content */}
         <div className="flex-1 max-w-5xl w-full mx-auto p-6 md:p-12 flex flex-col gap-8">
@@ -177,7 +204,7 @@ export default function ExportCenterPage() {
                     <button
                       onClick={() => handleExport(card.id, "csv")}
                       disabled={exporting !== null}
-                      className="py-2 bg-white hover:bg-neutral-bg border-2 border-black rounded-full font-sans text-xs font-bold shadow-flat-offset-xs active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer flex items-center justify-center gap-1 disabled:opacity-40"
+                      className="py-2 bg-white hover:bg-neutral-bg border-2 border-black rounded-full font-sans text-xs font-bold shadow-flat-offset-xs active:scale-[0.97] hover:-translate-y-0.5 transition-[transform,background-color,box-shadow,color] duration-150 cursor-pointer flex items-center justify-center gap-1 disabled:opacity-40"
                     >
                       <Download className="h-3.5 w-3.5" />
                       {exporting === `${card.id}-csv` ? "..." : "CSV"}
@@ -186,7 +213,7 @@ export default function ExportCenterPage() {
                     <button
                       onClick={() => handleExport(card.id, "excel")}
                       disabled={exporting !== null}
-                      className="py-2 bg-white hover:bg-neutral-bg border-2 border-black rounded-full font-sans text-xs font-bold shadow-flat-offset-xs active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer flex items-center justify-center gap-1 disabled:opacity-40"
+                      className="py-2 bg-white hover:bg-neutral-bg border-2 border-black rounded-full font-sans text-xs font-bold shadow-flat-offset-xs active:scale-[0.97] hover:-translate-y-0.5 transition-[transform,background-color,box-shadow,color] duration-150 cursor-pointer flex items-center justify-center gap-1 disabled:opacity-40"
                     >
                       <FileSpreadsheet className="h-3.5 w-3.5" />
                       {exporting === `${card.id}-excel` ? "..." : "Excel"}
@@ -194,7 +221,7 @@ export default function ExportCenterPage() {
 
                     <button
                       onClick={() => handleExport(card.id, "pdf")}
-                      className="py-2 bg-accent-pink hover:bg-accent-pink/80 border-2 border-black rounded-full font-sans text-xs font-bold shadow-flat-offset-xs active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer flex items-center justify-center gap-1"
+                      className="py-2 bg-accent-pink hover:bg-accent-pink/80 border-2 border-black rounded-full font-sans text-xs font-bold shadow-flat-offset-xs active:scale-[0.97] hover:-translate-y-0.5 transition-[transform,background-color,box-shadow,color] duration-150 cursor-pointer flex items-center justify-center gap-1"
                     >
                       <FileText className="h-3.5 w-3.5" />
                       PDF

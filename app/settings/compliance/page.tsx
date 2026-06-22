@@ -3,14 +3,14 @@
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/nextjs";
-import { Shield, Download, RefreshCw, Trash2, Calendar, AlertTriangle } from "lucide-react";
+import { Shield, Download, RefreshCw, Trash2, Calendar, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
 
 import { getComplianceSettings, updateComplianceSettings, runDataRetentionCleanup, exportAuditLogsCSV, exportProjectRisksCSV } from "@/actions/compliance";
 import { getOrganizationMembers } from "@/actions/membership";
 import { useOrgStore } from "@/store/orgStore";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
+import { Navbar } from "@/components/layout/Navbar";
 import { AuditLogsTable } from "@/components/compliance/AuditLogsTable";
 
 export default function ComplianceCenterPage() {
@@ -22,6 +22,13 @@ export default function ComplianceCenterPage() {
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const [isRunningCleanup, setIsRunningCleanup] = useState(false);
   const [cleanupMessage, setCleanupMessage] = useState("");
+  const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [showCleanupConfirm, setShowCleanupConfirm] = useState(false);
+
+  const showBanner = (type: "success" | "error", text: string) => {
+    setBanner({ type, text });
+    setTimeout(() => setBanner(null), 4000);
+  };
 
   // Queries
   const { data: complianceSettings = null, isLoading: isSettingsLoading } = useQuery({
@@ -55,19 +62,19 @@ export default function ComplianceCenterPage() {
     try {
       const parsedDays = retentionDaysInput ? parseInt(retentionDaysInput, 10) : null;
       if (parsedDays !== null && (isNaN(parsedDays) || parsedDays < 1)) {
-        alert("Retention period must be a valid number of days (at least 1 day)");
+        showBanner("error", "Retention period must be a valid number of days (at least 1 day)");
         return;
       }
       const res = await updateComplianceSettings(activeOrgId, parsedDays);
       if (res.success) {
-        alert("Compliance policy updated successfully.");
+        showBanner("success", "Compliance policy updated successfully.");
         queryClient.invalidateQueries({ queryKey: ["complianceSettings", activeOrgId] });
       } else {
-        alert(res.error || "Failed to update compliance settings");
+        showBanner("error", res.error || "Failed to update compliance settings");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "An error occurred";
-      alert(msg);
+      showBanner("error", msg);
     } finally {
       setIsUpdatingSettings(false);
     }
@@ -75,7 +82,6 @@ export default function ComplianceCenterPage() {
 
   const handleRunCleanup = async () => {
     if (!activeOrgId) return;
-    if (!confirm("Are you sure you want to run the retention policy cleanup? All tasks and activity records older than the policy duration will be permanently deleted!")) return;
     setIsRunningCleanup(true);
     setCleanupMessage("");
     try {
@@ -84,15 +90,17 @@ export default function ComplianceCenterPage() {
         setCleanupMessage(
           `Cleanup completed! Deleted ${res.data.deletedTasks} tasks and ${res.data.deletedActivities} activities.`
         );
+        showBanner("success", "Data retention cleanup executed successfully.");
         queryClient.invalidateQueries({ queryKey: ["auditLogs", activeOrgId] });
       } else {
-        alert(res.error || "Failed to run cleanup");
+        showBanner("error", res.error || "Failed to run cleanup");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "An error occurred";
-      alert(msg);
+      showBanner("error", msg);
     } finally {
       setIsRunningCleanup(false);
+      setShowCleanupConfirm(false);
     }
   };
 
@@ -114,12 +122,13 @@ export default function ComplianceCenterPage() {
       const res = await exportAuditLogsCSV(activeOrgId);
       if (res.success && res.data) {
         triggerDownload(res.data, `audit_trail_${activeOrgId}.csv`);
+        showBanner("success", "Audit trail logs exported successfully.");
       } else {
-        alert(res.error || "Failed to export audit trail");
+        showBanner("error", res.error || "Failed to export audit trail");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "An error occurred";
-      alert(msg);
+      showBanner("error", msg);
     }
   };
 
@@ -129,12 +138,13 @@ export default function ComplianceCenterPage() {
       const res = await exportProjectRisksCSV(activeOrgId);
       if (res.success && res.data) {
         triggerDownload(res.data, `project_risks_${activeOrgId}.csv`);
+        showBanner("success", "Risks register exported successfully.");
       } else {
-        alert(res.error || "Failed to export risks register");
+        showBanner("error", res.error || "Failed to export risks register");
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : "An error occurred";
-      alert(msg);
+      showBanner("error", msg);
     }
   };
 
@@ -152,34 +162,54 @@ export default function ComplianceCenterPage() {
   if (!isAdminOrOwner) {
     return (
       <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
+      <div className="hidden md:block">
         <Sidebar />
-        <div className="flex-grow flex items-center justify-center p-6">
-          <div className="bg-accent-pink border-2 border-black rounded-sketchy p-8 text-center max-w-lg shadow-flat-offset">
-            <h2 className="font-cursive text-2xl font-bold mb-2">Access Restrained</h2>
-            <p className="font-sans text-sm text-secondary">
-              Only workspace administrators or owners can access the Compliance and Governance Center.
-            </p>
-          </div>
+      </div>
+      <div className="flex-grow flex items-center justify-center p-6">
+        <div className="bg-accent-pink border-2 border-black rounded-sketchy p-8 text-center max-w-lg shadow-flat-offset">
+          <h2 className="font-cursive text-2xl font-bold mb-2">Access Restrained</h2>
+          <p className="font-sans text-sm text-secondary">
+            Only workspace administrators or owners can access the Compliance and Governance Center.
+          </p>
         </div>
+      </div>
       </div>
     );
   }
 
   return (
     <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
-      <Sidebar />
+      {/* Toast Notification Banner */}
+      {banner && (
+        <div
+          role="alert"
+          className={`fixed top-4 right-4 z-[300] max-w-md border-2 border-black rounded-sketchy p-4 shadow-flat-offset transition-[transform,opacity] transform ${
+            banner.type === "success" ? "bg-accent-green" : "bg-accent-pink"
+          }`}
+        >
+          <div className="flex items-center gap-2 font-sans font-bold text-sm">
+            {banner.type === "success" ? (
+              <CheckCircle className="h-5 w-5 text-primary" />
+            ) : (
+              <XCircle className="h-5 w-5 text-primary" />
+            )}
+            {banner.text}
+          </div>
+        </div>
+      )}
+
+      <div className="hidden md:block">
+        <Sidebar />
+      </div>
 
       <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
-        {/* Header */}
-        <header className="border-b-2 border-black bg-white px-6 py-4 flex items-center justify-between sticky top-0 z-40 shadow-flat-offset-sm">
+        {/* Navbar */}
+        <Navbar />
+
+        {/* Mobile Org Switcher */}
+        <div className="md:hidden px-6 pt-4">
           <OrgSwitcher />
-          <div className="flex items-center gap-4">
-            <NotificationBell />
-            <div className="hidden sm:flex items-center gap-2 border-2 border-black rounded-full px-3 py-1 bg-neutral-bg text-xs font-semibold text-secondary">
-              {user?.primaryEmailAddress?.emailAddress}
-            </div>
-          </div>
-        </header>
+        </div>
 
         {/* Content */}
         <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-8">
@@ -246,21 +276,43 @@ export default function ComplianceCenterPage() {
                   Manually trigger the workspace retention cleanup process based on the configured policy duration.
                 </p>
 
-                <button
-                  onClick={handleRunCleanup}
-                  disabled={isRunningCleanup || !complianceSettings?.retentionDays}
-                  className="w-full py-2 bg-white hover:bg-neutral-bg text-primary border-2 border-black rounded-full font-sans text-xs font-bold shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-                >
-                  {isRunningCleanup ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Running Cleanup...
-                    </span>
-                  ) : (
-                    "Trigger Cleanup Now"
-                  )}
-                </button>
+                {showCleanupConfirm ? (
+                  <div className="flex flex-col gap-3 p-4 border-2 border-black rounded-sketchy bg-accent-pink/15">
+                    <p className="font-mono text-[10px] font-bold text-center text-accent-orange leading-snug">
+                      Permanently delete tasks and activities older than policy? This cannot be undone!
+                    </p>
+                    <div className="flex justify-center gap-4">
+                      <button
+                        onClick={() => setShowCleanupConfirm(false)}
+                        className="px-4 py-1.5 border-2 border-black rounded-full hover:bg-neutral-bg font-sans text-xs font-bold transition-[transform,background-color] duration-150 active:scale-[0.95] cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleRunCleanup}
+                        className="px-4 py-1.5 bg-accent-pink border-2 border-black rounded-full hover:bg-opacity-80 font-sans text-xs font-bold transition-[transform,background-color] duration-150 active:scale-[0.95] cursor-pointer"
+                      >
+                        Confirm Delete
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setShowCleanupConfirm(true)}
+                    disabled={isRunningCleanup || !complianceSettings?.retentionDays}
+                    className="w-full py-2 bg-white hover:bg-neutral-bg text-primary border-2 border-black rounded-full font-sans text-xs font-bold shadow-flat-offset-sm active:scale-[0.97] hover:-translate-y-0.5 transition-[transform,background-color,box-shadow,color] duration-150 cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                  >
+                    {isRunningCleanup ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Running Cleanup...
+                      </span>
+                    ) : (
+                      "Trigger Cleanup Now"
+                    )}
+                  </button>
+                )}
                 {cleanupMessage && (
-                  <p className="mt-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-500 rounded p-2 text-center animate-fade-in">
+                  <p className="mt-2 text-xs font-semibold text-emerald-800 bg-accent-green border-2 border-black rounded-sketchy-sm p-2.5 text-center animate-fade-in shadow-[2px_2px_0px_rgba(0,0,0,1)]">
                     {cleanupMessage}
                   </p>
                 )}
@@ -278,13 +330,13 @@ export default function ComplianceCenterPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={handleExportLogs}
-                    className="py-2 bg-accent-yellow hover:bg-[#FFEAA3] text-primary border-2 border-black rounded-full font-sans text-[11px] font-bold shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer flex items-center justify-center gap-1"
+                    className="py-2 bg-accent-yellow hover:bg-accent-yellow/80 text-primary border-2 border-black rounded-full font-sans text-[11px] font-bold shadow-flat-offset-sm active:scale-[0.97] hover:-translate-y-0.5 transition-[transform,background-color,box-shadow,color] duration-150 cursor-pointer flex items-center justify-center gap-1"
                   >
                     <Download className="h-3 w-3" /> Audit Trail CSV
                   </button>
                   <button
                     onClick={handleExportRisks}
-                    className="py-2 bg-accent-yellow hover:bg-[#FFEAA3] text-primary border-2 border-black rounded-full font-sans text-[11px] font-bold shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer flex items-center justify-center gap-1"
+                    className="py-2 bg-accent-yellow hover:bg-accent-yellow/80 text-primary border-2 border-black rounded-full font-sans text-[11px] font-bold shadow-flat-offset-sm active:scale-[0.97] hover:-translate-y-0.5 transition-[transform,background-color,box-shadow,color] duration-150 cursor-pointer flex items-center justify-center gap-1"
                   >
                     <Download className="h-3 w-3" /> Risks Register CSV
                   </button>

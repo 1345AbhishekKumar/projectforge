@@ -43,6 +43,7 @@ export function RolesSettingsClient({
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [selectedRole, setSelectedRole] = useState<CustomRole | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   const showBanner = (type: "success" | "error", text: string) => {
@@ -68,9 +69,6 @@ export function RolesSettingsClient({
 
   const handleDeleteRole = async (roleId: string, roleName: string) => {
     if (!isOwnerOrAdmin) return;
-    if (!confirm(`Are you sure you want to delete the role "${roleName}"? Any users assigned to this role will fallback to default permissions.`)) {
-      return;
-    }
 
     setDeletingId(roleId);
     try {
@@ -174,7 +172,7 @@ export function RolesSettingsClient({
         {isOwnerOrAdmin && (
           <button
             onClick={handleOpenCreate}
-            className="flex items-center gap-1.5 bg-accent-yellow hover:bg-[#FFE680] text-primary border-2 border-black font-sans text-xs font-bold px-4 py-2.5 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer whitespace-nowrap self-start sm:self-center"
+            className="flex items-center gap-1.5 bg-accent-yellow hover:bg-accent-yellow/80 text-primary border-2 border-black font-sans text-xs font-bold px-4 py-2.5 rounded-full shadow-flat-offset-sm active:scale-[0.97] hover:-translate-y-0.5 transition-[transform,background-color,box-shadow,color] duration-150 cursor-pointer whitespace-nowrap self-start sm:self-center"
           >
             <Plus className="h-4 w-4" />
             Create Custom Role
@@ -233,27 +231,50 @@ export function RolesSettingsClient({
                   </div>
 
                   {isOwnerOrAdmin && (
-                    <div className="flex justify-end gap-2 border-t border-black/10 pt-3">
-                      <button
-                        onClick={() => handleOpenEdit(role)}
-                        disabled={deletingId === role.id}
-                        className="inline-flex items-center justify-center p-1.5 border border-black/30 rounded-full hover:bg-neutral-bg cursor-pointer transition-colors shadow-flat-offset-xs active:translate-y-0.5"
-                        title="Edit permissions"
-                      >
-                        <Edit2 className="h-3.5 w-3.5 text-secondary" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteRole(role.id, role.name)}
-                        disabled={deletingId === role.id}
-                        className="inline-flex items-center justify-center p-1.5 border border-black/30 rounded-full hover:bg-accent-pink cursor-pointer transition-colors shadow-flat-offset-xs active:translate-y-0.5 disabled:opacity-40"
-                        title="Delete custom role"
-                      >
-                        {deletingId === role.id ? (
-                          <Loader2 className="h-3.5 w-3.5 animate-spin text-secondary" />
-                        ) : (
-                          <Trash2 className="h-3.5 w-3.5 text-secondary hover:text-red-700" />
-                        )}
-                      </button>
+                    <div className="flex justify-end gap-2 border-t border-black/10 pt-3 min-h-[40px] items-center">
+                      {confirmDeleteId === role.id ? (
+                        <div className="flex items-center gap-2 text-xs font-mono">
+                          <span className="font-bold text-accent-orange">Delete?</span>
+                          <button
+                            onClick={() => setConfirmDeleteId(null)}
+                            className="px-2 py-1 border-2 border-black rounded-full hover:bg-neutral-bg cursor-pointer transition-[transform,background-color] duration-150 active:scale-[0.95] text-[10px] font-bold"
+                          >
+                            No
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleDeleteRole(role.id, role.name);
+                              setConfirmDeleteId(null);
+                            }}
+                            className="px-2 py-1 bg-accent-pink border-2 border-black rounded-full hover:bg-opacity-80 cursor-pointer transition-[transform,background-color] duration-150 active:scale-[0.95] text-[10px] font-bold"
+                          >
+                            Yes
+                          </button>
+                        </div>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleOpenEdit(role)}
+                            disabled={deletingId === role.id}
+                            className="inline-flex items-center justify-center p-1.5 border-2 border-black rounded-full hover:bg-neutral-bg cursor-pointer transition-[transform,background-color] duration-150 shadow-flat-offset-xs active:scale-[0.95]"
+                            title="Edit permissions"
+                          >
+                            <Edit2 className="h-3.5 w-3.5 text-secondary" />
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteId(role.id)}
+                            disabled={deletingId === role.id}
+                            className="inline-flex items-center justify-center p-1.5 border-2 border-black rounded-full hover:bg-accent-pink cursor-pointer transition-[transform,background-color] duration-150 shadow-flat-offset-xs active:scale-[0.95] disabled:opacity-40"
+                            title="Delete custom role"
+                          >
+                            {deletingId === role.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin text-secondary" />
+                            ) : (
+                              <Trash2 className="h-3.5 w-3.5 text-secondary hover:text-red-700" />
+                            )}
+                          </button>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>
