@@ -8,6 +8,7 @@ import { MemberList } from "@/components/orgs/MemberList";
 import { InviteModal } from "@/components/orgs/InviteModal";
 import { NotificationPreferences } from "@/components/notifications/NotificationPreferences";
 import { WorkflowsTab, type WorkflowRow } from "@/components/orgs/WorkflowsTab";
+import { useToastStore } from "@/store/toastStore";
 import {
   updateMemberRole,
   removeMember,
@@ -51,12 +52,7 @@ export function SettingsForm({
   const [cancelingId, setCancelingId] = useState<string | null>(null);
   const [dissolving, setDissolving] = useState(false);
   
-  const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
-
-  const showBanner = (type: "success" | "error", text: string) => {
-    setBanner({ type, text });
-    setTimeout(() => setBanner(null), 4000);
-  };
+  const { showToast: showBanner } = useToastStore();
 
   async function handleInvite(email: string, role: "ADMIN" | "MEMBER") {
     const res = await inviteMember(activeOrgId, email, role);
@@ -157,20 +153,7 @@ export function SettingsForm({
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Toast Notification Banner */}
-      {banner && (
-        <div
-          role="alert"
-          className={`fixed top-4 right-4 z-[100] max-w-md border-2 border-black rounded-sketchy p-4 shadow-flat-offset transition-all transform ${
-            banner.type === "success" ? "bg-accent-green" : "bg-accent-pink"
-          }`}
-        >
-          <div className="flex items-center gap-2 font-sans font-bold text-sm">
-            {banner.type === "error" && <XCircle className="h-5 w-5" />}
-            {banner.text}
-          </div>
-        </div>
-      )}
+      {/* Toast Notification Banner handled globally */}
 
       {/* Header info card */}
       <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

@@ -3,11 +3,12 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { Loader2, Users, Edit2, AlertCircle } from "lucide-react";
+import { Loader2, Users, Edit2 } from "lucide-react";
 import Image from "next/image";
 
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Navbar } from "@/components/layout/Navbar";
+import { WorkspacePageLayout } from "@/components/layout/WorkspacePageLayout";
+import { NoWorkspacePlaceholder } from "@/components/layout/NoWorkspacePlaceholder";
+import { HeaderBar } from "@/components/layout/HeaderBar";
 import { CapacityAllocationChart } from "@/components/reports/CapacityAllocationChart";
 import { EditAllocationModal } from "@/components/team/EditAllocationModal";
 import { getResourceAllocations } from "@/actions/resourceAllocation";
@@ -15,18 +16,18 @@ import type { Project } from "@/types";
 import type { CapacityData } from "@/actions/resourceAllocation";
 
 import { useOrgStore } from "@/store/orgStore";
+import { useToastStore } from "@/store/toastStore";
 
 export default function CapacityPlannerPage() {
   const router = useRouter();
   const { user, isLoaded } = useUser();
 
   const { activeOrgId } = useOrgStore();
+  const { showToast } = useToastStore();
   const [capacity, setCapacity] = useState<CapacityData[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastWarning, setToastWarning] = useState(false);
 
   // Modal State
   const [editingMember, setEditingMember] = useState<{
@@ -70,21 +71,13 @@ export default function CapacityPlannerPage() {
   const currentUserCapacity = capacity.find((c) => c.userId === user?.id);
   const isAdminOrOwner = currentUserCapacity?.role === "OWNER" || currentUserCapacity?.role === "ADMIN";
 
-  const triggerToast = (message: string, isWarning = false) => {
-    setToastMessage(message);
-    setToastWarning(isWarning);
-    setTimeout(() => {
-      setToastMessage("");
-    }, 5000);
-  };
-
   const handleModalSuccess = (warning?: string) => {
     setEditingMember(null);
     loadPlannerData();
     if (warning) {
-      triggerToast(warning, true);
+      showToast("error", warning);
     } else {
-      triggerToast("Resource allocations updated successfully!");
+      showToast("success", "Resource allocations updated successfully!");
     }
   };
 
@@ -97,74 +90,44 @@ export default function CapacityPlannerPage() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
-      {/* Sidebar - Desktop only */}
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
+    <WorkspacePageLayout>
+      <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-8">
+        {/* Header */}
+        <div className="flex flex-col gap-4">
+          <HeaderBar
+            title="Capacity Planner"
+            description="Allocate resources across projects and monitor team capacity."
+            icon={<Users className="h-8 w-8 text-tertiary" />}
+          />
 
-      <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
-        {/* Navbar */}
-        <Navbar />
-
-        {/* Toast Warning/Success Banner */}
-        {toastMessage && (
-          <div
-            className={`fixed top-4 right-4 z-[100] max-w-md border-2 border-black rounded-sketchy p-4 shadow-flat-offset transition-all transform animate-bounce ${
-              toastWarning ? "bg-accent-pink text-primary" : "bg-accent-green text-primary"
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 shrink-0" />
-              <span className="font-sans text-xs font-bold">{toastMessage}</span>
-            </div>
+          {/* Sub-Navigation tabs */}
+          <div className="flex border-b-2 border-black mt-2">
+            <button
+              onClick={() => router.push("/team")}
+              className="px-6 py-2.5 text-sm font-bold font-cursive hover:bg-neutral-bg border-b-2 border-transparent transition-all cursor-pointer"
+            >
+              Team Directory
+            </button>
+            <button
+              className="px-6 py-2.5 text-sm font-bold font-cursive bg-accent-yellow border-2 border-black border-b-0 rounded-t-lg shadow-[0_-2px_0_rgba(0,0,0,1)] -mb-[2px] transition-all"
+            >
+              Capacity Planner
+            </button>
           </div>
-        )}
+        </div>
 
-        {/* Main Body */}
-        <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-8">
-          {/* Header */}
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-wrap items-center gap-4 justify-between">
-              <div>
-                <h1 className="font-cursive text-4xl font-bold mb-2 flex items-center gap-2">
-                  <Users className="h-8 w-8 text-tertiary" />
-                  Capacity Planner
-                </h1>
-                <p className="font-sans text-sm text-secondary">
-                  Allocate resources across projects and monitor team capacity.
-                </p>
-              </div>
-            </div>
-
-            {/* Sub-Navigation tabs */}
-            <div className="flex border-b-2 border-black mt-2">
-              <button
-                onClick={() => router.push("/team")}
-                className="px-6 py-2.5 text-sm font-bold font-cursive hover:bg-neutral-bg border-b-2 border-transparent transition-all cursor-pointer"
-              >
-                Team Directory
-              </button>
-              <button
-                className="px-6 py-2.5 text-sm font-bold font-cursive bg-accent-yellow border-2 border-black border-b-0 rounded-t-lg shadow-[0_-2px_0_rgba(0,0,0,1)] -mb-[2px] transition-all"
-              >
-                Capacity Planner
-              </button>
-            </div>
-          </div>
-
-          {/* Page Content */}
-          {!activeOrgId ? (
-            <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8 md:p-12 text-center max-w-lg mx-auto">
+        {/* Page Content */}
+        {!activeOrgId ? (
+          <NoWorkspacePlaceholder
+            title="No Workspace Selected"
+            description="Please select or create an organization workspace to access the capacity planner."
+            icon={
               <div className="w-16 h-16 rounded-full bg-accent-yellow border-2 border-black flex items-center justify-center mx-auto mb-4 rotate-[1.5deg] shadow-flat-offset-sm">
                 <Users className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="font-cursive text-2xl font-bold mb-2">No Workspace Selected</h3>
-              <p className="font-sans text-sm text-secondary mb-6 leading-relaxed">
-                Please select or create an organization workspace to access the capacity planner.
-              </p>
-            </div>
-          ) : loading ? (
+            }
+          />
+        ) : loading ? (
             <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-12 flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-tertiary mr-3" />
               <span className="font-cursive text-xl">Loading capacity data...</span>
@@ -311,8 +274,7 @@ export default function CapacityPlannerPage() {
               )}
             </div>
           )}
-        </div>
       </div>
-    </div>
+    </WorkspacePageLayout>
   );
 }

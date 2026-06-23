@@ -1,13 +1,14 @@
 import { createInsforgeServer } from "./insforge-server";
+import { cache } from "react";
 
 /**
  * Checks if a user is a member of the specified organization.
  */
-export async function verifyMembership(
+export const verifyMembership = cache(async (
   insforge: ReturnType<typeof createInsforgeServer>,
   orgId: string,
   userId: string
-): Promise<boolean> {
+): Promise<boolean> => {
   const { data } = await insforge.database
     .from("memberships")
     .select("id")
@@ -15,16 +16,16 @@ export async function verifyMembership(
     .eq("user_id", userId)
     .maybeSingle();
   return !!data;
-}
+});
 
 /**
  * Checks if a user has OWNER or ADMIN privileges in the specified organization.
  */
-export async function verifyAdminOrOwnerRole(
+export const verifyAdminOrOwnerRole = cache(async (
   insforge: ReturnType<typeof createInsforgeServer>,
   orgId: string,
   userId: string
-): Promise<boolean> {
+): Promise<boolean> => {
   const { data } = await insforge.database
     .from("memberships")
     .select("role")
@@ -34,16 +35,16 @@ export async function verifyAdminOrOwnerRole(
 
   if (!data) return false;
   return data.role === "OWNER" || data.role === "ADMIN";
-}
+});
 
 /**
  * Fetches all memberships with their nested profiles for a given organization.
  */
-export async function getOrganizationMemberships(
+export const getOrganizationMemberships = cache(async (
   insforge: ReturnType<typeof createInsforgeServer>,
   orgId: string,
   limit?: number
-) {
+) => {
   let query = insforge.database
     .from("memberships")
     .select(`
@@ -61,19 +62,19 @@ export async function getOrganizationMemberships(
     query = query.limit(limit);
   }
   return query;
-}
+});
 
 /**
  * Verifies if a user has specific resource and action permissions.
  * Supports both custom database roles and default roles fallback.
  */
-export async function verifyPermission(
+export const verifyPermission = cache(async (
   insforge: ReturnType<typeof createInsforgeServer>,
   orgId: string,
   userId: string,
   resource: string,
   action: string
-): Promise<boolean> {
+): Promise<boolean> => {
   // 1. Get user membership — include custom_role_id FK
   const { data: memberData } = await insforge.database
     .from("memberships")
@@ -143,16 +144,16 @@ export async function verifyPermission(
   }
 
   return false;
-}
+});
 
 /**
  * Resolves the department ID that a user manages in an organization.
  */
-export async function getManagedDepartmentId(
+export const getManagedDepartmentId = cache(async (
   insforge: ReturnType<typeof createInsforgeServer>,
   orgId: string,
   userId: string
-): Promise<string | null> {
+): Promise<string | null> => {
   const { data } = await insforge.database
     .from("departments")
     .select("id")
@@ -161,17 +162,17 @@ export async function getManagedDepartmentId(
     .limit(1)
     .maybeSingle();
   return data?.id || null;
-}
+});
 
 /**
  * Checks recursively if a target department is a child of a parent department.
  */
-export async function isChildDepartment(
+export const isChildDepartment = cache(async (
   insforge: ReturnType<typeof createInsforgeServer>,
   orgId: string,
   targetDeptId: string,
   parentDeptId: string
-): Promise<boolean> {
+): Promise<boolean> => {
   if (targetDeptId === parentDeptId) return true;
 
   const { data: depts } = await insforge.database
@@ -190,7 +191,7 @@ export async function isChildDepartment(
   }
 
   return false;
-}
+});
 
 /**
  * Checks if a user has access to a project based on department hierarchy.
@@ -198,12 +199,12 @@ export async function isChildDepartment(
  * to their managed department or any of its children.
  * If they don't manage a department, this check passes.
  */
-export async function verifyDepartmentScopeForProject(
+export const verifyDepartmentScopeForProject = cache(async (
   insforge: ReturnType<typeof createInsforgeServer>,
   orgId: string,
   userId: string,
   projectId: string
-): Promise<boolean> {
+): Promise<boolean> => {
   const isAdmin = await verifyAdminOrOwnerRole(insforge, orgId, userId);
   if (isAdmin) return true;
 
@@ -219,7 +220,7 @@ export async function verifyDepartmentScopeForProject(
   if (!project || !project.department_id) return false;
 
   return isChildDepartment(insforge, orgId, project.department_id, managedDeptId);
-}
+});
 
 /**
  * Checks if a user has access to a member based on department hierarchy.
@@ -227,12 +228,12 @@ export async function verifyDepartmentScopeForProject(
  * to their managed department or any of its children.
  * If they don't manage a department, this check passes.
  */
-export async function verifyDepartmentScopeForMember(
+export const verifyDepartmentScopeForMember = cache(async (
   insforge: ReturnType<typeof createInsforgeServer>,
   orgId: string,
   userId: string,
   targetUserId: string
-): Promise<boolean> {
+): Promise<boolean> => {
   const isAdmin = await verifyAdminOrOwnerRole(insforge, orgId, userId);
   if (isAdmin) return true;
 
@@ -249,6 +250,6 @@ export async function verifyDepartmentScopeForMember(
   if (!membership || !membership.department_id) return false;
 
   return isChildDepartment(insforge, orgId, membership.department_id, managedDeptId);
-}
+});
 
 

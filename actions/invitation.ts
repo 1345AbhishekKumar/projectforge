@@ -2,7 +2,7 @@
 
 import { auth } from "@clerk/nextjs/server";
 import * as Sentry from "@sentry/nextjs";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import { logActivity } from "@/actions/activity";
@@ -294,6 +294,8 @@ export async function acceptInvitation(
       joinedUserEmail: profile.email,
     });
 
+    revalidateTag(`user-orgs-${userId}`);
+    revalidateTag(`org-members-${invitation.organization_id}`);
     revalidatePath("/dashboard");
     revalidatePath("/organizations/settings");
     return { success: true };

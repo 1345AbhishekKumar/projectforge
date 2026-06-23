@@ -3,9 +3,8 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Loader2, BarChart2 } from "lucide-react";
 
-import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Navbar } from "@/components/layout/Navbar";
+import { WorkspacePageLayout } from "@/components/layout/WorkspacePageLayout";
+import { NoWorkspacePlaceholder } from "@/components/layout/NoWorkspacePlaceholder";
 import { getAnalyticsData, type AnalyticsData } from "@/actions/analytics";
 import { StatsGrid } from "@/components/analytics/StatsGrid";
 import { WorkloadBreakdown } from "@/components/analytics/WorkloadBreakdown";
@@ -51,42 +50,28 @@ export default function AnalyticsPage() {
 
 
   return (
-    <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
-      {/* Sidebar - Desktop only */}
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
-
-      <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
-        {/* Navbar */}
-        <Navbar />
-
-        {/* Mobile Org Switcher */}
-        <div className="md:hidden px-6 pt-4">
-          <OrgSwitcher />
+    <WorkspacePageLayout>
+      {/* Main Details Body */}
+      <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-8">
+        <div>
+          <h1 className="font-cursive text-4xl font-bold mb-2 flex items-center gap-2">
+            <BarChart2 className="h-8 w-8 text-tertiary" /> Workspace Analytics
+          </h1>
+          <p className="font-sans text-sm text-secondary">
+            Real-time snapshot of organizational boards, execution progress, and team workloads.
+          </p>
         </div>
 
-        {/* Main Details Body */}
-        <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-8">
-          <div>
-            <h1 className="font-cursive text-4xl font-bold mb-2 flex items-center gap-2">
-              <BarChart2 className="h-8 w-8 text-tertiary" /> Workspace Analytics
-            </h1>
-            <p className="font-sans text-sm text-secondary">
-              Real-time snapshot of organizational boards, execution progress, and team workloads.
-            </p>
-          </div>
-
-          {!activeOrgId ? (
-            <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8 md:p-12 text-center max-w-lg mx-auto">
+        {!activeOrgId ? (
+          <NoWorkspacePlaceholder
+            icon={
               <div className="w-16 h-16 rounded-full bg-accent-yellow border-2 border-black flex items-center justify-center mx-auto mb-4 rotate-[1.5deg] shadow-flat-offset-sm">
                 <BarChart2 className="h-8 w-8 text-primary" />
               </div>
-              <h3 className="font-cursive text-2xl font-bold mb-2">No Workspace Selected</h3>
-              <p className="font-sans text-sm text-secondary mb-6 leading-relaxed">
-                Please create or select an organization workspace in the switcher dropdown to view analytics.
-              </p>
-            </div>
+            }
+            title="No Workspace Selected"
+            description="Please create or select an organization workspace in the switcher dropdown to view analytics."
+          />
           ) : loading ? (
             <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-12 flex items-center justify-center">
               <Loader2 className="h-8 w-8 animate-spin text-tertiary mr-3" />
@@ -120,7 +105,6 @@ export default function AnalyticsPage() {
             </div>
           )}
         </div>
-      </div>
-    </div>
+    </WorkspacePageLayout>
   );
 }

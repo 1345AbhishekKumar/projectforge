@@ -3,7 +3,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { after } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, cacheLife, cacheTag, revalidateTag } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { writeAuditLog } from "@/lib/audit";
 import { z } from "zod";
@@ -13,22 +13,7 @@ import { createNotification } from "@/actions/notification";
 import { orgIdSchema, projectIdSchema } from "@/lib/utils";
 import { verifyMembership, verifyPermission, getManagedDepartmentId, verifyDepartmentScopeForProject } from "@/lib/auth-helpers";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
-
-const projectSchema = z.object({
-  name: z.string().min(3, "Name must be at least 3 characters").max(50),
-  description: z.string().max(250).nullable().optional(),
-  status: z.enum(["PLANNING", "ACTIVE", "COMPLETED", "ARCHIVED"]),
-  departmentId: z.string().uuid().nullable().optional(),
-  custom_statuses: z
-    .array(z.string().trim().min(1, "Status cannot be empty").max(30))
-    .min(2, "Must specify at least 2 statuses")
-    .max(10, "Cannot specify more than 10 statuses")
-    .refine((items) => new Set(items).size === items.length, {
-      message: "Statuses must be unique",
-    })
-    .nullable()
-    .optional(),
-});
+import { projectSchema } from "@/lib/schemas/validation";
 
 const createProjectInputSchema = projectSchema.extend({
   orgId: orgIdSchema,
@@ -260,6 +245,7 @@ export async function createProject(
       )
     );
 
+    revalidateTag(`org-projects-${validated.data.orgId}`);
     revalidatePath("/projects");
     return { success: true, data: { projectId: project.id } };
   } catch (err) {
@@ -269,6 +255,79 @@ export async function createProject(
   } finally {
     flushLogsAfterResponse();
   }
+}
+
+async function fetchUserProjectsCached(orgId: string, userId: string): Promise<Project[]> {
+  "use cache";
+  cacheTag(`org-projects-${orgId}`);
+  cacheLife("minutes");
+
+  const insforge = createInsforgeServer(userId);
+
+  const { data: depts } = await insforge.database
+    .from("departments")
+    .select("id, parent_department_id")
+    .eq("organization_id", orgId);
+
+  const managedDeptId = await getManagedDepartmentId(insforge, orgId, userId);
+
+  let query = insforge.database
+    .from("projects")
+    .select("*")
+    .eq("organization_id", orgId);
+
+  if (managedDeptId) {
+    const childDeptIds = new Set<string>();
+    if (depts) {
+      const deptChildrenMap = new Map<string, string[]>();
+      depts.forEach((d) => {
+        if (d.parent_department_id) {
+          if (!deptChildrenMap.has(d.parent_department_id)) {
+            deptChildrenMap.set(d.parent_department_id, []);
+          }
+          deptChildrenMap.get(d.parent_department_id)!.push(d.id);
+        }
+      });
+
+      const collectDeptIds = (deptId: string) => {
+        childDeptIds.add(deptId);
+        const children = deptChildrenMap.get(deptId) || [];
+        children.forEach(collectDeptIds);
+      };
+
+      collectDeptIds(managedDeptId);
+    }
+
+    query = query.in("department_id", Array.from(childDeptIds));
+  }
+
+  const { data, error } = await query.order("updated_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return data as Project[];
+}
+
+async function fetchProjectDetailsCached(projectId: string, orgId: string, userId: string): Promise<Project> {
+  "use cache";
+  cacheTag(`project-${projectId}`);
+  cacheLife("hours");
+
+  const insforge = createInsforgeServer(userId);
+  const { data, error } = await insforge.database
+    .from("projects")
+    .select("*")
+    .eq("id", projectId)
+    .eq("organization_id", orgId)
+    .maybeSingle();
+
+  if (error || !data) {
+    throw error || new Error("Project not found");
+  }
+
+  return data as Project;
 }
 
 export async function getUserProjects(
@@ -290,51 +349,8 @@ export async function getUserProjects(
       return { success: false, error: "Not a member of this workspace", data: [] };
     }
 
-    const { data: depts } = await insforge.database
-      .from("departments")
-      .select("id, parent_department_id")
-      .eq("organization_id", validated.data.orgId);
-
-    const managedDeptId = await getManagedDepartmentId(insforge, validated.data.orgId, userId);
-
-    let query = insforge.database
-      .from("projects")
-      .select("*")
-      .eq("organization_id", validated.data.orgId);
-
-    if (managedDeptId) {
-      const childDeptIds = new Set<string>();
-      if (depts) {
-        const deptChildrenMap = new Map<string, string[]>();
-        depts.forEach((d) => {
-          if (d.parent_department_id) {
-            if (!deptChildrenMap.has(d.parent_department_id)) {
-              deptChildrenMap.set(d.parent_department_id, []);
-            }
-            deptChildrenMap.get(d.parent_department_id)!.push(d.id);
-          }
-        });
-
-        const collectDeptIds = (deptId: string) => {
-          childDeptIds.add(deptId);
-          const children = deptChildrenMap.get(deptId) || [];
-          children.forEach(collectDeptIds);
-        };
-
-        collectDeptIds(managedDeptId);
-      }
-
-      query = query.in("department_id", Array.from(childDeptIds));
-    }
-
-    const { data, error } = await query.order("updated_at", { ascending: false });
-
-    if (error) {
-      logger.error({ error, orgId: validated.data.orgId }, "Failed to fetch user projects");
-      return { success: false, error: "Failed to fetch projects", data: [] };
-    }
-
-    return { success: true, data: data as Project[] };
+    const projects = await fetchUserProjectsCached(validated.data.orgId, userId);
+    return { success: true, data: projects };
   } catch (err) {
     logger.error({ error: err, orgId }, "Unexpected error in getUserProjects Server Action");
     Sentry.captureException(err);
@@ -369,19 +385,8 @@ export async function getProjectDetails(
       return { success: false, error: "Access denied: Scoped to department branch" };
     }
 
-    const { data, error } = await insforge.database
-      .from("projects")
-      .select("*")
-      .eq("id", validated.data.projectId)
-      .eq("organization_id", validated.data.orgId)
-      .maybeSingle();
-
-    if (error || !data) {
-      logger.error({ error, projectId: validated.data.projectId }, "Project not found in database query");
-      return { success: false, error: "Project not found" };
-    }
-
-    return { success: true, data: data as Project };
+    const data = await fetchProjectDetailsCached(validated.data.projectId, validated.data.orgId, userId);
+    return { success: true, data };
   } catch (err) {
     logger.error({ error: err, projectId, orgId }, "Unexpected error in getProjectDetails Server Action");
     Sentry.captureException(err);
@@ -508,6 +513,8 @@ export async function updateProject(
       )
     );
 
+    revalidateTag(`project-${validated.data.projectId}`);
+    revalidateTag(`org-projects-${validated.data.orgId}`);
     revalidatePath("/projects");
     revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };
@@ -581,6 +588,8 @@ export async function archiveProject(
       )
     );
 
+    revalidateTag(`project-${validated.data.projectId}`);
+    revalidateTag(`org-projects-${validated.data.orgId}`);
     revalidatePath("/projects");
     revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };

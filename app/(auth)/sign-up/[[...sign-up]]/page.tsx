@@ -1,13 +1,14 @@
 "use client";
 
-import { useSignUp } from "@clerk/nextjs";
+import { useSignUp, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Lock, Key, User, ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function SignUpPage() {
   const { signUp, fetchStatus } = useSignUp();
+  const { isLoaded: isUserLoaded, isSignedIn } = useUser();
   const router = useRouter();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -16,8 +17,42 @@ export default function SignUpPage() {
   const [code, setCode] = useState("");
   const [mode, setMode] = useState<"signup" | "verify-otp">("signup");
   const [errorMsg, setErrorMsg] = useState("");
+  const [redirectUrl, setRedirectUrl] = useState("/dashboard");
 
   const isLoading = fetchStatus === "fetching";
+
+  // Parse redirect_url on mount to support dynamic query parameters safely
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const redir = params.get("redirect_url");
+      if (redir) {
+        Promise.resolve().then(() => {
+          setRedirectUrl(redir);
+        });
+      }
+    }
+  }, []);
+
+  // Redirect signed-in users away from auth pages
+  useEffect(() => {
+    if (isUserLoaded && isSignedIn) {
+      let target = "/dashboard";
+      if (redirectUrl) {
+        try {
+          const parsed = new URL(redirectUrl);
+          if (parsed.host === window.location.host) {
+            target = parsed.pathname + parsed.search;
+          }
+        } catch {
+          if (redirectUrl.startsWith("/")) {
+            target = redirectUrl;
+          }
+        }
+      }
+      router.push(target);
+    }
+  }, [isUserLoaded, isSignedIn, redirectUrl, router]);
 
   const handleAction = async (e: React.FormEvent, fn: () => Promise<unknown>) => {
     e.preventDefault();
@@ -47,7 +82,20 @@ export default function SignUpPage() {
     handleAction(e, async () => {
       const res = await signUp!.verifications.verifyEmailCode({ code });
       if (signUp?.status === "complete") {
-        await signUp.finalize({ navigate: ({ decorateUrl }) => router.push(decorateUrl("/dashboard")) });
+        let target = "/dashboard";
+        if (redirectUrl) {
+          try {
+            const parsed = new URL(redirectUrl);
+            if (parsed.host === window.location.host) {
+              target = parsed.pathname + parsed.search;
+            }
+          } catch {
+            if (redirectUrl.startsWith("/")) {
+              target = redirectUrl;
+            }
+          }
+        }
+        await signUp.finalize({ navigate: ({ decorateUrl }) => router.push(decorateUrl(target)) });
       }
       return res;
     });
@@ -56,12 +104,24 @@ export default function SignUpPage() {
     if (!signUp) return;
     setErrorMsg("");
     try {
-      const res = await signUp.sso({
+      let target = "/dashboard";
+      if (redirectUrl) {
+        try {
+          const parsed = new URL(redirectUrl);
+          if (parsed.host === window.location.host) {
+            target = parsed.pathname + parsed.search;
+          }
+        } catch {
+          if (redirectUrl.startsWith("/")) {
+            target = redirectUrl;
+          }
+        }
+      }
+      await signUp.authenticateWithRedirect({
         strategy,
-        redirectUrl: "/dashboard",
-        redirectCallbackUrl: "/sso-callback",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: target,
       });
-      if (res?.error) setErrorMsg(res.error.message);
     } catch (err) {
       const error = err as { message?: string };
       setErrorMsg(error.message || "OAuth redirect failed.");
@@ -125,8 +185,6 @@ export default function SignUpPage() {
             <button type="submit" disabled={isLoading} className="w-full bg-tertiary text-white font-sans font-bold text-sm py-3 px-6 rounded-full border-2 border-black shadow-flat-offset-sm hover:bg-tertiary-hover active:translate-y-0.5 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2">
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <>Continue <ArrowRight className="h-4 w-4" /></>}
             </button>
-            {/* Required for sign-up flows. Clerk's bot sign-up protection is enabled by default */}
-            <div id="clerk-captcha" />
           </form>
         )}
 
@@ -186,6 +244,9 @@ export default function SignUpPage() {
             </div>
           </>
         )}
+
+        {/* Required for sign-up flows. Clerk's bot sign-up protection is enabled by default */}
+        <div id="clerk-captcha" />
 
         <div className="mt-8 pt-6 border-t-2 border-dashed border-primary/10 text-center">
           <p className="font-sans text-xs text-secondary">Already have an account? <Link href="/sign-in" className="text-tertiary font-bold hover:underline">Sign in</Link></p>

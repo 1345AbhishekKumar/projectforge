@@ -1,10 +1,11 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
-import { Calendar, User as UserIcon } from "lucide-react";
+import { Calendar } from "lucide-react";
 import type { TaskWithAssignee } from "@/actions/task";
 import type { Sprint, TaskStatus } from "@/types";
+import { UserAvatar } from "@/components/ui/UserAvatar";
+import { PriorityBadge } from "@/components/ui/PriorityBadge";
 
 type Props = {
   task: TaskWithAssignee;
@@ -103,9 +104,7 @@ export const KanbanCard = React.memo(function KanbanCard({
       <div className="flex items-center justify-between mt-auto pt-3 border-t border-black/10 gap-2">
         <div className="flex items-center gap-1.5 flex-wrap">
           {/* Priority Badge */}
-          <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase ${priorityColors[task.priority]}`}>
-            {task.priority}
-          </span>
+          <PriorityBadge priority={task.priority} size="xs" />
 
           {/* Due Date Indicator */}
           {formattedDate && (
@@ -124,26 +123,12 @@ export const KanbanCard = React.memo(function KanbanCard({
         </div>
 
         {/* Assignee Avatar */}
-        <div className="w-6.5 h-6.5 rounded-full border border-black bg-white flex items-center justify-center overflow-hidden shrink-0 relative shadow-sm">
-          {task.assignee ? (
-            task.assignee.avatar_url ? (
-              <Image
-                src={task.assignee.avatar_url}
-                alt={task.assignee.full_name || "Assignee"}
-                width={26}
-                height={26}
-                unoptimized
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="font-cursive font-bold text-[10px] text-primary">
-                {(task.assignee.full_name || task.assignee.email).charAt(0).toUpperCase()}
-              </span>
-            )
-          ) : (
-            <UserIcon className="h-3 w-3 text-secondary/40" />
-          )}
-        </div>
+        <UserAvatar
+          avatarUrl={task.assignee?.avatar_url}
+          fullName={task.assignee?.full_name}
+          email={task.assignee?.email}
+          size="sm"
+        />
       </div>
     </div>
   );

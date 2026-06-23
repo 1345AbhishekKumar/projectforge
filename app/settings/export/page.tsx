@@ -11,9 +11,7 @@ import {
   History, 
   ShieldCheck, 
   FileSpreadsheet, 
-  FileText,
-  CheckCircle,
-  XCircle
+  FileText
 } from "lucide-react";
 
 import { useOrgStore } from "@/store/orgStore";
@@ -23,6 +21,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { getOrganizationMembers } from "@/actions/membership";
 import { exportDataAction } from "@/actions/export";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { useToastStore } from "@/store/toastStore";
 
 export default function ExportCenterPage() {
   const { user, isLoaded } = useUser();
@@ -32,12 +31,8 @@ export default function ExportCenterPage() {
   const [exporting, setExporting] = useState<string | null>(null);
   const [integrityHash, setIntegrityHash] = useState<string>("");
   const [hashEntity, setHashEntity] = useState<string>("");
-  const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const showBanner = (type: "success" | "error", text: string) => {
-    setBanner({ type, text });
-    setTimeout(() => setBanner(null), 4000);
-  };
+  const { showToast: showBanner } = useToastStore();
 
   const { data: members = [] } = useQuery({
     queryKey: ["members", activeOrgId],
@@ -136,24 +131,7 @@ export default function ExportCenterPage() {
 
   return (
     <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
-      {/* Toast Notification Banner */}
-      {banner && (
-        <div
-          role="alert"
-          className={`fixed top-4 right-4 z-[300] max-w-md border-2 border-black rounded-sketchy p-4 shadow-flat-offset transition-[transform,opacity] transform ${
-            banner.type === "success" ? "bg-accent-green" : "bg-accent-pink"
-          }`}
-        >
-          <div className="flex items-center gap-2 font-sans font-bold text-sm">
-            {banner.type === "success" ? (
-              <CheckCircle className="h-5 w-5 text-primary" />
-            ) : (
-              <XCircle className="h-5 w-5 text-primary" />
-            )}
-            {banner.text}
-          </div>
-        </div>
-      )}
+
 
       <div className="hidden md:block">
         <Sidebar />

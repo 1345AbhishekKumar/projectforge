@@ -14,6 +14,14 @@ import { SettingsTab } from "@/components/projects/SettingsTab";
 import { AIProjectAssistant } from "@/components/projects/AIProjectAssistant";
 import { useProjectDetails } from "./useProjectDetails";
 import type { ProjectStatus } from "@/types";
+import { PrefetchLink } from "@/components/shared/PrefetchLink";
+import { getProjectDetails } from "@/actions/project";
+import { getProjectTasks } from "@/actions/task";
+import { getSprints } from "@/actions/sprint";
+import { getOrganizationMembers } from "@/actions/membership";
+import { getLabels } from "@/actions/label";
+import { getSavedViews } from "@/actions/savedView";
+import { getProjectRisks } from "@/actions/risk";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -224,15 +232,45 @@ export default function ProjectDetailsPage({ params }: Props) {
                       Backlog
                     </span>
                   </button>
-                  <button
-                    onClick={() => router.push(`/projects/${projectId}/board`)}
+                  <PrefetchLink
+                    href={`/projects/${projectId}/board`}
+                    prefetchQueries={
+                      activeOrgId
+                        ? [
+                            {
+                              queryKey: ["project", projectId, activeOrgId],
+                              queryFn: () => getProjectDetails(projectId, activeOrgId),
+                            },
+                            {
+                              queryKey: ["tasks", projectId, activeOrgId],
+                              queryFn: () => getProjectTasks(projectId, activeOrgId),
+                            },
+                            {
+                              queryKey: ["sprints", activeOrgId],
+                              queryFn: () => getSprints(activeOrgId),
+                            },
+                            {
+                              queryKey: ["members", activeOrgId],
+                              queryFn: () => getOrganizationMembers(activeOrgId),
+                            },
+                            {
+                              queryKey: ["labels", activeOrgId],
+                              queryFn: () => getLabels(activeOrgId),
+                            },
+                            {
+                              queryKey: ["savedViews", activeOrgId],
+                              queryFn: () => getSavedViews(activeOrgId),
+                            },
+                          ]
+                        : []
+                    }
                     className="px-6 py-2.5 text-sm font-bold font-cursive transition-all -mb-0.5 cursor-pointer border-b-2 border-transparent hover:bg-neutral-bg/50 text-secondary"
                   >
                     <span className="flex items-center gap-2">
                       <FolderKanban className="h-4 w-4" />
                       Board
                     </span>
-                  </button>
+                  </PrefetchLink>
                   <button
                     onClick={() => setActiveTab("members")}
                     className={`px-6 py-2.5 text-sm font-bold font-cursive transition-all -mb-0.5 cursor-pointer ${
@@ -246,24 +284,52 @@ export default function ProjectDetailsPage({ params }: Props) {
                       Members
                     </span>
                   </button>
-                  <button
-                    onClick={() => router.push(`/projects/${projectId}/activity`)}
+                  <PrefetchLink
+                    href={`/projects/${projectId}/activity`}
+                    prefetchQueries={
+                      activeOrgId
+                        ? [
+                            {
+                              queryKey: ["project", projectId, activeOrgId],
+                              queryFn: () => getProjectDetails(projectId, activeOrgId),
+                            },
+                          ]
+                        : []
+                    }
                     className="px-6 py-2.5 text-sm font-bold font-cursive transition-all -mb-0.5 cursor-pointer border-b-2 border-transparent hover:bg-neutral-bg/50 text-secondary"
                   >
                     <span className="flex items-center gap-2">
                       <Activity className="h-4 w-4" />
                       Activity
                     </span>
-                  </button>
-                  <button
-                    onClick={() => router.push(`/projects/${projectId}/risks`)}
+                  </PrefetchLink>
+                  <PrefetchLink
+                    href={`/projects/${projectId}/risks`}
+                    prefetchQueries={
+                      activeOrgId
+                        ? [
+                            {
+                              queryKey: ["project", projectId, activeOrgId],
+                              queryFn: () => getProjectDetails(projectId, activeOrgId),
+                            },
+                            {
+                              queryKey: ["risks", projectId, activeOrgId],
+                              queryFn: () => getProjectRisks(activeOrgId, projectId),
+                            },
+                            {
+                              queryKey: ["members", activeOrgId],
+                              queryFn: () => getOrganizationMembers(activeOrgId),
+                            },
+                          ]
+                        : []
+                    }
                     className="px-6 py-2.5 text-sm font-bold font-cursive transition-all -mb-0.5 cursor-pointer border-b-2 border-transparent hover:bg-neutral-bg/50 text-secondary"
                   >
                     <span className="flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4" />
                       Risks
                     </span>
-                  </button>
+                  </PrefetchLink>
                   {isAdminOrOwner && (
                     <button
                       onClick={() => setActiveTab("settings")}

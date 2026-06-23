@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Loader2, X } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,12 +10,8 @@ import { z } from "zod";
 import { upsertProjectRisk } from "@/actions/risk";
 import type { Risk } from "@/types";
 
-const riskFormSchema = z.object({
-  title: z.string().trim().min(1, "Risk title is required").max(200, "Title is too long"),
-  probability: z.enum(["low", "medium", "high"]),
-  impact: z.enum(["low", "medium", "high"]),
-  mitigationPlan: z.string().trim().max(1000, "Mitigation plan is too long").nullable().optional(),
-});
+import { riskSchema as riskFormSchema } from "@/lib/schemas/validation";
+import { BaseModal } from "@/components/ui/BaseModal";
 
 type RiskFormValues = z.infer<typeof riskFormSchema>;
 
@@ -96,27 +92,18 @@ export function RiskFormModal({ isOpen, onClose, editingRisk, projectId, activeO
   };
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-md w-full relative rotate-[-0.5deg]">
-        <button
-          onClick={handleClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full border-2 border-black bg-white hover:bg-neutral-bg flex items-center justify-center shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer font-bold"
-          aria-label="Close modal"
-        >
-          <X className="h-4 w-4" />
-        </button>
+    <BaseModal isOpen={isOpen} onClose={handleClose} maxWidth="max-w-md" rotation="rotate-[-0.5deg]">
+      <div className="flex items-center gap-2 mb-4">
+        <h2 className="font-cursive text-2xl font-bold">
+          {editingRisk ? "Edit Project Risk" : "Log New Project Risk"}
+        </h2>
+      </div>
 
-        <div className="flex items-center gap-2 mb-4">
-          <h2 className="font-cursive text-2xl font-bold">
-            {editingRisk ? "Edit Project Risk" : "Log New Project Risk"}
-          </h2>
+      {formError && (
+        <div className="bg-accent-pink border-2 border-black rounded-sketchy-sm p-3 mb-4 text-xs font-semibold text-primary">
+          {formError}
         </div>
-
-        {formError && (
-          <div className="bg-accent-pink border-2 border-black rounded-sketchy-sm p-3 mb-4 text-xs font-semibold text-primary">
-            {formError}
-          </div>
-        )}
+      )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div>
@@ -194,7 +181,6 @@ export function RiskFormModal({ isOpen, onClose, editingRisk, projectId, activeO
             )}
           </button>
         </form>
-      </div>
-    </div>
+    </BaseModal>
   );
 }

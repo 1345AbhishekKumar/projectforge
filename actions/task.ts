@@ -12,16 +12,7 @@ import { verifyMembership, verifyPermission } from "@/lib/auth-helpers";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
 import * as Sentry from "@sentry/nextjs";
 import { triggerWorkflowEvent } from "@/lib/workflows/engine";
-
-const taskSchema = z.object({
-  title: z.string().min(3, "Title must be at least 3 characters").max(100),
-  description: z.string().max(500).nullable().optional(),
-  status: z.string().min(1, "Status is required"),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
-  assigneeId: z.string().nullable().optional(),
-  dueDate: z.string().nullable().optional(),
-  sprintId: z.string().uuid().nullable().optional(),
-});
+import { taskSchema } from "@/lib/schemas/validation";
 
 const createTaskInputSchema = taskSchema.extend({
   projectId: projectIdSchema,

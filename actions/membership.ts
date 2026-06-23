@@ -41,6 +41,36 @@ export type MemberListItem = {
   departmentId?: string | null;
 };
 
+async function fetchOrganizationMembersCached(orgId: string, userId: string) {
+  "use cache";
+  cacheTag(`org-members-${orgId}`);
+  cacheLife("minutes");
+
+  const insforge = createInsforgeServer(userId);
+  const { data, error } = await insforge.database
+    .from("memberships")
+    .select(`
+      id,
+      role,
+      custom_role_id,
+      department_id,
+      created_at,
+      user_id,
+      profiles (
+        id,
+        full_name,
+        email,
+        avatar_url
+      )
+    `)
+    .eq("organization_id", orgId);
+
+  if (error) {
+    throw error;
+  }
+  return data || [];
+}
+
 export async function getOrganizationMembers(
   orgId: string
 ): Promise<{ success: boolean; data: MemberListItem[]; error?: string }> {
@@ -67,29 +97,7 @@ export async function getOrganizationMembers(
       return { success: false, error: "Not a member of this organization", data: [] };
     }
 
-    // Fetch members with profiles, custom_role_id and department_id joined
-    const { data, error } = await insforge.database
-      .from("memberships")
-      .select(`
-        id,
-        role,
-        custom_role_id,
-        department_id,
-        created_at,
-        user_id,
-        profiles (
-          id,
-          full_name,
-          email,
-          avatar_url
-        )
-      `)
-      .eq("organization_id", validated.data.orgId);
-
-    if (error) {
-      logger.error({ error, orgId: validated.data.orgId }, "Failed to fetch organization members");
-      return { success: false, error: "Failed to fetch members", data: [] };
-    }
+    const data = await fetchOrganizationMembersCached(validated.data.orgId, userId);
 
     let filteredData = data || [];
     const managedDeptId = await getManagedDepartmentId(insforge, validated.data.orgId, userId);
@@ -234,6 +242,7 @@ export async function updateMemberRole(
       )
     );
 
+    revalidateTag(`org-members-${validated.data.orgId}`);
     revalidatePath("/organizations/settings");
     revalidatePath("/dashboard");
     return { success: true };
@@ -317,6 +326,7 @@ export async function removeMember(
       )
     );
 
+    revalidateTag(`org-members-${validated.data.orgId}`);
     revalidatePath("/organizations/settings");
     revalidatePath("/dashboard");
     return { success: true };

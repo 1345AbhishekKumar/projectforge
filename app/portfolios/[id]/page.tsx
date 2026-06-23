@@ -4,9 +4,7 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, ArrowLeft, Layers, Loader2, Folder } from "lucide-react";
 
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Navbar } from "@/components/layout/Navbar";
-import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
+import { WorkspacePageLayout } from "@/components/layout/WorkspacePageLayout";
 import { CreateProgramModal } from "@/components/portfolios/CreateProgramModal";
 import { getPortfolioDetails } from "@/actions/portfolio";
 import type { Portfolio } from "@/types";
@@ -77,23 +75,8 @@ export default function PortfolioDetailsPage({ params }: Props) {
   };
 
   return (
-    <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
-      {/* Sidebar - Desktop only */}
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
-
-      <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
-        {/* Navbar */}
-        <Navbar />
-
-        {/* Mobile Org Switcher */}
-        <div className="md:hidden px-6 pt-4">
-          <OrgSwitcher />
-        </div>
-
-        {/* Content Body */}
-        <main className="flex-grow p-6 md:p-8 max-w-7xl w-full mx-auto flex flex-col gap-8">
+    <WorkspacePageLayout>
+      <main className="flex-grow p-6 md:p-8 max-w-7xl w-full mx-auto flex flex-col gap-8">
           <div>
             <button
               onClick={() => router.push("/portfolios")}
@@ -275,8 +258,7 @@ export default function PortfolioDetailsPage({ params }: Props) {
               </div>
             </>
           )}
-        </main>
-      </div>
+      </main>
 
       {activeOrgId && (
         <CreateProgramModal
@@ -287,6 +269,6 @@ export default function PortfolioDetailsPage({ params }: Props) {
           onSuccess={loadDetails}
         />
       )}
-    </div>
+    </WorkspacePageLayout>
   );
 }

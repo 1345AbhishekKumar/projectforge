@@ -3,7 +3,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, cacheLife, cacheTag, revalidateTag } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import type { OrganizationWithRole } from "@/types";
@@ -25,6 +25,29 @@ const createOrgSchema = z.object({
 const setActiveOrganizationInputSchema = z.object({
   orgId: orgIdSchema,
 });
+
+async function fetchUserOrganizationsCached(userId: string): Promise<OrganizationWithRole[]> {
+  "use cache";
+  cacheTag(`user-orgs-${userId}`);
+  cacheLife("hours");
+
+  const insforge = createInsforgeServer(userId);
+  const { data, error } = await insforge.database
+    .from("memberships")
+    .select("role, organizations(id, name, slug, created_at, updated_at)")
+    .eq("user_id", userId);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data || []).map(
+    (m: Record<string, unknown>) => ({
+      ...(m.organizations as Record<string, unknown>),
+      role: m.role as string,
+    })
+  ) as OrganizationWithRole[];
+}
 
 export async function createOrganization(
   name: string,
@@ -78,6 +101,7 @@ export async function createOrganization(
       sameSite: "lax",
     });
 
+    revalidateTag(`user-orgs-${userId}`);
     revalidatePath("/dashboard");
     return { success: true, data: { orgId: org.id } };
   } catch (err) {
@@ -128,29 +152,12 @@ export async function getUserOrganizations(): Promise<{
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized", data: [] };
 
-    const insforge = createInsforgeServer(userId);
-    const { data, error } = await insforge.database
-      .from("memberships")
-      .select("role, organizations(id, name, slug, created_at, updated_at)")
-      .eq("user_id", userId);
-
-    if (error) {
-      logger.error({ error }, "Failed to fetch user organizations memberships");
-      return { success: false, error: "Failed to fetch organizations", data: [] };
-    }
-
-    const orgs: OrganizationWithRole[] = (data || []).map(
-      (m: Record<string, unknown>) => ({
-        ...(m.organizations as Record<string, unknown>),
-        role: m.role as string,
-      })
-    ) as OrganizationWithRole[];
-
+    const orgs = await fetchUserOrganizationsCached(userId);
     return { success: true, data: orgs };
   } catch (err) {
     logger.error({ error: err }, "Unexpected error in getUserOrganizations Server Action");
     Sentry.captureException(err);
-    return { success: false, error: "An unexpected error occurred", data: [] };
+    return { success: false, error: "Failed to fetch organizations", data: [] };
   } finally {
     flushLogsAfterResponse();
   }
@@ -239,6 +246,7 @@ export async function deleteOrganization(
     const cookieStore = await cookies();
     cookieStore.delete("active_org_id");
 
+    revalidateTag(`user-orgs-${userId}`);
     revalidatePath("/dashboard");
     return { success: true };
   } catch (err) {

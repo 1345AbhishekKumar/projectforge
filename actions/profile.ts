@@ -177,11 +177,7 @@ export async function syncProfile(): Promise<{
   }
 }
 
-const updateProfileSchema = z.object({
-  fullName: z.string().min(2, "Full name must be at least 2 characters").max(50),
-  avatarUrl: z.string().url("Invalid avatar URL").nullable().optional().or(z.literal("")),
-  locale: z.enum(["en", "es", "fr", "de", "ja"]).default("en"),
-});
+import { profileSchema as updateProfileSchema } from "@/lib/schemas/validation";
 
 export async function updateProfile(
   fullName: string,

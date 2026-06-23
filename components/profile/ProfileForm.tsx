@@ -8,22 +8,8 @@ import { Loader2, User, Image as ImageIcon, Save, XCircle, CheckCircle, Globe } 
 import { updateProfile } from "@/actions/profile";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { SupportedLocale } from "@/lib/i18n/translations";
-
-const profileSchema = z.object({
-  fullName: z
-    .string()
-    .trim()
-    .min(2, "Full name must be at least 2 characters")
-    .max(50, "Full name cannot exceed 50 characters"),
-  avatarUrl: z
-    .string()
-    .trim()
-    .url("Please enter a valid URL (e.g., https://example.com/avatar.jpg)")
-    .or(z.literal(""))
-    .nullable()
-    .optional(),
-  locale: z.enum(["en", "es", "fr", "de", "ja"]).default("en"),
-});
+import { profileSchema } from "@/lib/schemas/validation";
+import { useToastStore } from "@/store/toastStore";
 
 type ProfileInput = z.infer<typeof profileSchema>;
 
@@ -39,7 +25,7 @@ type Props = {
 export function ProfileForm({ initialProfile }: Props) {
   const { t, setLocale } = useTranslation();
   const [loading, setLoading] = useState(false);
-  const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const { showToast } = useToastStore();
 
   const {
     register,
@@ -55,23 +41,18 @@ export function ProfileForm({ initialProfile }: Props) {
     },
   });
 
-  const showBanner = (type: "success" | "error", text: string) => {
-    setBanner({ type, text });
-    setTimeout(() => setBanner(null), 4000);
-  };
-
   async function onSubmit(data: ProfileInput) {
     setLoading(true);
     try {
       const res = await updateProfile(data.fullName, data.avatarUrl || null, data.locale);
       if (res.success) {
         setLocale(data.locale);
-        showBanner("success", t("profile.updateSuccess", "Profile updated successfully!"));
+        showToast("success", t("profile.updateSuccess", "Profile updated successfully!"));
       } else {
-        showBanner("error", res.error || t("profile.updateError", "Failed to update profile"));
+        showToast("error", res.error || t("profile.updateError", "Failed to update profile"));
       }
     } catch {
-      showBanner("error", t("profile.unexpectedError", "An unexpected error occurred"));
+      showToast("error", t("profile.unexpectedError", "An unexpected error occurred"));
     } finally {
       setLoading(false);
     }
@@ -79,24 +60,6 @@ export function ProfileForm({ initialProfile }: Props) {
 
   return (
     <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-2xl w-full mx-auto relative rotate-[-0.5deg]">
-      {/* Toast Notification Banner */}
-      {banner && (
-        <div
-          role="alert"
-          className={`fixed top-4 right-4 z-[100] max-w-md border-2 border-black rounded-sketchy p-4 shadow-flat-offset transition-all transform ${
-            banner.type === "success" ? "bg-accent-green" : "bg-accent-pink"
-          }`}
-        >
-          <div className="flex items-center gap-2 font-sans font-bold text-sm">
-            {banner.type === "success" ? (
-              <CheckCircle className="h-5 w-5 text-primary" />
-            ) : (
-              <XCircle className="h-5 w-5 text-primary" />
-            )}
-            {banner.text}
-          </div>
-        </div>
-      )}
 
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-full bg-accent-yellow border-2 border-black flex items-center justify-center shadow-flat-offset-sm">

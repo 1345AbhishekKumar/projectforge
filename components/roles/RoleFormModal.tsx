@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { z } from "zod";
+import { BaseModal } from "@/components/ui/BaseModal";
 
 type Permission = {
   id: string;
@@ -94,22 +95,17 @@ export function RoleFormModal({
   };
 
   return (
-    <div
+    <BaseModal
       key={`${mode}-${initialRoleName}`}
-      className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4">
-      <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-2xl w-full max-h-[90vh] flex flex-col relative rotate-[0.5deg] overflow-hidden">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 border-2 border-black rounded-full bg-white hover:bg-neutral-bg shadow-flat-offset-sm active:translate-y-0.5 transition-all cursor-pointer"
-          aria-label="Close modal"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        <h2 className="font-cursive text-3xl font-bold mb-4">
-          {mode === "create" ? "Create Custom Role" : "Edit Custom Role"}
-        </h2>
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="max-w-2xl"
+      rotation="rotate-[0.5deg]"
+      className="max-h-[90vh] flex flex-col overflow-hidden"
+    >
+      <h2 className="font-cursive text-3xl font-bold mb-4">
+        {mode === "create" ? "Create Custom Role" : "Edit Custom Role"}
+      </h2>
 
         <form onSubmit={handleSubmit} className="flex-1 flex flex-col gap-6 overflow-hidden">
           {/* Role Name */}
@@ -211,7 +207,6 @@ export function RoleFormModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </BaseModal>
   );
 }

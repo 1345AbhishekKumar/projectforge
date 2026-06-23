@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import { Plus, Briefcase, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
-import { Navbar } from "@/components/layout/Navbar";
+import { WorkspacePageLayout } from "@/components/layout/WorkspacePageLayout";
+import { NoWorkspacePlaceholder } from "@/components/layout/NoWorkspacePlaceholder";
+import { HeaderBar } from "@/components/layout/HeaderBar";
 import { CreatePortfolioModal } from "@/components/portfolios/CreatePortfolioModal";
-import { Sidebar } from "@/components/layout/Sidebar";
 import { getPortfolios } from "@/actions/portfolio";
 import type { Portfolio } from "@/types";
 import type { PortfolioRollupData } from "@/lib/portfolio-utils";
@@ -73,42 +73,27 @@ export default function PortfoliosDirectoryPage() {
 
 
   return (
-    <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
-      {/* Sidebar - Desktop only */}
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
-
-      <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
-        {/* Navbar */}
-        <Navbar />
-
-        {/* Mobile Org Switcher */}
-        <div className="md:hidden px-6 pt-4">
-          <OrgSwitcher />
-        </div>
-
-        {/* Content Body */}
-        <main className="flex-grow p-6 md:p-8 max-w-7xl w-full mx-auto flex flex-col gap-8">
-          
-          {/* Header Card */}
-          <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-full bg-accent-yellow border-2 border-black flex items-center justify-center shadow-flat-offset-sm flex-shrink-0 mt-1">
-                <Briefcase className="h-6 w-6 text-primary" />
-              </div>
-              <div>
-                <h1 className="font-cursive text-3xl font-bold">Strategic Portfolios</h1>
-                <p className="font-sans text-xs text-secondary mt-1">
-                  Workspace: <span className="font-bold underline text-primary">{activeOrgName || "None selected"}</span>
-                </p>
-                <p className="font-sans text-xs text-secondary/80 mt-0.5">
-                  Organize and monitor high-level programs and project metrics under unified strategic goals.
-                </p>
-              </div>
+    <WorkspacePageLayout>
+      <main className="flex-grow p-6 md:p-8 max-w-7xl w-full mx-auto flex flex-col gap-8">
+        
+        {/* Header Card */}
+        <HeaderBar
+          title={
+            <span className="flex flex-col">
+              <span>Strategic Portfolios</span>
+              <span className="font-sans text-[10px] text-secondary font-normal tracking-wide normal-case mt-0.5">
+                Workspace: <span className="font-bold underline text-primary">{activeOrgName || "None selected"}</span>
+              </span>
+            </span>
+          }
+          description="Organize and monitor high-level programs and project metrics under unified strategic goals."
+          icon={
+            <div className="w-12 h-12 rounded-full bg-accent-yellow border-2 border-black flex items-center justify-center shadow-flat-offset-sm flex-shrink-0">
+              <Briefcase className="h-6 w-6 text-primary" />
             </div>
-
-            {canManage && activeOrgId && (
+          }
+          action={
+            canManage && activeOrgId ? (
               <button
                 onClick={() => setIsModalOpen(true)}
                 className="flex items-center justify-center gap-2 bg-tertiary hover:bg-tertiary-hover text-white font-sans text-sm font-bold border-2 border-black rounded-full px-5 py-2.5 shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
@@ -116,18 +101,16 @@ export default function PortfoliosDirectoryPage() {
                 <Plus className="h-4.5 w-4.5" />
                 New Portfolio
               </button>
-            )}
-          </div>
+            ) : undefined
+          }
+        />
 
-          {!activeOrgId ? (
-            <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8 text-center max-w-lg mx-auto mt-12">
-              <p className="font-cursive text-xl font-bold mb-2">No Active Workspace</p>
-              <p className="font-sans text-sm text-secondary mb-4">
-                Please select or create an organization workspace to view strategic portfolios.
-              </p>
-              <OrgSwitcher />
-            </div>
-          ) : loading ? (
+        {!activeOrgId ? (
+          <NoWorkspacePlaceholder
+            title="No Active Workspace"
+            description="Please select or create an organization workspace to view strategic portfolios."
+          />
+        ) : loading ? (
             <div className="flex-grow flex items-center justify-center py-12">
               <div className="flex flex-col items-center gap-2">
                 <Loader2 className="h-8 w-8 animate-spin text-tertiary" />
@@ -222,8 +205,7 @@ export default function PortfoliosDirectoryPage() {
               })}
             </div>
           )}
-        </main>
-      </div>
+      </main>
 
       {activeOrgId && (
         <CreatePortfolioModal
@@ -233,6 +215,6 @@ export default function PortfoliosDirectoryPage() {
           onSuccess={loadPortfolios}
         />
       )}
-    </div>
+    </WorkspacePageLayout>
   );
 }

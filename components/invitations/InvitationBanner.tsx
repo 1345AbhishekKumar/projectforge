@@ -3,35 +3,14 @@
 import { useState, useEffect } from "react";
 import { Check, X, Loader2, Mail, CheckCircle, XCircle } from "lucide-react";
 import { getPendingInvitations, acceptInvitation, declineInvitation, type PendingInvitation } from "@/actions/invitation";
+import { useToastStore } from "@/store/toastStore";
 
 export function InvitationBanner() {
   const [invites, setInvites] = useState<PendingInvitation[]>([]);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
   const [actionType, setActionType] = useState<"accept" | "decline" | null>(null);
-  const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [confirmDeclineId, setConfirmDeclineId] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function loadInvites() {
-      try {
-        const res = await getPendingInvitations();
-        if (res.success) {
-          setInvites(res.data);
-        }
-      } catch (err) {
-        console.error("Failed to load invitations:", err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadInvites();
-  }, []);
-
-  const showBanner = (type: "success" | "error", text: string) => {
-    setBanner({ type, text });
-    setTimeout(() => setBanner(null), 4000);
-  };
+  const { showToast: showBanner } = useToastStore();
 
   async function handleAccept(id: string, orgName: string) {
     setActionId(id);
@@ -78,30 +57,31 @@ export function InvitationBanner() {
     }
   }
 
+  const [confirmDeclineId, setConfirmDeclineId] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadInvites() {
+      try {
+        const res = await getPendingInvitations();
+        if (res.success) {
+          setInvites(res.data);
+        }
+      } catch (err) {
+        console.error("Failed to load invitations:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadInvites();
+  }, []);
+
   if (loading || invites.length === 0) {
     return null;
   }
 
   return (
     <div className="flex flex-col gap-4 mb-6">
-      {/* Toast Notification Banner */}
-      {banner && (
-        <div
-          role="alert"
-          className={`fixed top-4 right-4 z-[100] max-w-md border-2 border-black rounded-sketchy p-4 shadow-flat-offset transition-all transform ${
-            banner.type === "success" ? "bg-accent-green" : "bg-accent-pink"
-          }`}
-        >
-          <div className="flex items-center gap-2 font-sans font-bold text-sm">
-            {banner.type === "success" ? (
-              <CheckCircle className="h-5 w-5 text-primary" />
-            ) : (
-              <XCircle className="h-5 w-5 text-primary" />
-            )}
-            {banner.text}
-          </div>
-        </div>
-      )}
+      {/* Toast Notification Banner handled globally */}
 
       {invites.map((invite) => (
         <div

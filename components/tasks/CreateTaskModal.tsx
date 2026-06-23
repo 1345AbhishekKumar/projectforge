@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Plus, X } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
+import { BaseModal } from "@/components/ui/BaseModal";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -9,18 +10,7 @@ import type { TaskStatus, TaskPriority, Label } from "@/types";
 import type { MemberListItem } from "@/actions/membership";
 import { getLabels, createLabel } from "@/actions/label";
 
-const createTaskSchema = z.object({
-  title: z
-    .string()
-    .trim()
-    .min(3, "Task title must be at least 3 characters")
-    .max(100, "Task title must be at most 100 characters"),
-  description: z.string().trim().max(500, "Description must be at most 500 characters").optional(),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
-  status: z.string().min(1, "Status is required"),
-  assigneeId: z.string().optional(),
-  dueDate: z.string().optional(),
-});
+import { taskSchema as createTaskSchema } from "@/lib/schemas/validation";
 
 type CreateTaskInput = z.infer<typeof createTaskSchema>;
 
@@ -150,35 +140,30 @@ export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, def
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-md w-full relative rotate-[0.5deg] animate-in fade-in zoom-in duration-200 overflow-y-auto max-h-[90vh]">
-        
-        {/* Close Button */}
-        <button
-          onClick={handleClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full border-2 border-black bg-white hover:bg-neutral-bg flex items-center justify-center shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer font-bold"
-          aria-label="Close modal"
-        >
-          <X className="h-4 w-4" />
-        </button>
-
-        {/* Modal Header */}
-        <div className="flex items-center gap-2.5 mb-4">
-          <div className="w-8 h-8 rounded-full bg-white border-2 border-black flex items-center justify-center shadow-flat-offset-sm">
-            <Plus className="h-4.5 w-4.5 text-tertiary" />
-          </div>
-          <h2 className="font-cursive text-2xl font-bold">Create Task</h2>
+    <BaseModal
+      isOpen={isOpen}
+      onClose={handleClose}
+      maxWidth="max-w-md"
+      rotation="rotate-[0.5deg]"
+      className="overflow-y-auto max-h-[90vh]"
+    >
+      {/* Modal Header */}
+      <div className="flex items-center gap-2.5 mb-4">
+        <div className="w-8 h-8 rounded-full bg-white border-2 border-black flex items-center justify-center shadow-flat-offset-sm">
+          <Plus className="h-4.5 w-4.5 text-tertiary" />
         </div>
+        <h2 className="font-cursive text-2xl font-bold">Create Task</h2>
+      </div>
 
-        <p className="font-sans text-xs text-secondary mb-6 leading-relaxed">
-          Map a new task on the whiteboard backlog. Define the assignee, priority, status, and deadline.
-        </p>
+      <p className="font-sans text-xs text-secondary mb-6 leading-relaxed">
+        Map a new task on the whiteboard backlog. Define the assignee, priority, status, and deadline.
+      </p>
 
-        {error && (
-          <div className="bg-accent-pink border-2 border-black rounded-sketchy-sm p-3 mb-4 text-xs font-semibold">
-            {error}
-          </div>
-        )}
+      {error && (
+        <div className="bg-accent-pink border-2 border-black rounded-sketchy-sm p-3 mb-4 text-xs font-semibold">
+          {error}
+        </div>
+      )}
 
         <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
           <div>
@@ -420,7 +405,6 @@ export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, def
             )}
           </button>
         </form>
-      </div>
-    </div>
+    </BaseModal>
   );
 }

@@ -1,12 +1,19 @@
-import Link from "next/link";
+"use client";
+
 import { FolderOpen, Calendar } from "lucide-react";
 import type { Project, ProjectStatus } from "@/types";
+import { PrefetchLink } from "@/components/shared/PrefetchLink";
+import { useOrgStore } from "@/store/orgStore";
+import { getProjectDetails } from "@/actions/project";
+import { getProjectTasks } from "@/actions/task";
 
 type Props = {
   project: Project;
 };
 
 export function ProjectCard({ project }: Props) {
+  const { activeOrgId } = useOrgStore();
+
   const statusColors: Record<ProjectStatus, string> = {
     PLANNING: "bg-accent-yellow border-2 border-black",
     ACTIVE: "bg-accent-blue border-2 border-black",
@@ -30,9 +37,23 @@ export function ProjectCard({ project }: Props) {
     year: "numeric",
   });
 
+  const prefetchQueries = activeOrgId
+    ? [
+        {
+          queryKey: ["project", project.id, activeOrgId],
+          queryFn: () => getProjectDetails(project.id, activeOrgId),
+        },
+        {
+          queryKey: ["tasks", project.id, activeOrgId],
+          queryFn: () => getProjectTasks(project.id, activeOrgId),
+        },
+      ]
+    : [];
+
   return (
-    <Link
+    <PrefetchLink
       href={`/projects/${project.id}`}
+      prefetchQueries={prefetchQueries}
       className={`block w-full ${cardBgColor} rounded-sketchy p-5 shadow-flat-offset-sm hover:-translate-y-1 hover:rotate-1 hover:shadow-flat-offset active:translate-y-0.5 active:rotate-0 transition-all duration-200 cursor-pointer`}
     >
       <div className="flex flex-col h-full gap-3">
@@ -66,6 +87,6 @@ export function ProjectCard({ project }: Props) {
           <span className="font-bold underline decoration-tertiary decoration-2">Open Board →</span>
         </div>
       </div>
-    </Link>
+    </PrefetchLink>
   );
 }

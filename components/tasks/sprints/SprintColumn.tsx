@@ -2,6 +2,7 @@
 
 import React from "react";
 import { CheckCircle2, Loader2, Play } from "lucide-react";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import type { Sprint, SprintStatus } from "@/types";
 import type { TaskWithAssignee } from "@/actions/task";
 
@@ -124,18 +125,13 @@ export function SprintColumn({
                           >
                             <span className="font-sans text-xs font-bold truncate flex-1">{task.title}</span>
                             <div className="flex items-center gap-1.5 flex-shrink-0">
-                              {task.assignee ? (
-                                <div className="w-5 h-5 rounded-full border border-black flex items-center justify-center bg-accent-blue text-[8px] font-bold overflow-hidden" title={task.assignee.full_name || "Assignee"}>
-                                  {task.assignee.avatar_url ? (
-                                    /* eslint-disable-next-line @next/next/no-img-element */
-                                    <img src={task.assignee.avatar_url} alt="avatar" className="w-full h-full object-cover" />
-                                  ) : (
-                                    task.assignee.full_name?.substring(0, 2) || "U"
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="w-5 h-5 rounded-full border border-black/20 flex items-center justify-center bg-white text-[8px]" title="Unassigned">👤</div>
-                              )}
+                              <UserAvatar
+                                avatarUrl={task.assignee?.avatar_url}
+                                fullName={task.assignee?.full_name}
+                                email={task.assignee?.email}
+                                size="xs"
+                                className="border border-black"
+                              />
                               <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded border border-black ${
                                 task.status === "DONE" ? "bg-accent-green" : task.status === "IN_PROGRESS" ? "bg-accent-blue" : "bg-white"
                               }`}>{task.status}</span>

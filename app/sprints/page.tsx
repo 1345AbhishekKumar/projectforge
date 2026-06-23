@@ -2,9 +2,11 @@
 
 import React from "react";
 import { Calendar, Loader2, Plus } from "lucide-react";
-import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
-import { Navbar } from "@/components/layout/Navbar";
-import { Sidebar } from "@/components/layout/Sidebar";
+import { WorkspacePageLayout } from "@/components/layout/WorkspacePageLayout";
+import { NoWorkspacePlaceholder } from "@/components/layout/NoWorkspacePlaceholder";
+import { HeaderBar } from "@/components/layout/HeaderBar";
+import { BaseModal } from "@/components/ui/BaseModal";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 import { TaskDetailsSheet } from "@/components/tasks/TaskDetailsSheet";
 import { SprintColumn } from "@/components/tasks/sprints/SprintColumn";
 import { useSprints } from "./useSprints";
@@ -27,60 +29,42 @@ export default function SprintsPage() {
   const isAuthorized = page.userRole === "OWNER" || page.userRole === "ADMIN";
 
   return (
-    <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
-
-      <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
-        {/* Navbar */}
-        <Navbar />
-
-        {/* Mobile Org Switcher */}
-        <div className="md:hidden px-6 pt-4">
-          <OrgSwitcher />
-        </div>
-
-        {/* Main Content Container */}
-        <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-8">
-          {!page.activeOrgId ? (
-            <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8 text-center max-w-lg mx-auto mt-8">
+    <WorkspacePageLayout>
+      {/* Main Content Container */}
+      <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-8">
+        {!page.activeOrgId ? (
+          <NoWorkspacePlaceholder
+            icon={
               <div className="w-12 h-12 rounded-full bg-accent-pink border-2 border-black flex items-center justify-center mx-auto mb-4 shadow-flat-offset-sm">
-                <Calendar className="h-6 w-6" />
+                <Calendar className="h-6 w-6 text-primary" />
               </div>
-              <h2 className="font-cursive text-2xl font-bold mb-2">No Active Workspace</h2>
-              <p className="font-sans text-sm text-secondary mb-6">
-                Please select or create an organization workspace to view and manage team sprint iterations.
-              </p>
-              <button
-                onClick={() => page.router.push("/orgs/create")}
-                className="bg-accent-yellow hover:bg-[#FFE680] text-primary border-2 border-black font-sans text-sm font-bold px-6 py-2.5 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
-              >
-                Create New Workspace
-              </button>
-            </div>
-          ) : (
-            <div className="flex flex-col gap-6">
-              {/* Header Action Section */}
-              <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <h1 className="font-cursive text-3xl font-bold mb-1">
-                    Sprint Planner: <span className="underline decoration-tertiary decoration-2">{page.activeOrgName}</span>
-                  </h1>
-                  <p className="font-sans text-xs text-secondary">
-                    Plan time-boxed sprint iterations, set targets, and scope task velocity.
-                  </p>
-                </div>
-                {isAuthorized && (
+            }
+            title="No Active Workspace"
+            description="Please select or create an organization workspace to view and manage team sprint iterations."
+            showCreateButton
+          />
+        ) : (
+          <div className="flex flex-col gap-6">
+            {/* Header Action Section */}
+            <HeaderBar
+              title={
+                <>
+                  Sprint Planner: <span className="underline decoration-tertiary decoration-2">{page.activeOrgName}</span>
+                </>
+              }
+              description="Plan time-boxed sprint iterations, set targets, and scope task velocity."
+              action={
+                isAuthorized && (
                   <button
                     onClick={page.openCreateModal}
-                    className="flex items-center justify-center gap-1.5 self-start md:self-center bg-tertiary hover:bg-tertiary-hover text-white border-2 border-black font-sans text-xs font-bold px-4 py-2.5 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
+                    className="flex items-center justify-center gap-1.5 bg-tertiary hover:bg-tertiary-hover text-white border-2 border-black font-sans text-xs font-bold px-4 py-2.5 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
                   >
                     <Plus className="h-4 w-4" />
                     New Sprint
                   </button>
-                )}
-              </div>
+                )
+              }
+            />
 
               {page.error && (
                 <div className="bg-accent-pink border-2 border-black rounded-sketchy-sm p-4 text-center">
@@ -163,18 +147,13 @@ export default function SprintsPage() {
                             <span className="font-sans text-xs font-bold line-clamp-2">{task.title}</span>
 
                             <div className="flex items-center justify-between gap-2 border-t border-black/10 pt-2 mt-1">
-                              {task.assignee ? (
-                                <div className="w-5 h-5 rounded-full border border-black flex items-center justify-center bg-accent-blue text-[8px] font-bold overflow-hidden" title={task.assignee.full_name || "Assignee"}>
-                                  {task.assignee.avatar_url ? (
-                                    /* eslint-disable-next-line @next/next/no-img-element */
-                                    <img src={task.assignee.avatar_url} alt="avatar" className="w-full h-full object-cover" />
-                                  ) : (
-                                    task.assignee.full_name?.substring(0, 2) || "U"
-                                  )}
-                                </div>
-                              ) : (
-                                <div className="w-5 h-5 rounded-full border border-black/20 flex items-center justify-center bg-white text-[8px]" title="Unassigned">👤</div>
-                              )}
+                              <UserAvatar
+                                avatarUrl={task.assignee?.avatar_url}
+                                fullName={task.assignee?.full_name}
+                                email={task.assignee?.email}
+                                size="xs"
+                                className="border border-black"
+                              />
 
                               <select
                                 value=""
@@ -205,97 +184,89 @@ export default function SprintsPage() {
             </div>
           )}
         </div>
-      </div>
 
       {/* Create Sprint Modal */}
-      {page.isModalOpen && (
-        <div className="fixed inset-0 bg-black/45 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div
-            className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-md w-full relative rotate-[0.5deg] animate-in zoom-in-95 duration-150"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-4">
-              <h2 className="font-cursive text-3xl font-bold mb-1">New Sprint</h2>
-              <p className="font-sans text-xs text-secondary">Create a new time-boxed sprint. Sprints cannot overlap.</p>
+      <BaseModal isOpen={page.isModalOpen} onClose={page.closeCreateModal} maxWidth="max-w-md" rotation="rotate-[0.5deg]">
+        <div className="mb-4">
+          <h2 className="font-cursive text-3xl font-bold mb-1">New Sprint</h2>
+          <p className="font-sans text-xs text-secondary">Create a new time-boxed sprint. Sprints cannot overlap.</p>
+        </div>
+
+        {page.modalError && (
+          <div className="bg-accent-pink border-2 border-black rounded-sketchy-sm p-3 text-xs font-semibold mb-4">
+            {page.modalError}
+          </div>
+        )}
+
+        <form onSubmit={page.handleCreateSprint} className="flex flex-col gap-4">
+          <div>
+            <label className="font-sans text-xs font-semibold mb-1 block">Sprint Name</label>
+            <input
+              type="text"
+              value={page.newSprintName}
+              onChange={(e) => page.setNewSprintName(e.target.value)}
+              placeholder="e.g. Q3 Sprint 1"
+              required
+              className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary shadow-flat-offset-xs"
+            />
+          </div>
+
+          <div>
+            <label className="font-sans text-xs font-semibold mb-1 block">Sprint Goal (Optional)</label>
+            <textarea
+              value={page.newSprintGoal}
+              onChange={(e) => page.setNewSprintGoal(e.target.value)}
+              placeholder="What are we delivering this sprint?"
+              rows={2}
+              maxLength={500}
+              className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary shadow-flat-offset-xs resize-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="font-sans text-xs font-semibold mb-1 block">Start Date</label>
+              <input
+                type="date"
+                value={page.newSprintStart}
+                onChange={(e) => page.setNewSprintStart(e.target.value)}
+                required
+                className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary shadow-flat-offset-xs cursor-pointer"
+              />
             </div>
 
-            {page.modalError && (
-              <div className="bg-accent-pink border-2 border-black rounded-sketchy-sm p-3 text-xs font-semibold mb-4">
-                {page.modalError}
-              </div>
-            )}
-
-            <form onSubmit={page.handleCreateSprint} className="flex flex-col gap-4">
-              <div>
-                <label className="font-sans text-xs font-semibold mb-1 block">Sprint Name</label>
-                <input
-                  type="text"
-                  value={page.newSprintName}
-                  onChange={(e) => page.setNewSprintName(e.target.value)}
-                  placeholder="e.g. Q3 Sprint 1"
-                  required
-                  className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary shadow-flat-offset-xs"
-                />
-              </div>
-
-              <div>
-                <label className="font-sans text-xs font-semibold mb-1 block">Sprint Goal (Optional)</label>
-                <textarea
-                  value={page.newSprintGoal}
-                  onChange={(e) => page.setNewSprintGoal(e.target.value)}
-                  placeholder="What are we delivering this sprint?"
-                  rows={2}
-                  maxLength={500}
-                  className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary shadow-flat-offset-xs resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="font-sans text-xs font-semibold mb-1 block">Start Date</label>
-                  <input
-                    type="date"
-                    value={page.newSprintStart}
-                    onChange={(e) => page.setNewSprintStart(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary shadow-flat-offset-xs cursor-pointer"
-                  />
-                </div>
-
-                <div>
-                  <label className="font-sans text-xs font-semibold mb-1 block">End Date</label>
-                  <input
-                    type="date"
-                    value={page.newSprintEnd}
-                    onChange={(e) => page.setNewSprintEnd(e.target.value)}
-                    required
-                    className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary shadow-flat-offset-xs cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              <div className="flex gap-3 mt-4">
-                <button
-                  type="button"
-                  onClick={page.closeCreateModal}
-                  disabled={page.creating}
-                  className="w-1/2 py-2 border-2 border-black rounded-full font-sans text-xs font-bold hover:bg-neutral-bg shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-40"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={page.creating}
-                  className="w-1/2 py-2 bg-tertiary hover:bg-tertiary-hover text-white border-2 border-black rounded-full font-sans text-xs font-bold shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-40 flex items-center justify-center gap-1.5"
-                >
-                  {page.creating && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                  Create Sprint
-                </button>
-              </div>
-            </form>
+            <div>
+              <label className="font-sans text-xs font-semibold mb-1 block">End Date</label>
+              <input
+                type="date"
+                value={page.newSprintEnd}
+                onChange={(e) => page.setNewSprintEnd(e.target.value)}
+                required
+                className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary shadow-flat-offset-xs cursor-pointer"
+              />
+            </div>
           </div>
-        </div>
-      )}
+
+          <div className="flex gap-3 mt-4">
+            <button
+              type="button"
+              onClick={page.closeCreateModal}
+              disabled={page.creating}
+              className="w-1/2 py-2 border-2 border-black rounded-full font-sans text-xs font-bold hover:bg-neutral-bg shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-40"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={page.creating}
+              className="w-1/2 py-2 bg-tertiary hover:bg-tertiary-hover text-white border-2 border-black rounded-full font-sans text-xs font-bold shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-40 flex items-center justify-center gap-1.5"
+            >
+              {page.creating && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              Create Sprint
+            </button>
+          </div>
+        </form>
+      </BaseModal>
 
       {/* Task Details Sheet Drawer */}
       <TaskDetailsSheet
@@ -307,6 +278,6 @@ export default function SprintsPage() {
         onUpdate={page.handleUpdateTask}
         onDelete={page.handleDeleteTask}
       />
-    </div>
+    </WorkspacePageLayout>
   );
 }

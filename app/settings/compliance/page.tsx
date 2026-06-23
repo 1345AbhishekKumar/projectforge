@@ -3,15 +3,14 @@
 import React, { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useUser } from "@clerk/nextjs";
-import { Shield, Download, RefreshCw, Trash2, Calendar, AlertTriangle, CheckCircle, XCircle } from "lucide-react";
+import { Shield, Download, RefreshCw, Trash2, Calendar, AlertTriangle } from "lucide-react";
 
 import { getComplianceSettings, updateComplianceSettings, runDataRetentionCleanup, exportAuditLogsCSV, exportProjectRisksCSV } from "@/actions/compliance";
 import { getOrganizationMembers } from "@/actions/membership";
 import { useOrgStore } from "@/store/orgStore";
-import { Sidebar } from "@/components/layout/Sidebar";
-import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
-import { Navbar } from "@/components/layout/Navbar";
-import { AuditLogsTable } from "@/components/compliance/AuditLogsTable";
+import { WorkspacePageLayout } from "@/components/layout/WorkspacePageLayout";
+import { AuditLogsViewer } from "@/components/audit-logs/AuditLogsViewer";
+import { useToastStore } from "@/store/toastStore";
 
 export default function ComplianceCenterPage() {
   const { user, isLoaded } = useUser();
@@ -22,13 +21,9 @@ export default function ComplianceCenterPage() {
   const [isUpdatingSettings, setIsUpdatingSettings] = useState(false);
   const [isRunningCleanup, setIsRunningCleanup] = useState(false);
   const [cleanupMessage, setCleanupMessage] = useState("");
-  const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [showCleanupConfirm, setShowCleanupConfirm] = useState(false);
 
-  const showBanner = (type: "success" | "error", text: string) => {
-    setBanner({ type, text });
-    setTimeout(() => setBanner(null), 4000);
-  };
+  const { showToast: showBanner } = useToastStore();
 
   // Queries
   const { data: complianceSettings = null, isLoading: isSettingsLoading } = useQuery({
@@ -161,58 +156,22 @@ export default function ComplianceCenterPage() {
 
   if (!isAdminOrOwner) {
     return (
-      <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
-      <div className="flex-grow flex items-center justify-center p-6">
-        <div className="bg-accent-pink border-2 border-black rounded-sketchy p-8 text-center max-w-lg shadow-flat-offset">
-          <h2 className="font-cursive text-2xl font-bold mb-2">Access Restrained</h2>
-          <p className="font-sans text-sm text-secondary">
-            Only workspace administrators or owners can access the Compliance and Governance Center.
-          </p>
+      <WorkspacePageLayout>
+        <div className="flex-grow flex items-center justify-center p-6">
+          <div className="bg-accent-pink border-2 border-black rounded-sketchy p-8 text-center max-w-lg shadow-flat-offset">
+            <h2 className="font-cursive text-2xl font-bold mb-2">Access Restrained</h2>
+            <p className="font-sans text-sm text-secondary">
+              Only workspace administrators or owners can access the Compliance and Governance Center.
+            </p>
+          </div>
         </div>
-      </div>
-      </div>
+      </WorkspacePageLayout>
     );
   }
 
   return (
-    <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
-      {/* Toast Notification Banner */}
-      {banner && (
-        <div
-          role="alert"
-          className={`fixed top-4 right-4 z-[300] max-w-md border-2 border-black rounded-sketchy p-4 shadow-flat-offset transition-[transform,opacity] transform ${
-            banner.type === "success" ? "bg-accent-green" : "bg-accent-pink"
-          }`}
-        >
-          <div className="flex items-center gap-2 font-sans font-bold text-sm">
-            {banner.type === "success" ? (
-              <CheckCircle className="h-5 w-5 text-primary" />
-            ) : (
-              <XCircle className="h-5 w-5 text-primary" />
-            )}
-            {banner.text}
-          </div>
-        </div>
-      )}
-
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
-
-      <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
-        {/* Navbar */}
-        <Navbar />
-
-        {/* Mobile Org Switcher */}
-        <div className="md:hidden px-6 pt-4">
-          <OrgSwitcher />
-        </div>
-
-        {/* Content */}
-        <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-8">
+    <WorkspacePageLayout>
+      <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-8">
           <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6">
             <div className="flex items-center gap-3 mb-2">
               <Shield className="h-8 w-8 text-accent-pink shrink-0" />
@@ -345,9 +304,8 @@ export default function ComplianceCenterPage() {
             </div>
           </div>
 
-          {activeOrgId && <AuditLogsTable activeOrgId={activeOrgId} />}
+          {activeOrgId && <AuditLogsViewer orgId={activeOrgId} members={members} />}
         </div>
-      </div>
-    </div>
+      </WorkspacePageLayout>
   );
 }

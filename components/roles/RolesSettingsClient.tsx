@@ -5,6 +5,7 @@ import { Plus, Edit2, Trash2, Shield, XCircle, Loader2 } from "lucide-react";
 import { RoleFormModal } from "./RoleFormModal";
 import { createCustomRole, updateCustomRole, deleteCustomRole } from "@/actions/role";
 import type { MembershipRole } from "@/types";
+import { useToastStore } from "@/store/toastStore";
 
 type Permission = {
   id: string;
@@ -44,12 +45,7 @@ export function RolesSettingsClient({
   const [selectedRole, setSelectedRole] = useState<CustomRole | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [banner, setBanner] = useState<{ type: "success" | "error"; text: string } | null>(null);
-
-  const showBanner = (type: "success" | "error", text: string) => {
-    setBanner({ type, text });
-    setTimeout(() => setBanner(null), 4000);
-  };
+  const { showToast: showBanner } = useToastStore();
 
   const isOwnerOrAdmin = currentUserRole === "OWNER" || currentUserRole === "ADMIN";
 
@@ -144,20 +140,7 @@ export function RolesSettingsClient({
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Toast Notification Banner */}
-      {banner && (
-        <div
-          role="alert"
-          className={`fixed top-4 right-4 z-[300] max-w-md border-2 border-black rounded-sketchy p-4 shadow-flat-offset transition-all transform ${
-            banner.type === "success" ? "bg-accent-green" : "bg-accent-pink"
-          }`}
-        >
-          <div className="flex items-center gap-2 font-sans font-bold text-sm">
-            {banner.type === "error" && <XCircle className="h-5 w-5" />}
-            {banner.text}
-          </div>
-        </div>
-      )}
+      {/* Toast Notification Banner handled globally */}
 
       {/* Header Info Card */}
       <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

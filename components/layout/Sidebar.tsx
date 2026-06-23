@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
+import Link from "next/link";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -20,35 +21,107 @@ import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { SearchTrigger } from "@/components/search/SearchTrigger";
 import { GlobalSearchModal } from "@/components/search/GlobalSearchModal";
 import { useTranslation } from "@/lib/i18n/useTranslation";
+import { useOrgStore } from "@/store/orgStore";
+import { PrefetchLink } from "@/components/shared/PrefetchLink";
+
+// Import server action queries for prefetching
+import { getUserProjects } from "@/actions/project";
+import { getSprints } from "@/actions/sprint";
+import { getOrganizationTasks } from "@/actions/task";
+import { getOrganizationMembers } from "@/actions/membership";
+import { getTeamDirectory } from "@/actions/team";
+import { getActiveTimer, getUserTimeEntries } from "@/actions/timeEntry";
 
 type SidebarLinkProps = {
+  href: string;
   label: string;
   icon: React.ReactNode;
   isActive: boolean;
-  onClick: () => void;
   accentColor: string;
+  prefetchQueries?: Array<{
+    queryKey: unknown[];
+    queryFn: () => Promise<unknown>;
+    staleTime?: number;
+  }>;
 };
 
-function SidebarLink({ label, icon, isActive, onClick, accentColor }: SidebarLinkProps) {
+function SidebarLink({ href, label, icon, isActive, accentColor, prefetchQueries }: SidebarLinkProps) {
+  const className = `w-full text-left flex items-center gap-3 px-4 py-2.5 border-2 border-black font-sans text-sm font-bold shadow-flat-offset-sm transition-[transform,background-color,box-shadow] duration-200 active:scale-[0.97] cursor-pointer ${
+    isActive
+      ? `${accentColor} rotate-[-1deg] translate-y-0.5 shadow-none`
+      : "bg-white hover:bg-neutral-bg hover:rotate-[0.5deg] hover:-translate-y-0.5"
+  }`;
+
+  if (prefetchQueries && prefetchQueries.length > 0) {
+    return (
+      <PrefetchLink href={href} prefetchQueries={prefetchQueries} className={className}>
+        <span className="flex-shrink-0">{icon}</span>
+        <span className="truncate">{label}</span>
+      </PrefetchLink>
+    );
+  }
+
   return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left flex items-center gap-3 px-4 py-2.5 border-2 border-black font-sans text-sm font-bold shadow-flat-offset-sm transition-[transform,background-color,box-shadow] duration-200 active:scale-[0.97] cursor-pointer ${
-        isActive
-          ? `${accentColor} rotate-[-1deg] translate-y-0.5 shadow-none`
-          : "bg-white hover:bg-neutral-bg hover:rotate-[0.5deg] hover:-translate-y-0.5"
-      }`}
-    >
+    <Link href={href} className={className}>
       <span className="flex-shrink-0">{icon}</span>
       <span className="truncate">{label}</span>
-    </button>
+    </Link>
   );
 }
 
 export function Sidebar() {
-  const router = useRouter();
   const pathname = usePathname();
   const { t } = useTranslation();
+  const { activeOrgId } = useOrgStore();
+
+  const getPrefetchQueries = (href: string) => {
+    if (!activeOrgId) return undefined;
+
+    switch (href) {
+      case "/projects":
+        return [
+          {
+            queryKey: ["projects", activeOrgId],
+            queryFn: () => getUserProjects(activeOrgId),
+          },
+        ];
+      case "/sprints":
+        return [
+          {
+            queryKey: ["sprints", activeOrgId],
+            queryFn: () => getSprints(activeOrgId),
+          },
+          {
+            queryKey: ["orgTasks", activeOrgId],
+            queryFn: () => getOrganizationTasks(activeOrgId),
+          },
+          {
+            queryKey: ["members", activeOrgId],
+            queryFn: () => getOrganizationMembers(activeOrgId),
+          },
+        ];
+      case "/team":
+        return [
+          {
+            queryKey: ["teamDirectory", activeOrgId],
+            queryFn: () => getTeamDirectory(activeOrgId),
+          },
+        ];
+      case "/time":
+        return [
+          {
+            queryKey: ["activeTimer"],
+            queryFn: () => getActiveTimer(),
+          },
+          {
+            queryKey: ["timeEntries", activeOrgId],
+            queryFn: () => getUserTimeEntries(activeOrgId),
+          },
+        ];
+      default:
+        return undefined;
+    }
+  };
 
   const links = [
     { href: "/dashboard", label: t("sidebar.dashboard", "Dashboard"), icon: <LayoutDashboard className="h-4 w-4" />, accent: "bg-accent-yellow" },
@@ -76,15 +149,15 @@ export function Sidebar() {
 
       <aside className="w-64 bg-white border-r-2 border-black flex flex-col h-screen sticky top-0 z-40 p-6 gap-6">
         {/* Brand logo */}
-        <div
+        <Link
+          href="/dashboard"
           className="flex items-center gap-2 cursor-pointer border-2 border-black p-3 bg-accent-yellow rounded-sketchy shadow-flat-offset-sm hover:-translate-y-0.5 active:scale-[0.97] transition-[transform,box-shadow] duration-200"
-          onClick={() => router.push("/dashboard")}
         >
           <div className="w-8 h-8 rounded-full bg-tertiary border-2 border-primary flex items-center justify-center font-cursive text-white text-lg font-bold">
             P
           </div>
           <span className="font-cursive text-2xl font-bold tracking-tight">ProjectForge</span>
-        </div>
+        </Link>
 
         {/* Org Switcher */}
         <div className="border-b border-black/10 pb-4">
@@ -104,11 +177,12 @@ export function Sidebar() {
           {links.map((link) => (
             <SidebarLink
               key={link.href}
+              href={link.href}
               label={link.label}
               icon={link.icon}
               isActive={pathname === link.href || pathname.startsWith(link.href + "/")}
-              onClick={() => router.push(link.href)}
               accentColor={link.accent}
+              prefetchQueries={getPrefetchQueries(link.href)}
             />
           ))}
         </nav>

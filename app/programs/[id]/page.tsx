@@ -4,9 +4,9 @@ import { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { User as UserIcon, Plus, ArrowLeft, Loader2, Folder, ShieldAlert, CheckCircle2, AlertTriangle, Unlink } from "lucide-react";
 
-import { Sidebar } from "@/components/layout/Sidebar";
-import { Navbar } from "@/components/layout/Navbar";
-import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
+import Image from "next/image";
+
+import { WorkspacePageLayout } from "@/components/layout/WorkspacePageLayout";
 import { ProjectLinker } from "@/components/portfolios/ProjectLinker";
 import { getProgramDetails, unlinkProjectFromProgram } from "@/actions/program";
 import type { Program } from "@/types";
@@ -101,23 +101,8 @@ export default function ProgramDetailsPage({ params }: Props) {
   };
 
   return (
-    <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
-      {/* Sidebar - Desktop only */}
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
-
-      <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
-        {/* Navbar */}
-        <Navbar />
-
-        {/* Mobile Org Switcher */}
-        <div className="md:hidden px-6 pt-4">
-          <OrgSwitcher />
-        </div>
-
-        {/* Content Body */}
-        <main className="flex-grow p-6 md:p-8 max-w-7xl w-full mx-auto flex flex-col gap-8">
+    <WorkspacePageLayout>
+      <main className="flex-grow p-6 md:p-8 max-w-7xl w-full mx-auto flex flex-col gap-8">
           <div>
             <button
               onClick={() => {
@@ -171,8 +156,7 @@ export default function ProgramDetailsPage({ params }: Props) {
                     {program.manager ? (
                       <div className="flex items-center gap-2">
                         {program.manager.avatar_url ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img src={program.manager.avatar_url} alt={program.manager.full_name || ""} className="w-5 h-5 rounded-full border border-black object-cover" />
+                          <Image src={program.manager.avatar_url} alt={program.manager.full_name || ""} width={20} height={20} className="w-5 h-5 rounded-full border border-black object-cover" />
                         ) : (
                           <div className="w-5 h-5 rounded-full bg-accent-yellow border border-black flex items-center justify-center">
                             <UserIcon className="h-2.5 w-2.5" />
@@ -338,8 +322,7 @@ export default function ProgramDetailsPage({ params }: Props) {
               </div>
             </>
           )}
-        </main>
-      </div>
+      </main>
 
       {activeOrgId && (
         <ProjectLinker
@@ -350,6 +333,6 @@ export default function ProgramDetailsPage({ params }: Props) {
           onSuccess={loadDetails}
         />
       )}
-    </div>
+    </WorkspacePageLayout>
   );
 }

@@ -1,15 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { Plus, FolderKanban, Loader2, Info } from "lucide-react";
 
-import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
-import { Navbar } from "@/components/layout/Navbar";
 import { CreateProjectModal } from "@/components/projects/CreateProjectModal";
 import { ProjectCard } from "@/components/projects/ProjectCard";
-import { Sidebar } from "@/components/layout/Sidebar";
+import { WorkspacePageLayout } from "@/components/layout/WorkspacePageLayout";
+import { NoWorkspacePlaceholder } from "@/components/layout/NoWorkspacePlaceholder";
+import { HeaderBar } from "@/components/layout/HeaderBar";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getUserProjects, createProject } from "@/actions/project";
 import type { Project, ProjectStatus } from "@/types";
 
@@ -17,50 +16,51 @@ import { useOrgStore } from "@/store/orgStore";
 import { useProjectStore } from "@/store/projectStore";
 
 export default function ProjectsDirectoryPage() {
-  const router = useRouter();
   const { isLoaded } = useUser();
+  const queryClient = useQueryClient();
 
   const { activeOrgId, activeOrgName } = useOrgStore();
   const { isCreateModalOpen: isModalOpen, openCreateModal, closeCreateModal } = useProjectStore();
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
 
-  // Fetch projects when activeOrgId changes
-  useEffect(() => {
-    if (!activeOrgId) {
-      const timer = setTimeout(() => {
-        setProjects([]);
-        setLoading(false);
-      }, 0);
-      return () => clearTimeout(timer);
-    }
+  // Fetch projects using React Query
+  const { data: projects = [], isLoading: loading, error: queryError } = useQuery<Project[]>({
+    queryKey: ["projects", activeOrgId],
+    queryFn: async () => {
+      if (!activeOrgId) return [];
+      const result = await getUserProjects(activeOrgId);
+      if (!result.success) throw new Error(result.error || "Failed to load projects");
+      return result.data || [];
+    },
+    enabled: !!activeOrgId,
+  });
 
-    async function loadProjects() {
-      setLoading(true);
-      setError("");
-      const result = await getUserProjects(activeOrgId!);
-      if (result.success && result.data) {
-        setProjects(result.data);
-      } else {
-        setError(result.error || "Failed to load projects");
-      }
-      setLoading(false);
-    }
+  const createProjectMutation = useMutation({
+    mutationFn: async ({ name, description, status, templateId }: {
+      name: string;
+      description: string | null;
+      status: ProjectStatus;
+      templateId?: string;
+    }) => {
+      if (!activeOrgId) throw new Error("No active workspace selected");
+      const res = await createProject(name, description, status, activeOrgId, null, templateId || null);
+      if (!res.success) throw new Error(res.error || "Failed to create project");
+      return res;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects", activeOrgId] });
+    },
+  });
 
-    loadProjects();
-  }, [activeOrgId]);
+  const error = queryError ? (queryError as Error).message : "";
 
   // Create project callback passed to modal
   async function handleCreateProject(name: string, description: string | null, status: ProjectStatus, templateId?: string) {
-    if (!activeOrgId) return { success: false, error: "No active workspace selected" };
-    const res = await createProject(name, description, status, activeOrgId, null, templateId || null);
-    if (res.success) {
-      // Reload projects list
-      const projectsRes = await getUserProjects(activeOrgId);
-      if (projectsRes.success && projectsRes.data) setProjects(projectsRes.data);
+    try {
+      const res = await createProjectMutation.mutateAsync({ name, description, status, templateId });
+      return res;
+    } catch (err) {
+      return { success: false, error: err instanceof Error ? err.message : "An error occurred" };
     }
-    return res;
   }
 
   if (!isLoaded) {
@@ -78,59 +78,40 @@ export default function ProjectsDirectoryPage() {
   const archivedProjects = projects.filter((p) => p.status === "ARCHIVED");
 
   return (
-    <div className="min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex">
-      {/* Sidebar - Desktop only */}
-      <div className="hidden md:block">
-        <Sidebar />
-      </div>
-
-      <div className="flex-grow flex flex-col min-h-screen overflow-x-hidden">
-        {/* Navbar */}
-        <Navbar />
-
-        {/* Mobile Org Switcher */}
-        <div className="md:hidden px-6 pt-4">
-          <OrgSwitcher />
-        </div>
-
+    <WorkspacePageLayout>
       {/* Main Container */}
       <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-8">
         {!activeOrgId ? (
-          <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8 text-center max-w-lg mx-auto mt-8">
-            <div className="w-12 h-12 rounded-full bg-accent-pink border-2 border-black flex items-center justify-center mx-auto mb-4 shadow-flat-offset-sm">
-              <FolderKanban className="h-6 w-6" />
-            </div>
-            <h2 className="font-cursive text-2xl font-bold mb-2">No Active Workspace</h2>
-            <p className="font-sans text-sm text-secondary mb-6">
-              Please select or create an organization workspace to view and manage team projects directory.
-            </p>
-            <button
-              onClick={() => router.push("/orgs/create")}
-              className="bg-accent-yellow hover:bg-[#FFE680] text-primary border-2 border-black font-sans text-sm font-bold px-6 py-2.5 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
-            >
-              Create New Workspace
-            </button>
-          </div>
+          <NoWorkspacePlaceholder
+            icon={
+              <div className="w-12 h-12 rounded-full bg-accent-pink border-2 border-black flex items-center justify-center mx-auto mb-4 shadow-flat-offset-sm">
+                <FolderKanban className="h-6 w-6 text-primary" />
+              </div>
+            }
+            title="No Active Workspace"
+            description="Please select or create an organization workspace to view and manage team projects directory."
+            showCreateButton
+          />
         ) : (
           <div className="flex flex-col gap-6">
             {/* Header / Actions Section */}
-            <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div>
-                <h1 className="font-cursive text-3xl font-bold mb-1">
+            <HeaderBar
+              title={
+                <>
                   Projects Directory: <span className="underline decoration-tertiary decoration-2">{activeOrgName}</span>
-                </h1>
-                <p className="font-sans text-xs text-secondary">
-                  Manage active project backlogs and plan upcoming tasks.
-                </p>
-              </div>
-              <button
-                onClick={openCreateModal}
-                className="flex items-center justify-center gap-1.5 self-start md:self-center bg-tertiary hover:bg-tertiary-hover text-white border-2 border-black font-sans text-xs font-bold px-4 py-2.5 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
-              >
-                <Plus className="h-4 w-4" />
-                New Project
-              </button>
-            </div>
+                </>
+              }
+              description="Manage active project backlogs and plan upcoming tasks."
+              action={
+                <button
+                  onClick={openCreateModal}
+                  className="flex items-center justify-center gap-1.5 bg-tertiary hover:bg-tertiary-hover text-white border-2 border-black font-sans text-xs font-bold px-4 py-2.5 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer"
+                >
+                  <Plus className="h-4 w-4" />
+                  New Project
+                </button>
+              }
+            />
 
             {error && (
               <div className="bg-accent-pink border-2 border-black rounded-sketchy-sm p-4 text-center">
@@ -243,14 +224,12 @@ export default function ProjectsDirectoryPage() {
           </div>
         )}
       </div>
-
       {/* Project Creation Overlay Modal */}
       <CreateProjectModal
         isOpen={isModalOpen}
         onClose={closeCreateModal}
         onCreate={handleCreateProject}
       />
-      </div>
-    </div>
+    </WorkspacePageLayout>
   );
 }

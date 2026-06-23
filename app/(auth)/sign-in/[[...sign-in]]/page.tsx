@@ -1,21 +1,56 @@
 "use client";
 
-import { useSignIn } from "@clerk/nextjs";
+import { useSignIn, useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Mail, Lock, Key, ArrowRight, Loader2, Building2 } from "lucide-react";
 import Link from "next/link";
 
 export default function SignInPage() {
   const { signIn, fetchStatus } = useSignIn();
+  const { isLoaded: isUserLoaded, isSignedIn } = useUser();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [mode, setMode] = useState<"password" | "otp" | "verify-otp" | "sso">("password");
   const [errorMsg, setErrorMsg] = useState("");
+  const [redirectUrl, setRedirectUrl] = useState("/dashboard");
 
   const isLoading = fetchStatus === "fetching";
+
+  // Parse redirect_url on mount to support dynamic query parameters safely
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const redir = params.get("redirect_url");
+      if (redir) {
+        Promise.resolve().then(() => {
+          setRedirectUrl(redir);
+        });
+      }
+    }
+  }, []);
+
+  // Redirect signed-in users away from auth pages
+  useEffect(() => {
+    if (isUserLoaded && isSignedIn) {
+      let target = "/dashboard";
+      if (redirectUrl) {
+        try {
+          const parsed = new URL(redirectUrl);
+          if (parsed.host === window.location.host) {
+            target = parsed.pathname + parsed.search;
+          }
+        } catch {
+          if (redirectUrl.startsWith("/")) {
+            target = redirectUrl;
+          }
+        }
+      }
+      router.push(target);
+    }
+  }, [isUserLoaded, isSignedIn, redirectUrl, router]);
 
   const handleAction = async (e: React.FormEvent, fn: () => Promise<unknown>) => {
     e.preventDefault();
@@ -32,7 +67,20 @@ export default function SignInPage() {
 
   const finalizeSession = async () => {
     if (signIn?.status === "complete") {
-      await signIn.finalize({ navigate: ({ decorateUrl }) => router.push(decorateUrl("/dashboard")) });
+      let target = "/dashboard";
+      if (redirectUrl) {
+        try {
+          const parsed = new URL(redirectUrl);
+          if (parsed.host === window.location.host) {
+            target = parsed.pathname + parsed.search;
+          }
+        } catch {
+          if (redirectUrl.startsWith("/")) {
+            target = redirectUrl;
+          }
+        }
+      }
+      await signIn.finalize({ navigate: ({ decorateUrl }) => router.push(decorateUrl(target)) });
     }
   };
 
@@ -59,11 +107,24 @@ export default function SignInPage() {
 
   const onEnterpriseSignIn = (e: React.FormEvent) =>
     handleAction(e, async () => {
+      let target = "/dashboard";
+      if (redirectUrl) {
+        try {
+          const parsed = new URL(redirectUrl);
+          if (parsed.host === window.location.host) {
+            target = parsed.pathname + parsed.search;
+          }
+        } catch {
+          if (redirectUrl.startsWith("/")) {
+            target = redirectUrl;
+          }
+        }
+      }
       return await signIn!.authenticateWithRedirect({
         strategy: "saml",
         identifier: email,
         redirectUrl: "/sso-callback",
-        redirectUrlComplete: "/dashboard",
+        redirectUrlComplete: target,
       });
     });
 
@@ -71,12 +132,24 @@ export default function SignInPage() {
     if (!signIn) return;
     setErrorMsg("");
     try {
-      const res = await signIn.sso({
+      let target = "/dashboard";
+      if (redirectUrl) {
+        try {
+          const parsed = new URL(redirectUrl);
+          if (parsed.host === window.location.host) {
+            target = parsed.pathname + parsed.search;
+          }
+        } catch {
+          if (redirectUrl.startsWith("/")) {
+            target = redirectUrl;
+          }
+        }
+      }
+      await signIn.authenticateWithRedirect({
         strategy,
-        redirectUrl: "/dashboard",
-        redirectCallbackUrl: "/sso-callback",
+        redirectUrl: "/sso-callback",
+        redirectUrlComplete: target,
       });
-      if (res?.error) setErrorMsg(res.error.message);
     } catch (err) {
       const error = err as { message?: string };
       setErrorMsg(error.message || "OAuth redirect failed.");
@@ -225,6 +298,9 @@ export default function SignInPage() {
             </div>
           </>
         )}
+
+        {/* Required for sign-in/sign-up flows. Clerk's bot protection is enabled by default */}
+        <div id="clerk-captcha" />
 
         <div className="mt-8 pt-6 border-t-2 border-dashed border-primary/10 text-center">
           <p className="font-sans text-xs text-secondary">New to ProjectForge? <Link href="/sign-up" className="text-tertiary font-bold hover:underline">Create an account</Link></p>

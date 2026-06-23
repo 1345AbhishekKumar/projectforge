@@ -15,14 +15,12 @@ const getRisksSchema = z.object({
   projectId: z.string().uuid("Invalid project ID"),
 });
 
-const upsertRiskSchema = z.object({
+import { riskSchema } from "@/lib/schemas/validation";
+
+const upsertRiskSchema = riskSchema.extend({
   orgId: z.string().uuid("Invalid organization ID"),
   id: z.string().uuid("Invalid risk ID").optional(),
   projectId: z.string().uuid("Invalid project ID"),
-  title: z.string().min(1, "Risk title is required").max(200, "Title is too long"),
-  probability: z.enum(["low", "medium", "high"]),
-  impact: z.enum(["low", "medium", "high"]),
-  mitigationPlan: z.string().nullable(),
 });
 
 const deleteRiskSchema = z.object({

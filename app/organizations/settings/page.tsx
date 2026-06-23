@@ -1,4 +1,5 @@
 import { cookies } from "next/headers";
+import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { ArrowLeft, Building2 } from "lucide-react";
 import Link from "next/link";
