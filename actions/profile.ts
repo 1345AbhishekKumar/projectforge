@@ -4,7 +4,6 @@ import * as Sentry from "@sentry/nextjs";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { cookies } from "next/headers";
 import { createInsforgeServer } from "@/lib/insforge-server";
-import { z } from "zod";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
 
 /**
@@ -12,7 +11,7 @@ import { logger, flushLogsAfterResponse } from "@/lib/logger";
  * Call this on first dashboard load as a fallback for users who signed up
  * before the webhook was active, or if the webhook delivery failed.
  */
-export async function syncProfile(): Promise<{
+export async function syncProfile(skipJIT = false): Promise<{
   success: boolean;
   error?: string;
 }> {
@@ -35,8 +34,7 @@ export async function syncProfile(): Promise<{
     const user = await currentUser();
     if (!user) return { success: false, error: "Clerk user not found" };
 
-    const fullName =
-      `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || null;
+    const fullName = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim() || null;
 
     const { error } = await insforge.database.from("profiles").insert([
       {
@@ -56,15 +54,30 @@ export async function syncProfile(): Promise<{
       return { success: false, error: "Failed to sync profile" };
     }
 
+    if (skipJIT) {
+      return { success: true };
+    }
+
     // JIT Provisioning fallback for Enterprise SSO users
     const email = user.emailAddresses[0]?.emailAddress ?? "";
     const emailDomain = email.split("@")[1]?.toLowerCase();
-    const publicDomains = ["gmail.com", "yahoo.com", "outlook.com", "hotmail.com", "live.com", "aol.com", "icloud.com"];
+    const publicDomains = [
+      "gmail.com",
+      "yahoo.com",
+      "outlook.com",
+      "hotmail.com",
+      "live.com",
+      "aol.com",
+      "icloud.com",
+    ];
 
     if (emailDomain && !publicDomains.includes(emailDomain)) {
-      logger.info({ userId, emailDomain }, "Processing fallback JIT provisioning for corporate domain");
+      logger.info(
+        { userId, emailDomain },
+        "Processing fallback JIT provisioning for corporate domain",
+      );
       const domainPrefix = emailDomain.split(".")[0];
-      
+
       // 1. Search for existing organization by slug or name
       let { data: org } = await insforge.database
         .from("organizations")
@@ -84,20 +97,24 @@ export async function syncProfile(): Promise<{
       const targetOrgId = org?.id;
 
       if (targetOrgId) {
-        logger.info({ userId, orgId: targetOrgId }, "Matching organization found in fallback, auto-joining as MEMBER");
+        logger.info(
+          { userId, orgId: targetOrgId },
+          "Matching organization found in fallback, auto-joining as MEMBER",
+        );
         // 2. Link user as MEMBER
-        const { error: memberError } = await insforge.database
-          .from("memberships")
-          .insert([
-            {
-              organization_id: targetOrgId,
-              user_id: userId,
-              role: "MEMBER",
-            },
-          ]);
+        const { error: memberError } = await insforge.database.from("memberships").insert([
+          {
+            organization_id: targetOrgId,
+            user_id: userId,
+            role: "MEMBER",
+          },
+        ]);
 
         if (memberError) {
-          logger.error({ error: memberError, userId, orgId: targetOrgId }, "Fallback: Failed to auto-join user to organization");
+          logger.error(
+            { error: memberError, userId, orgId: targetOrgId },
+            "Fallback: Failed to auto-join user to organization",
+          );
         } else {
           // Set active_org_id cookie
           const cookieStore = await cookies();
@@ -109,7 +126,10 @@ export async function syncProfile(): Promise<{
           });
         }
       } else {
-        logger.info({ userId, emailDomain }, "Fallback: No matching organization found, auto-creating workspace");
+        logger.info(
+          { userId, emailDomain },
+          "Fallback: No matching organization found, auto-creating workspace",
+        );
         // 3. Auto-create organization
         const orgName = `${domainPrefix.charAt(0).toUpperCase()}${domainPrefix.slice(1)} Workspace`;
         const { data: newOrg, error: createOrgError } = await insforge.database
@@ -120,39 +140,56 @@ export async function syncProfile(): Promise<{
 
         let createdOrg = newOrg;
 
-        if (createOrgError && (createOrgError.message?.includes("duplicate") || createOrgError.message?.includes("unique"))) {
+        if (
+          createOrgError &&
+          (createOrgError.message?.includes("duplicate") ||
+            createOrgError.message?.includes("unique"))
+        ) {
           // Slug taken, fallback to full domain slug
           const fallbackSlug = emailDomain.replace(/\./g, "-");
-          logger.info({ userId, fallbackSlug }, "Fallback: Workspace slug already taken, falling back to full domain slug");
+          logger.info(
+            { userId, fallbackSlug },
+            "Fallback: Workspace slug already taken, falling back to full domain slug",
+          );
           const { data: fallbackOrg, error: fallbackError } = await insforge.database
             .from("organizations")
             .insert([{ name: orgName, slug: fallbackSlug }])
             .select("id")
             .single();
-          
+
           if (fallbackError) {
-            logger.error({ error: fallbackError, userId }, "Fallback: Failed to create fallback organization");
+            logger.error(
+              { error: fallbackError, userId },
+              "Fallback: Failed to create fallback organization",
+            );
           } else {
             createdOrg = fallbackOrg;
           }
         } else if (createOrgError) {
-          logger.error({ error: createOrgError, userId }, "Fallback: Failed to auto-create organization");
+          logger.error(
+            { error: createOrgError, userId },
+            "Fallback: Failed to auto-create organization",
+          );
         }
 
         if (createdOrg?.id) {
-          logger.info({ userId, orgId: createdOrg.id }, "Fallback: Successfully created organization, assigning OWNER role");
-          const { error: ownerError } = await insforge.database
-            .from("memberships")
-            .insert([
-              {
-                organization_id: createdOrg.id,
-                user_id: userId,
-                role: "OWNER",
-              },
-            ]);
+          logger.info(
+            { userId, orgId: createdOrg.id },
+            "Fallback: Successfully created organization, assigning OWNER role",
+          );
+          const { error: ownerError } = await insforge.database.from("memberships").insert([
+            {
+              organization_id: createdOrg.id,
+              user_id: userId,
+              role: "OWNER",
+            },
+          ]);
 
           if (ownerError) {
-            logger.error({ error: ownerError, userId, orgId: createdOrg.id }, "Fallback: Failed to assign OWNER role for auto-created organization");
+            logger.error(
+              { error: ownerError, userId, orgId: createdOrg.id },
+              "Fallback: Failed to assign OWNER role for auto-created organization",
+            );
           } else {
             // Set active_org_id cookie
             const cookieStore = await cookies();
@@ -182,7 +219,7 @@ import { profileSchema as updateProfileSchema } from "@/lib/schemas/validation";
 export async function updateProfile(
   fullName: string,
   avatarUrl?: string | null,
-  locale?: string
+  locale?: string,
 ): Promise<{ success: boolean; error?: string }> {
   let userId: string | null = null;
   try {
@@ -229,4 +266,3 @@ export async function updateProfile(
     flushLogsAfterResponse();
   }
 }
-
