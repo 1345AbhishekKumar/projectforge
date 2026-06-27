@@ -4,15 +4,17 @@ Update this file after every completed feature. Any AI agent reading this should
 
 We are building Version 3
 
-
 ---
 
 ## Current Status
+
 - **Status:** **Database Advisor Findings Resolved**. Hardened database security and optimized query performance.
 - **Active Sprint:** Version 4 enterprise execution platform features completed.
 - **Target Milestones:** Version 4 enterprise scalability, security, data portability, internationalization, and distributed tracing achieved.
- 
- ## Progress
+
+## Progress
+
+- [x] Enforce ESLint, Prettier, and Husky — Installed and configured Prettier formatting, integrated `eslint-config-prettier` to disable ESLint styling conflict rules, set up Husky pre-commit hooks executing `lint-staged` on staged file sets, and updated code standards documentation.
 - [x] Codebase Refactoring Checklist — Completed the codebase refactoring to eliminate visual, component, query, schema, and layout duplication:
   - Refactored `MyTasks.tsx` to consume unified `useTasks` and `useProjects` query hooks.
   - Applied `WorkspacePageLayout` to remaining team directory (`app/team/page.tsx`), resource capacity planner (`app/team/capacity/page.tsx`), portfolios directory (`app/portfolios/page.tsx`), portfolio details (`app/portfolios/[id]/page.tsx`), and program details (`app/programs/[id]/page.tsx`) pages.
@@ -61,16 +63,17 @@ We are building Version 3
 - [x] Row-Level Security, 13 Missing Features, Bug Fixes & Architectural Alignment — Enabled Row-Level Security (RLS) on all 15 tables with database-level security definer helper functions to check permissions without policy recursion. Pass secure RLS `userId` header in all Server Actions. Created `invitations` table with a unique index for pending states. Created new invitation-related server actions (`inviteMember`, `getPendingInvitations`, `acceptInvitation`, `declineInvitation`, `getOrganizationInvitations`, `cancelInvitation`). Replaced verbose Clerk webhook logs with Pino. Wrote new whiteboard-themed `/profile`, `/notifications`, and `/activity` pages, and dashboard `InvitationBanner` component. Refactored workspace settings page into a Next.js Server Component, delegating state to `SettingsForm` and replacing blocking `window.alert()` browser dialogs with dynamic styled banner indicators.
 - [x] Pino & OpenTelemetry Logging Integration — Configured bundler exclusion for `pino` server-side, implemented unified logger wrapper bridging Pino (stdout) and OpenTelemetry (`loggerProvider`) with auto-extraction of error properties, and created the `flushLogsAfterResponse` Next.js `after()` helper. Integrated loggers/error catch-blocks into all 9 previously unlogged Server Actions, and added log flushes via `finally` blocks/responses to all 17 Server Actions and the Clerk Webhook API Route (`app/api/webhooks/clerk/route.ts`). Verified that the workspace builds and lints cleanly.
 - [x] Sentry Error Tracking Integration — Configured Sentry manual error capturing inside catch blocks of all 17 Server Actions, Clerk webhook, and logs verification API route. Created app-level segment error boundary (`app/error.tsx`) with Sentry capture and a clean whiteboard-themed UI.
- 
- ## Decisions Made During Build
+
+## Decisions Made During Build
+
 - **Tech Stack Enforced:** Next.js 16 (React 19) App Router, Tailwind CSS v4, InsForge private PostgreSQL and storage client layers.
 - **Authentication:** Shifted from interactive mockups to active Clerk authentication integration using custom hooks (`useSignIn`, `useSignUp`) and standard route protection middleware.
 - **Browser Automation & LLM:** Selected local Playwright instead of Browserbase/Stagehand and NVIDIA GPT OSS 120B (utilizing the OpenAI-compatible client API) for the V5 AI capabilities.
 - **InsForge SDK:** Uses `@insforge/sdk` with `createClient()` pattern. DB queries via `insforge.database.from()`. Server client created per-request in `lib/insforge-server.ts`.
 - **Active Org Context:** Workspace switching uses `active_org_id` cookie (non-httpOnly, lax sameSite) set via Server Actions. Client reads cookie for UI, server reads for tenant-scoped queries.
- 
- ## Notes
+
+## Notes
+
 - Ensure all styling variables are derived directly from HSL tokens defined inside `app/globals.css`.
 - Server Actions (`/actions`) must manage validation and database writes exclusively; Page Components (`/app`) should handle presentation shell rendering.
 - Fixed GSAP null-ref animation issues in Hero component when board is closed/minimized. Registered ScrollTrigger plugin across BentoFeatures, HorizontalShowcase, and PricingCTA. Added missing TASK_ESCALATION key to TYPE_LABELS in NotificationPreferences. Optimised resource allocations query to fetch without .in() filter to resolve 502 Bad Gateway timeouts.
-

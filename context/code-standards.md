@@ -63,19 +63,20 @@ The AI agent on this project operates as a senior engineer. This means:
 - Index files only in `components/ui/` — never barrel export from other folders
 
 ---
+
 use for image optimization:
 
 import Image from 'next/image'
- 
+
 export default function Page() {
-  return (
-    <Image
+return (
+<Image
       src="/profile.png"
       width={500}
       height={500}
       alt="Picture of the author"
     />
-  )
+)
 }
 
 ## Component Structure
@@ -132,10 +133,7 @@ export async function POST(req: NextRequest) {
   } catch (error) {
     logger.error({ error, path: "/api/agent/run" }, "Failed to run agent");
     Sentry.captureException(error);
-    return NextResponse.json(
-      { success: false, error: "Internal server error" },
-      { status: 500 },
-    );
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
 ```
@@ -287,14 +285,14 @@ const insforge = createInsforgeServer();
 
 All PostHog events must use these exact event names. Never invent new event names without adding them here first.
 
-| Event                | When                                       | Key Properties                       |
-| -------------------- | ------------------------------------------ | ------------------------------------ |
-| `org_created`        | Organization created                       | userId, organizationId, name         |
-| `project_created`    | Project created                            | userId, projectId, organizationId    |
-| `task_completed`     | Task status changed to DONE                | userId, taskId, projectId, orgId     |
-| `sprint_started`     | Sprint started                             | userId, sprintId, organizationId     |
-| `workflow_triggered` | Automation workflow executed               | organizationId, workflowId, trigger  |
-| `agent_run_completed`| AI agent execution completed               | organizationId, agentId, runId, status|
+| Event                 | When                         | Key Properties                         |
+| --------------------- | ---------------------------- | -------------------------------------- |
+| `org_created`         | Organization created         | userId, organizationId, name           |
+| `project_created`     | Project created              | userId, projectId, organizationId      |
+| `task_completed`      | Task status changed to DONE  | userId, taskId, projectId, orgId       |
+| `sprint_started`      | Sprint started               | userId, sprintId, organizationId       |
+| `workflow_triggered`  | Automation workflow executed | organizationId, workflowId, trigger    |
+| `agent_run_completed` | AI agent execution completed | organizationId, agentId, runId, status |
 
 These six events are the only events in this project. Do not add more without updating this list first.
 
@@ -416,10 +414,14 @@ Approved dependencies for this project:
 - **Monitoring & Telemetry**:
   - `@opentelemetry/api`, `@opentelemetry/sdk-node` — Distributed tracing and telemetry instrumentation
 
-- **Testing Tools (DevDependencies)**:
+- **Testing Tools & DevDependencies**:
   - `vitest` — Fast unit test runner
   - `@testing-library/react` — React component tester
   - `@testing-library/jest-dom` — Custom DOM matchers
   - `@playwright/test` — E2E browser testing framework
+  - `prettier` — Code formatting linter
+  - `eslint-config-prettier` — Disables conflicting formatting rules in ESLint
+  - `husky` — Git hooks manager
+  - `lint-staged` — Run linters on git staged files only
 
 Do not install any other packages without updating this list first.
