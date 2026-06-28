@@ -257,6 +257,7 @@ After building any component — update this file with the component name, file 
 - **Container Classes:** `w-64 bg-white border-r-2 border-black flex flex-col h-screen sticky top-0 z-40 p-6 gap-6`
 - **Link Button Classes:** `w-full text-left flex items-center gap-3 px-4 py-2.5 border-2 border-black font-sans text-sm font-bold shadow-flat-offset-sm transition-all duration-200`
 - **User Profile Integration:** Navigates to `/profile`, allowing users to customize their personal profile and switch preferred languages (localized across English, Spanish, French, German, and Japanese).
+- **User Email Display:** Displays the current authenticated Clerk user's email address in `font-cursive` next to their rounded profile avatar (`user.imageUrl`) under the "Intelligent Work OS" text in the sidebar footer.
 
 ### Kanban Board Components
 
@@ -336,6 +337,7 @@ After building any component — update this file with the component name, file 
 
 - **File Path:** [ProfileForm.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/profile/ProfileForm.tsx)
 - **Card Wrapper:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-2xl w-full mx-auto relative rotate-[-0.5deg]`
+- **Avatar Upload Button:** `flex-shrink-0 inline-flex items-center justify-center gap-2 bg-accent-yellow hover:bg-[#FFE680] text-primary border-2 border-black font-sans text-xs font-bold px-4 py-2.5 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer`
 
 ### Notifications Manager Page & Components
 
@@ -471,10 +473,17 @@ After building any component — update this file with the component name, file 
 - **Stats Card:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset flex justify-around items-center divide-x-2 divide-black/10 rotate-[-0.5deg]`
 - **Logs Grid Card:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset flex flex-col gap-4`
 
-### Workflow Automation Settings (Feature 3.1 Refactoring)
+### Workflow Automation Page (Feature 3.1 Refactoring)
 
-#### Workflows Settings Page
+#### Workflows Page
 
-- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/settings/workflows/page.tsx)
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/workflows/page.tsx)
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
 - **Main Wrapper Card:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col gap-6`
+
+#### WorkflowsTab Component
+
+- **File Path:** [WorkflowsTab.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/orgs/WorkflowsTab.tsx)
+- **Container Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col gap-4 animate-in fade-in`
+- **Dynamic Field Selectors:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer`
+- **Project Filter Scope Badge:** `font-bold text-primary mr-1 bg-neutral-bg border border-black/10 px-1.5 py-0.5 rounded text-[10px]`

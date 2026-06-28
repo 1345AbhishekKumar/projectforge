@@ -27,6 +27,11 @@ export default function TeamPage() {
   const { showToast } = useToastStore();
 
   const [activeTab, setActiveTab] = useState<"directory" | "capacity">("directory");
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Modal State for Capacity edit
   const [editingMember, setEditingMember] = useState<{
@@ -122,7 +127,12 @@ export default function TeamPage() {
         </div>
 
         {/* No workspace selected */}
-        {!activeOrgId ? (
+        {!mounted ? (
+          <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-12 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-tertiary mr-3" />
+            <span className="font-cursive text-xl">Loading team...</span>
+          </div>
+        ) : !activeOrgId ? (
           <NoWorkspacePlaceholder
             title="No Workspace Selected"
             description="Please create or select an organization workspace to view the team directory."

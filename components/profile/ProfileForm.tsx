@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useForm, Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, User, Image as ImageIcon, Save, Globe } from "lucide-react";
+import { Loader2, User, Image as ImageIcon, Save, Globe, Upload } from "lucide-react";
+import { useUser } from "@clerk/nextjs";
 import { updateProfile } from "@/actions/profile";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { SupportedLocale } from "@/lib/i18n/translations";
@@ -26,10 +27,15 @@ export function ProfileForm({ initialProfile }: Props) {
   const { t, setLocale } = useTranslation();
   const [loading, setLoading] = useState(false);
   const { showToast } = useToastStore();
+  const { user } = useUser();
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
 
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
   } = useForm<ProfileInput>({
     resolver: zodResolver(profileSchema) as unknown as Resolver<ProfileInput>,
@@ -41,9 +47,73 @@ export function ProfileForm({ initialProfile }: Props) {
     },
   });
 
+  async function handleAvatarUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setAvatarError("");
+    setUploadingAvatar(true);
+
+    try {
+      if (!user) {
+        setAvatarError("User is not loaded or authenticated");
+        setUploadingAvatar(false);
+        return;
+      }
+
+      // Validate file size (max 5MB for avatar)
+      if (file.size > 5 * 1024 * 1024) {
+        setAvatarError("Image size must be less than 5MB");
+        setUploadingAvatar(false);
+        return;
+      }
+
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        setAvatarError("File must be an image");
+        setUploadingAvatar(false);
+        return;
+      }
+
+      // Upload directly to Clerk using the client SDK
+      await user.setProfileImage({ file });
+      
+      // Reload Clerk user state to get the new imageUrl
+      await user.reload();
+      const newImageUrl = user.imageUrl;
+
+      setValue("avatarUrl", newImageUrl, { shouldValidate: true, shouldDirty: true });
+
+      // Automatically sync the new avatar URL to the database immediately
+      const currentFullName = watch("fullName") || initialProfile.fullName || "";
+      const currentLocale = watch("locale") || initialProfile.locale || "en";
+      
+      const dbRes = await updateProfile(currentFullName, newImageUrl, currentLocale);
+      if (dbRes.success) {
+        showToast("success", "Avatar image uploaded and profile updated successfully!");
+      } else {
+        showToast("error", "Avatar uploaded to Clerk, but failed to update local database.");
+      }
+    } catch (err: any) {
+      setAvatarError(err?.message || "Failed to upload image to Clerk");
+    } finally {
+      setUploadingAvatar(false);
+    }
+  }
+
   async function onSubmit(data: ProfileInput) {
     setLoading(true);
     try {
+      if (user) {
+        const nameParts = data.fullName.trim().split(/\s+/);
+        const firstName = nameParts[0] || "";
+        const lastName = nameParts.slice(1).join(" ") || "";
+        await user.update({
+          firstName,
+          lastName,
+        });
+      }
+
       const res = await updateProfile(data.fullName, data.avatarUrl || null, data.locale);
       if (res.success) {
         setLocale(data.locale);
@@ -51,8 +121,8 @@ export function ProfileForm({ initialProfile }: Props) {
       } else {
         showToast("error", res.error || t("profile.updateError", "Failed to update profile"));
       }
-    } catch {
-      showToast("error", t("profile.unexpectedError", "An unexpected error occurred"));
+    } catch (err: any) {
+      showToast("error", err?.message || t("profile.unexpectedError", "An unexpected error occurred"));
     } finally {
       setLoading(false);
     }
@@ -111,20 +181,54 @@ export function ProfileForm({ initialProfile }: Props) {
 
         <div>
           <label htmlFor="avatarUrl" className="font-sans text-xs font-semibold mb-1 block">
-            {t("profile.avatarUrl", "Avatar Image URL")}
+            {t("profile.avatarUrl", "Avatar Image")}
           </label>
-          <div className="relative">
-            <ImageIcon className="absolute left-3 top-2.5 h-4 w-4 text-secondary/50" />
-            <input
-              id="avatarUrl"
-              type="text"
-              {...register("avatarUrl")}
-              placeholder={t("profile.avatarUrlPlaceholder", "https://example.com/avatar.jpg")}
-              className={`w-full pl-10 pr-4 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow ${
-                errors.avatarUrl ? "border-rose-500 bg-rose-50/20" : ""
+          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
+            <div className="relative flex-grow">
+              <ImageIcon className="absolute left-3 top-2.5 h-4 w-4 text-secondary/50" />
+              <input
+                id="avatarUrl"
+                type="text"
+                {...register("avatarUrl")}
+                placeholder={t("profile.avatarUrlPlaceholder", "https://example.com/avatar.jpg")}
+                className={`w-full pl-10 pr-4 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow ${
+                  errors.avatarUrl ? "border-rose-500 bg-rose-50/20" : ""
+                }`}
+              />
+            </div>
+
+            <label
+              htmlFor="avatar-upload-input"
+              className={`flex-shrink-0 inline-flex items-center justify-center gap-2 bg-accent-yellow hover:bg-[#FFE680] text-primary border-2 border-black font-sans text-xs font-bold px-4 py-2.5 rounded-full shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer ${
+                uploadingAvatar ? "opacity-50 cursor-not-allowed" : ""
               }`}
+            >
+              {uploadingAvatar ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span>Uploading...</span>
+                </>
+              ) : (
+                <>
+                  <Upload className="h-3.5 w-3.5" />
+                  <span>Upload Image</span>
+                </>
+              )}
+            </label>
+            <input
+              id="avatar-upload-input"
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarUpload}
+              className="hidden"
+              disabled={uploadingAvatar}
             />
           </div>
+          {avatarError && (
+            <span className="text-xs font-mono font-bold text-rose-600 mt-1 block">
+              {avatarError}
+            </span>
+          )}
           {errors.avatarUrl && (
             <span className="text-xs font-mono font-bold text-rose-600 mt-1 block">
               {errors.avatarUrl.message}

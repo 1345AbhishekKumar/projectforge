@@ -16,11 +16,6 @@ export function SettingsSidebar() {
       icon: <Users className="h-4 w-4" />,
     },
     {
-      href: "/settings/workflows",
-      label: t("sidebar.workflows", "Workflows"),
-      icon: <Zap className="h-4 w-4" />,
-    },
-    {
       href: "/settings/departments",
       label: t("sidebar.departments", "Departments"),
       icon: <Network className="h-4 w-4" />,

@@ -28,7 +28,7 @@ export const TRIGGER_OPTIONS = [
 ] as const;
 
 export const ACTION_TYPE_OPTIONS = [
-  { value: "assign_to_user", label: "Assign to Team Lead" },
+  { value: "assign_to_user", label: "Assign to Lead/Member" },
   { value: "notify_assignee", label: "Notify Assignee" },
   { value: "create_task", label: "Create Review Task" },
   { value: "set_status", label: "Set Task Status" },
@@ -51,7 +51,40 @@ const workflowFormSchema = z.object({
   name: z.string().trim().min(3, "Name must be ≥ 3 characters").max(100, "Name too long"),
   trigger: z.string().min(1, "Select a trigger"),
   actionType: z.string().min(1, "Select an action"),
-  actionLabel: z.string().trim().max(100).optional(),
+  projectScope: z.string().optional(),
+  assigneeId: z.string().optional(),
+  targetStatus: z.string().optional(),
+  taskTitle: z.string().optional(),
+  notificationContent: z.string().optional(),
+}).superRefine((val, ctx) => {
+  if (val.actionType === "assign_to_user" && !val.assigneeId) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Please select an assignee",
+      path: ["assigneeId"],
+    });
+  }
+  if (val.actionType === "set_status" && !val.targetStatus) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Please select a target status",
+      path: ["targetStatus"],
+    });
+  }
+  if (val.actionType === "create_task" && (!val.taskTitle || val.taskTitle.trim().length < 3)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Task title must be ≥ 3 characters",
+      path: ["taskTitle"],
+    });
+  }
+  if (val.actionType === "notify_assignee" && (!val.notificationContent || val.notificationContent.trim().length < 3)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Notification message must be ≥ 3 characters",
+      path: ["notificationContent"],
+    });
+  }
 });
 
 type WorkflowFormInput = z.infer<typeof workflowFormSchema>;
@@ -61,9 +94,11 @@ type Props = {
   initialWorkflows: WorkflowRow[];
   orgId: string;
   isAdminOrOwner: boolean;
+  projects: any[];
+  members: any[];
 };
 
-export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner }: Props) {
+export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner, projects, members }: Props) {
   const [workflows, setWorkflows] = useState<WorkflowRow[]>(initialWorkflows);
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -81,36 +116,63 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner }: Props)
     register,
     handleSubmit,
     reset,
+    watch,
     formState: { errors },
   } = useForm<WorkflowFormInput>({
     resolver: zodResolver(workflowFormSchema),
-    defaultValues: { name: "", trigger: "", actionType: "", actionLabel: "" },
+    defaultValues: {
+      name: "",
+      trigger: "",
+      actionType: "",
+      projectScope: "",
+      assigneeId: "",
+      targetStatus: "",
+      taskTitle: "",
+      notificationContent: "",
+    },
   });
+
+  const watchedActionType = watch("actionType");
+  const watchedProjectScope = watch("projectScope");
 
   /* ── Create ─────────────────────────────────────────────────────────── */
   async function onSubmit(data: WorkflowFormInput) {
+    const conditions: Record<string, unknown> = {};
+    if (data.projectScope) {
+      conditions.project_id = data.projectScope;
+    }
+
+    let actionLabel = "";
+    if (data.actionType === "assign_to_user") {
+      actionLabel = data.assigneeId || "org_owner";
+    } else if (data.actionType === "set_status") {
+      actionLabel = data.targetStatus || "DONE";
+    } else if (data.actionType === "create_task") {
+      actionLabel = data.taskTitle || "Review Task";
+    } else if (data.actionType === "notify_assignee") {
+      actionLabel = data.notificationContent || "Workflow notification triggered.";
+    }
+
     startTransition(async () => {
       const res = await createWorkflow(
         orgId,
         data.name,
         data.trigger,
-        {},
-        [{ type: data.actionType, data: { label: data.actionLabel || "" } }]
+        conditions,
+        [{ type: data.actionType, data: { label: actionLabel } }]
       );
 
       if (res.success) {
         showBanner("success", "Workflow created successfully!");
         reset();
         setShowForm(false);
-        // Reload list by re-fetching (optimistic: prepend placeholder then server revalidates)
-        // We re-fetch on next navigation; for now add optimistic row
         setWorkflows((prev) => [
           {
             id: res.data!.workflowId,
             name: data.name,
             trigger: data.trigger,
-            conditions: {},
-            actions: [{ type: data.actionType, data: { label: data.actionLabel || "" } }],
+            conditions,
+            actions: [{ type: data.actionType, data: { label: actionLabel } }],
             enabled: true,
             created_at: new Date().toISOString(),
           },
@@ -227,6 +289,27 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner }: Props)
               )}
             </div>
 
+            {/* Project Scope */}
+            <div>
+              <label className="font-sans text-xs font-semibold mb-1 block">
+                Project Scope (Filter)
+              </label>
+              <select
+                {...register("projectScope")}
+                className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer"
+              >
+                <option value="">All Projects (Global)</option>
+                {projects.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+              <p className="font-sans text-[10px] text-secondary/60 mt-1">
+                Restrict this automation to a specific project, or apply it to all projects in the workspace.
+              </p>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Trigger */}
               <div>
@@ -279,18 +362,112 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner }: Props)
               </div>
             </div>
 
-            {/* Optional label/target */}
-            <div>
-              <label className="font-sans text-xs font-semibold mb-1 block">
-                Action Detail{" "}
-                <span className="text-secondary font-normal">(optional)</span>
-              </label>
-              <input
-                {...register("actionLabel")}
-                placeholder="e.g. user ID to assign, or status to set"
-                className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow"
-              />
-            </div>
+            {/* Dynamic Action Fields */}
+            {watchedActionType === "assign_to_user" && (
+              <div>
+                <label className="font-sans text-xs font-semibold mb-1 block">
+                  Assign To
+                </label>
+                <select
+                  {...register("assigneeId")}
+                  className={`w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer ${
+                    errors.assigneeId ? "border-rose-500" : ""
+                  }`}
+                >
+                  <option value="">— Select assignee —</option>
+                  <option value="org_owner">Organization Owner (Dynamic)</option>
+                  {members.map((m) => (
+                    <option key={m.userId} value={m.userId}>
+                      {m.name} ({m.email})
+                    </option>
+                  ))}
+                </select>
+                {errors.assigneeId && (
+                  <span className="text-xs font-mono font-bold text-rose-600 mt-1 block">
+                    {errors.assigneeId.message}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {watchedActionType === "set_status" && (
+              <div>
+                <label className="font-sans text-xs font-semibold mb-1 block">
+                  Target Status
+                </label>
+                <select
+                  {...register("targetStatus")}
+                  className={`w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer ${
+                    errors.targetStatus ? "border-rose-500" : ""
+                  }`}
+                >
+                  <option value="">— Select status —</option>
+                  {(() => {
+                    const selectedProj = projects.find((p) => p.id === watchedProjectScope);
+                    const statuses = selectedProj?.custom_statuses || ["TODO", "IN_PROGRESS", "DONE"];
+                    return statuses.map((s: string) => (
+                      <option key={s} value={s}>
+                        {s}
+                      </option>
+                    ));
+                  })()}
+                </select>
+                {errors.targetStatus && (
+                  <span className="text-xs font-mono font-bold text-rose-600 mt-1 block">
+                    {errors.targetStatus.message}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {watchedActionType === "create_task" && (
+              <div>
+                <label className="font-sans text-xs font-semibold mb-1 block">
+                  New Task Title
+                </label>
+                <input
+                  {...register("taskTitle")}
+                  placeholder="e.g. Review codebase and design draft"
+                  className={`w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow ${
+                    errors.taskTitle ? "border-rose-500" : ""
+                  }`}
+                />
+                {errors.taskTitle && (
+                  <span className="text-xs font-mono font-bold text-rose-600 mt-1 block">
+                    {errors.taskTitle.message}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {watchedActionType === "notify_assignee" && (
+              <div>
+                <label className="font-sans text-xs font-semibold mb-1 block">
+                  Notification Message
+                </label>
+                <textarea
+                  {...register("notificationContent")}
+                  placeholder="e.g. Please review the completed task ASAP."
+                  rows={2}
+                  className={`w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow ${
+                    errors.notificationContent ? "border-rose-500" : ""
+                  }`}
+                />
+                {errors.notificationContent && (
+                  <span className="text-xs font-mono font-bold text-rose-600 mt-1 block">
+                    {errors.notificationContent.message}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {watchedActionType === "archive_task" && (
+              <div className="bg-neutral-bg border border-black/10 p-3 rounded-sketchy-sm">
+                <p className="font-sans text-xs text-secondary/80">
+                  💡 <strong>Note</strong>: This will automatically archive the specific task that triggered the event. No additional settings are needed.
+                </p>
+              </div>
+            )}
 
             <div className="flex gap-3 pt-1">
               <button
@@ -324,132 +501,148 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner }: Props)
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {workflows.map((wf) => (
-            <div
-              key={wf.id}
-              className={`bg-white border-2 border-black rounded-sketchy shadow-flat-offset-xs transition-all ${
-                !wf.enabled ? "opacity-60" : ""
-              }`}
-            >
-              {/* Row header */}
-              <div className="flex items-center gap-3 px-5 py-3.5">
-                {/* Enabled badge */}
-                <span
-                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full border-2 border-black whitespace-nowrap ${
-                    wf.enabled ? "bg-accent-green" : "bg-neutral-bg text-secondary"
-                  }`}
-                >
-                  {wf.enabled ? "ON" : "OFF"}
-                </span>
+          {workflows.map((wf) => {
+            const projectId = wf.conditions?.project_id as string | undefined;
+            const projName = projectId ? (projects.find((p) => p.id === projectId)?.name || "Unknown Project") : "All Projects";
 
-                {/* Name + trigger summary */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-sans text-sm font-bold truncate">{wf.name}</p>
-                  <p className="font-sans text-xs text-secondary truncate">
-                    {triggerLabel(wf.trigger)}
-                    {wf.actions.length > 0 && (
-                      <>
-                        {" "}→{" "}
-                        {wf.actions.map((a) => actionLabel(a.type)).join(", ")}
-                      </>
+            return (
+              <div
+                key={wf.id}
+                className={`bg-white border-2 border-black rounded-sketchy shadow-flat-offset-xs transition-all ${
+                  !wf.enabled ? "opacity-60" : ""
+                }`}
+              >
+                {/* Row header */}
+                <div className="flex items-center gap-3 px-5 py-3.5">
+                  {/* Enabled badge */}
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full border-2 border-black whitespace-nowrap ${
+                      wf.enabled ? "bg-accent-green" : "bg-neutral-bg text-secondary"
+                    }`}
+                  >
+                    {wf.enabled ? "ON" : "OFF"}
+                  </span>
+
+                  {/* Name + trigger summary */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-sans text-sm font-bold truncate">{wf.name}</p>
+                    <p className="font-sans text-xs text-secondary truncate">
+                      <span className="font-bold text-primary mr-1 bg-neutral-bg border border-black/10 px-1.5 py-0.5 rounded text-[10px]">
+                        {projName}
+                      </span>
+                      {triggerLabel(wf.trigger)}
+                      {wf.actions.length > 0 && (
+                        <>
+                          {" "}→{" "}
+                          {wf.actions.map((a) => {
+                            const actTypeLabel = actionLabel(a.type);
+                            const actDetail = a.data?.label as string | undefined;
+                            if (actTypeLabel === "Assign to Lead/Member" && actDetail && actDetail !== "org_owner") {
+                              const memberName = members.find((m) => m.userId === actDetail)?.name || actDetail;
+                              return `Assign to ${memberName}`;
+                            }
+                            return actDetail ? `${actTypeLabel} (${actDetail})` : actTypeLabel;
+                          }).join(", ")}
+                        </>
+                      )}
+                    </p>
+                  </div>
+
+                  {/* Actions */}
+                  {isAdminOrOwner && (
+                    <div className="flex items-center gap-2 shrink-0">
+                      {/* Toggle */}
+                      <button
+                        onClick={() => handleToggle(wf)}
+                        disabled={togglingId === wf.id}
+                        title={wf.enabled ? "Disable workflow" : "Enable workflow"}
+                        className="p-1.5 border-2 border-black rounded-full bg-white hover:bg-neutral-bg transition-all shadow-flat-offset-xs active:translate-y-0.5 hover:-translate-y-0.5 cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                      >
+                        {togglingId === wf.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : wf.enabled ? (
+                          <ToggleRight className="h-4 w-4 text-green-600" />
+                        ) : (
+                          <ToggleLeft className="h-4 w-4 text-secondary" />
+                        )}
+                      </button>
+
+                      {/* Delete */}
+                      <button
+                        onClick={() => handleDelete(wf.id)}
+                        disabled={deletingId === wf.id}
+                        title="Delete workflow"
+                        className="p-1.5 border-2 border-black rounded-full bg-white hover:bg-accent-pink transition-all shadow-flat-offset-xs active:translate-y-0.5 hover:-translate-y-0.5 cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
+                      >
+                        {deletingId === wf.id ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Expand toggle */}
+                  <button
+                    onClick={() => setExpandedId((prev) => (prev === wf.id ? null : wf.id))}
+                    className="p-1 cursor-pointer text-secondary hover:text-primary transition-colors"
+                  >
+                    {expandedId === wf.id ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
                     )}
-                  </p>
+                  </button>
                 </div>
 
-                {/* Actions */}
-                {isAdminOrOwner && (
-                  <div className="flex items-center gap-2 shrink-0">
-                    {/* Toggle */}
-                    <button
-                      onClick={() => handleToggle(wf)}
-                      disabled={togglingId === wf.id}
-                      title={wf.enabled ? "Disable workflow" : "Enable workflow"}
-                      className="p-1.5 border-2 border-black rounded-full bg-white hover:bg-neutral-bg transition-all shadow-flat-offset-xs active:translate-y-0.5 hover:-translate-y-0.5 cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-                    >
-                      {togglingId === wf.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : wf.enabled ? (
-                        <ToggleRight className="h-4 w-4 text-green-600" />
-                      ) : (
-                        <ToggleLeft className="h-4 w-4 text-secondary" />
-                      )}
-                    </button>
-
-                    {/* Delete */}
-                    <button
-                      onClick={() => handleDelete(wf.id)}
-                      disabled={deletingId === wf.id}
-                      title="Delete workflow"
-                      className="p-1.5 border-2 border-black rounded-full bg-white hover:bg-accent-pink transition-all shadow-flat-offset-xs active:translate-y-0.5 hover:-translate-y-0.5 cursor-pointer disabled:opacity-40 disabled:pointer-events-none"
-                    >
-                      {deletingId === wf.id ? (
-                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="h-3.5 w-3.5" />
-                      )}
-                    </button>
-                  </div>
-                )}
-
-                {/* Expand toggle */}
-                <button
-                  onClick={() => setExpandedId((prev) => (prev === wf.id ? null : wf.id))}
-                  className="p-1 cursor-pointer text-secondary hover:text-primary transition-colors"
-                >
-                  {expandedId === wf.id ? (
-                    <ChevronUp className="h-4 w-4" />
-                  ) : (
-                    <ChevronDown className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
-
-              {/* Expanded detail */}
-              {expandedId === wf.id && (
-                <div className="border-t-2 border-black/10 px-5 py-4 flex flex-col gap-3 animate-in fade-in duration-150">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-sans">
-                    <div>
-                      <span className="font-bold text-secondary uppercase tracking-wide block mb-1">
-                        Trigger
-                      </span>
-                      <span className="bg-accent-yellow border border-black/20 rounded px-2 py-0.5 font-mono">
-                        {wf.trigger}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="font-bold text-secondary uppercase tracking-wide block mb-1">
-                        Conditions
-                      </span>
-                      <span className="font-mono text-secondary/70">
-                        {Object.keys(wf.conditions).length === 0
-                          ? "None (always runs)"
-                          : JSON.stringify(wf.conditions)}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="font-bold text-secondary uppercase tracking-wide block mb-1">
-                        Actions
-                      </span>
-                      <div className="flex flex-col gap-1">
-                        {wf.actions.map((a, i) => (
-                          <span
-                            key={i}
-                            className="bg-accent-blue/20 border border-black/20 rounded px-2 py-0.5 font-mono"
-                          >
-                            {a.type}
-                            {a.data?.label ? `: ${a.data.label}` : ""}
-                          </span>
-                        ))}
+                {/* Expanded detail */}
+                {expandedId === wf.id && (
+                  <div className="border-t-2 border-black/10 px-5 py-4 flex flex-col gap-3 animate-in fade-in duration-150">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-sans">
+                      <div>
+                        <span className="font-bold text-secondary uppercase tracking-wide block mb-1">
+                          Trigger
+                        </span>
+                        <span className="bg-accent-yellow border border-black/20 rounded px-2 py-0.5 font-mono">
+                          {wf.trigger}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-secondary uppercase tracking-wide block mb-1">
+                          Conditions
+                        </span>
+                        <span className="font-mono text-secondary/70">
+                          {Object.keys(wf.conditions).length === 0
+                            ? "None (always runs)"
+                            : JSON.stringify(wf.conditions)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-secondary uppercase tracking-wide block mb-1">
+                          Actions
+                        </span>
+                        <div className="flex flex-col gap-1">
+                          {wf.actions.map((a, i) => (
+                            <span
+                              key={i}
+                              className="bg-accent-blue/20 border border-black/20 rounded px-2 py-0.5 font-mono"
+                            >
+                              {a.type}
+                              {a.data?.label ? `: ${a.data.label}` : ""}
+                            </span>
+                          ))}
+                        </div>
                       </div>
                     </div>
+                    <p className="font-sans text-[10px] text-secondary/40">
+                      ID: {wf.id} · Created {new Date(wf.created_at).toLocaleDateString()}
+                    </p>
                   </div>
-                  <p className="font-sans text-[10px] text-secondary/40">
-                    ID: {wf.id} · Created {new Date(wf.created_at).toLocaleDateString()}
-                  </p>
-                </div>
-              )}
-            </div>
-          ))}
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

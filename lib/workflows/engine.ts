@@ -77,16 +77,50 @@ async function executeAction(
   const payloadObj = payload as Record<string, unknown> | null | undefined;
   const taskObj = payloadObj?.task as Record<string, unknown> | null | undefined;
 
-  if (action.type === "update_task") {
+  // Normalize UI action types to standard engine action types
+  let normalizedAction = { ...action };
+  const rawActionData = action.data as Record<string, unknown> | null | undefined;
+  const label = rawActionData?.label as string | undefined;
+
+  if (action.type === "assign_to_user") {
+    normalizedAction = {
+      type: "update_task",
+      data: { assignee_id: label || "org_owner" }
+    };
+  } else if (action.type === "notify_assignee") {
+    normalizedAction = {
+      type: "create_notification",
+      data: { user_id: "assignee", content: label || "Workflow notification triggered." }
+    };
+  } else if (action.type === "set_status") {
+    normalizedAction = {
+      type: "update_task",
+      data: { status: label || "DONE" }
+    };
+  } else if (action.type === "archive_task") {
+    normalizedAction = {
+      type: "update_task",
+      data: { status: "ARCHIVED" }
+    };
+  } else if (action.type === "create_task") {
+    if (label && !rawActionData?.title) {
+      normalizedAction = {
+        type: "create_task",
+        data: { title: label }
+      };
+    }
+  }
+
+  if (normalizedAction.type === "update_task") {
     const taskId = (taskObj?.id || payloadObj?.id) as string | undefined;
     if (!taskId) {
-      logger.warn({ action, payload }, "update_task action skipped: taskId not found in payload");
+      logger.warn({ action: normalizedAction, payload }, "update_task action skipped: taskId not found in payload");
       return;
     }
 
-    const validated = taskUpdateSchema.safeParse(action.data);
+    const validated = taskUpdateSchema.safeParse(normalizedAction.data);
     if (!validated.success) {
-      logger.error({ errors: validated.error.issues, data: action.data }, "Invalid update_task action data");
+      logger.error({ errors: validated.error.issues, data: normalizedAction.data }, "Invalid update_task action data");
       return;
     }
 
@@ -122,16 +156,16 @@ async function executeAction(
     // Trigger task.updated event in the background recursively
     await triggerWorkflowEvent("task.updated", { task: updatedTask }, session, nextLoopContext);
 
-  } else if (action.type === "create_task") {
+  } else if (normalizedAction.type === "create_task") {
     const projectId = (taskObj?.project_id || payloadObj?.project_id) as string | undefined;
     if (!projectId) {
-      logger.warn({ action, payload }, "create_task action skipped: projectId not found in payload");
+      logger.warn({ action: normalizedAction, payload }, "create_task action skipped: projectId not found in payload");
       return;
     }
 
-    const validated = taskCreateSchema.safeParse(action.data);
+    const validated = taskCreateSchema.safeParse(normalizedAction.data);
     if (!validated.success) {
-      logger.error({ errors: validated.error.issues, data: action.data }, "Invalid create_task action data");
+      logger.error({ errors: validated.error.issues, data: normalizedAction.data }, "Invalid create_task action data");
       return;
     }
 
@@ -144,7 +178,7 @@ async function executeAction(
       .single();
 
     if (projectError || !project) {
-      logger.warn({ action, projectId, projectError }, "create_task action skipped: project not found");
+      logger.warn({ action: normalizedAction, projectId, projectError }, "create_task action skipped: project not found");
       return;
     }
 
@@ -205,30 +239,30 @@ async function executeAction(
     // Trigger task.created event in the background recursively
     await triggerWorkflowEvent("task.created", { task: createdTask }, session, nextLoopContext);
 
-  } else if (action.type === "create_notification") {
-    const actionData = action.data as Record<string, unknown> | null | undefined;
+  } else if (normalizedAction.type === "create_notification") {
+    const actionData = normalizedAction.data as Record<string, unknown> | null | undefined;
     let targetUserId = actionData?.user_id as string | undefined;
     if (targetUserId === "assignee") {
       targetUserId = (taskObj?.assignee_id || payloadObj?.assignee_id) as string | undefined;
     }
 
     if (!targetUserId) {
-      logger.warn({ action, payload }, "create_notification skipped: target user_id not resolved");
+      logger.warn({ action: normalizedAction, payload }, "create_notification skipped: target user_id not resolved");
       return;
     }
 
     const content = (actionData?.content || "Workflow notification triggered.") as string;
     await createNotification(targetUserId, content, "GENERAL");
-  } else if (action.type === "require_approval") {
+  } else if (normalizedAction.type === "require_approval") {
     const taskId = (taskObj?.id || payloadObj?.id) as string | undefined;
     if (!taskId) {
-      logger.warn({ action, payload }, "require_approval action skipped: taskId not found in payload");
+      logger.warn({ action: normalizedAction, payload }, "require_approval action skipped: taskId not found in payload");
       return;
     }
 
-    const validated = approvalActionSchema.safeParse(action.data);
+    const validated = approvalActionSchema.safeParse(normalizedAction.data);
     if (!validated.success) {
-      logger.error({ errors: validated.error.issues, data: action.data }, "Invalid require_approval action data");
+      logger.error({ errors: validated.error.issues, data: normalizedAction.data }, "Invalid require_approval action data");
       return;
     }
 
@@ -271,7 +305,7 @@ async function executeAction(
       insforge
     );
   } else {
-    logger.warn({ actionType: action.type }, "Unsupported workflow action type");
+    logger.warn({ actionType: normalizedAction.type }, "Unsupported workflow action type");
   }
 }
 

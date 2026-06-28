@@ -3,6 +3,7 @@
 import React from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
 import {
   LayoutDashboard,
   FolderKanban,
@@ -66,6 +67,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { t } = useTranslation();
   const { activeOrgId } = useOrgStore();
+  const { user } = useUser();
 
   const getPrefetchQueries = (href: string) => {
     if (!activeOrgId) return undefined;
@@ -122,7 +124,7 @@ export function Sidebar() {
     { href: "/projects", label: t("sidebar.projects", "Projects Directory"), icon: <FolderKanban className="h-4 w-4" />, accent: "bg-accent-blue" },
     { href: "/sprints", label: t("sidebar.sprints", "Sprints"), icon: <Calendar className="h-4 w-4" />, accent: "bg-accent-pink" },
     { href: "/team", label: t("sidebar.team", "Team Directory"), icon: <Users className="h-4 w-4" />, accent: "bg-accent-green" },
-    { href: "/settings/workflows", label: t("sidebar.workflows", "Workflows"), icon: <Zap className="h-4 w-4" />, accent: "bg-accent-blue" },
+    { href: "/workflows", label: t("sidebar.workflows", "Workflows"), icon: <Zap className="h-4 w-4" />, accent: "bg-accent-blue" },
   ];
 
   return (
@@ -166,8 +168,26 @@ export function Sidebar() {
 
         {/* Sidebar Footer */}
         <div className="border-t border-black/10 pt-4 flex flex-col gap-2">
-          <div className="bg-neutral-bg border border-black/10 p-2.5 rounded-sketchy-sm text-center">
-            <span className="font-cursive text-xs font-bold text-secondary">Intelligent Work OS</span>
+          <div className="bg-neutral-bg border border-black/10 p-2.5 rounded-sketchy-sm flex flex-col gap-1.5">
+            <span className="font-cursive text-xs font-bold text-secondary text-center">Intelligent Work OS</span>
+            <div className="flex items-center gap-2 mt-0.5 min-w-0">
+              {user?.imageUrl ? (
+                <img
+                  src={user.imageUrl}
+                  alt="User Avatar"
+                  className="w-7 h-7 rounded-full border border-black flex-shrink-0 object-cover"
+                />
+              ) : (
+                <div className="w-7 h-7 rounded-full border border-black bg-accent-yellow flex items-center justify-center flex-shrink-0 text-[10px] font-bold">
+                  U
+                </div>
+              )}
+              {user?.primaryEmailAddress?.emailAddress && (
+                <span className="font-cursive text-[13px] text-secondary truncate flex-grow" title={user.primaryEmailAddress.emailAddress}>
+                  {user.primaryEmailAddress.emailAddress}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       </aside>
