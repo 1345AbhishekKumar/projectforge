@@ -11,7 +11,7 @@ type Props = {
   task: TaskWithAssignee;
   sprints: Sprint[];
   draggedTaskId: string | null;
-  priorityColors: Record<string, string>;
+  priorityColors?: Record<string, string>;
   priorityStickyColors: Record<string, string>;
   getRotation: (id: string) => string;
   handleDragStart: (e: React.DragEvent, taskId: string) => void;
@@ -30,7 +30,6 @@ export const KanbanCard = React.memo(function KanbanCard({
   task,
   sprints,
   draggedTaskId,
-  priorityColors,
   priorityStickyColors,
   getRotation,
   handleDragStart,

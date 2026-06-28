@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Loader2, Trash2, ShieldAlert, XCircle, Users, Zap, SlidersHorizontal } from "lucide-react";
+import { Loader2, Trash2, ShieldAlert, Users, Zap, SlidersHorizontal } from "lucide-react";
 import { MemberList } from "@/components/orgs/MemberList";
 import { InviteModal } from "@/components/orgs/InviteModal";
 import { NotificationPreferences } from "@/components/notifications/NotificationPreferences";

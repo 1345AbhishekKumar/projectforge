@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Calendar } from "lucide-react";
-import type { TaskPriority } from "@/types";
+
 import type { TaskWithAssignee } from "@/actions/task";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { PriorityBadge } from "@/components/ui/PriorityBadge";

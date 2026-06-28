@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Plus, Edit2, Trash2, Shield, XCircle, Loader2 } from "lucide-react";
+import { Plus, Edit2, Trash2, Shield, Loader2 } from "lucide-react";
 import { RoleFormModal } from "./RoleFormModal";
 import { createCustomRole, updateCustomRole, deleteCustomRole } from "@/actions/role";
 import type { MembershipRole } from "@/types";

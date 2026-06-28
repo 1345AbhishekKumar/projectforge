@@ -248,10 +248,10 @@ Please provide a clean Markdown summary highlighting:
     const content = completion.choices[0]?.message?.content || "Could not generate summary.";
 
     return { success: true, data: content, reasoning };
-  } catch (err: any) {
-    logger.error(err, "Failed to summarize project");
+  } catch (err) {
+    logger.error(err instanceof Error ? err : new Error(String(err)), "Failed to summarize project");
     Sentry.captureException(err);
-    if (err instanceof OpenAI.PermissionDeniedError || (err && typeof err === 'object' && err.status === 403)) {
+    if (err instanceof OpenAI.PermissionDeniedError || (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 403)) {
       return { success: false, error: "NVIDIA API Key is invalid or expired. Please check your credentials." };
     }
     return { success: false, error: "Failed to summarize project" };
@@ -279,7 +279,6 @@ export async function suggestSubtasksAction(
     return { success: false, error: validated.error.issues[0].message };
   }
   const {
-    taskId: cleanTaskId,
     orgId: cleanOrgId,
     taskTitle: cleanTaskTitle,
     taskDescription: cleanTaskDescription,
@@ -335,10 +334,10 @@ Do not write any markdown blocks besides the JSON object.
       logger.error({ error: err, contentStr }, "Failed to validate subtask format via Zod");
       return { success: false, error: "Model returned invalid format" };
     }
-  } catch (err: any) {
-    logger.error(err, "Failed to suggest subtasks");
+  } catch (err) {
+    logger.error(err instanceof Error ? err : new Error(String(err)), "Failed to suggest subtasks");
     Sentry.captureException(err);
-    if (err instanceof OpenAI.PermissionDeniedError || (err && typeof err === 'object' && err.status === 403)) {
+    if (err instanceof OpenAI.PermissionDeniedError || (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 403)) {
       return { success: false, error: "NVIDIA API Key is invalid or expired. Please check your credentials." };
     }
     return { success: false, error: "Failed to suggest subtasks" };
@@ -530,10 +529,10 @@ Highlight:
     const content = completion.choices[0]?.message?.content || "No risks detected.";
 
     return { success: true, data: content, reasoning };
-  } catch (err: any) {
-    logger.error(err, "Failed to analyze project risks");
+  } catch (err) {
+    logger.error(err instanceof Error ? err : new Error(String(err)), "Failed to analyze project risks");
     Sentry.captureException(err);
-    if (err instanceof OpenAI.PermissionDeniedError || (err && typeof err === 'object' && err.status === 403)) {
+    if (err instanceof OpenAI.PermissionDeniedError || (err && typeof err === 'object' && 'status' in err && (err as { status: number }).status === 403)) {
       return { success: false, error: "NVIDIA API Key is invalid or expired. Please check your credentials." };
     }
     return { success: false, error: "Failed to analyze project risks" };

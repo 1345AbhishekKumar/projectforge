@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Check, X, Loader2, Mail, CheckCircle, XCircle } from "lucide-react";
+import { Check, X, Loader2, Mail } from "lucide-react";
 import { getPendingInvitations, acceptInvitation, declineInvitation, type PendingInvitation } from "@/actions/invitation";
 import { useToastStore } from "@/store/toastStore";
 

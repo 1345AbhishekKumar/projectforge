@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useForm, Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Loader2, User, Image as ImageIcon, Save, XCircle, CheckCircle, Globe } from "lucide-react";
+import { Loader2, User, Image as ImageIcon, Save, Globe } from "lucide-react";
 import { updateProfile } from "@/actions/profile";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { SupportedLocale } from "@/lib/i18n/translations";
