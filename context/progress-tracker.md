@@ -14,6 +14,7 @@ We are building Version 3
 
 ## Progress
 
+- [x] Dedicated Workflows Settings & Navigation Refactoring — Created a standalone Workflows settings page at `/settings/workflows`, added it to both the main navigation sidebar (`Sidebar.tsx`) and the Workspace Settings menu (`SettingsSidebar.tsx`), renamed the 'Members & Workflows' settings tab to 'Members' to focus solely on user management, and removed the redundant Custom Fields and Workflows tab selectors from the members view.
 - [x] Hardened AI Actions Client Initialization — Replaced static OpenAI client initialization with a dynamic getOpenaiClient helper in actions/ai.ts that directly parses .env.local file to override OS/terminal environment variables and automatically strips surrounding quotes from NVIDIA_API_KEY and NVIDIA_API_BASE_URL.
 - [x] Temporary AI Rate Limits Removed — Disabled daily AI usage limits in actions/ai.ts while preserving usage tracking insertions and ensuring fail-open behavior.
 - [x] Resolve all 67 TypeScript compiler errors — Corrected type parameters, caching arguments, imports, and mock assertions across 27 files to satisfy strict TypeScript type checks without utilizing any types.

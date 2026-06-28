@@ -9,6 +9,7 @@ import {
   Calendar,
   Users,
   Briefcase,
+  Zap,
 } from "lucide-react";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { GlobalSearchModal } from "@/components/search/GlobalSearchModal";
@@ -121,6 +122,7 @@ export function Sidebar() {
     { href: "/projects", label: t("sidebar.projects", "Projects Directory"), icon: <FolderKanban className="h-4 w-4" />, accent: "bg-accent-blue" },
     { href: "/sprints", label: t("sidebar.sprints", "Sprints"), icon: <Calendar className="h-4 w-4" />, accent: "bg-accent-pink" },
     { href: "/team", label: t("sidebar.team", "Team Directory"), icon: <Users className="h-4 w-4" />, accent: "bg-accent-green" },
+    { href: "/settings/workflows", label: t("sidebar.workflows", "Workflows"), icon: <Zap className="h-4 w-4" />, accent: "bg-accent-blue" },
   ];
 
   return (

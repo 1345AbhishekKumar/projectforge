@@ -2,12 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { Loader2, Trash2, ShieldAlert, Users, Zap, SlidersHorizontal } from "lucide-react";
+import { Loader2, Trash2, ShieldAlert } from "lucide-react";
 import { MemberList } from "@/components/orgs/MemberList";
 import { InviteModal } from "@/components/orgs/InviteModal";
 import { NotificationPreferences } from "@/components/notifications/NotificationPreferences";
-import { WorkflowsTab, type WorkflowRow } from "@/components/orgs/WorkflowsTab";
 import { useToastStore } from "@/store/toastStore";
 import {
   updateMemberRole,
@@ -27,7 +25,6 @@ import type { MembershipRole } from "@/types";
 type Props = {
   initialMembers: MemberListItem[];
   initialInvitations: OrgInvitationItem[];
-  initialWorkflows: WorkflowRow[];
   initialCustomRoles: { id: string; name: string }[];
   activeOrgId: string;
   activeOrgName: string;
@@ -38,7 +35,6 @@ type Props = {
 export function SettingsForm({
   initialMembers,
   initialInvitations,
-  initialWorkflows,
   initialCustomRoles,
   activeOrgId,
   activeOrgName,
@@ -46,7 +42,6 @@ export function SettingsForm({
   currentUserRole
 }: Props) {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"members" | "workflows">("members");
   const [members, setMembers] = useState<MemberListItem[]>(initialMembers);
   const [invitations, setInvitations] = useState<OrgInvitationItem[]>(initialInvitations);
   const [cancelingId, setCancelingId] = useState<string | null>(null);
@@ -173,50 +168,7 @@ export function SettingsForm({
         </div>
       </div>
 
-      {/* Tab navigation */}
-      <div className="flex border-b-2 border-black gap-2">
-        <button
-          onClick={() => setActiveTab("members")}
-          className={`px-6 py-2.5 text-sm font-bold font-cursive transition-all -mb-0.5 cursor-pointer ${
-            activeTab === "members"
-              ? "bg-accent-yellow border-2 border-black border-b-0 rounded-t-lg shadow-[0_-2px_0_rgba(0,0,0,1)]"
-              : "border-b-2 border-transparent hover:bg-neutral-bg/50 text-secondary"
-          }`}
-        >
-          <span className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            Members
-          </span>
-        </button>
-        {isOwnerOrAdmin && (
-          <button
-            onClick={() => setActiveTab("workflows")}
-            className={`px-6 py-2.5 text-sm font-bold font-cursive transition-all -mb-0.5 cursor-pointer ${
-              activeTab === "workflows"
-                ? "bg-accent-blue border-2 border-black border-b-0 rounded-t-lg shadow-[0_-2px_0_rgba(0,0,0,1)]"
-                : "border-b-2 border-transparent hover:bg-neutral-bg/50 text-secondary"
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Zap className="h-4 w-4" />
-              Workflows
-            </span>
-          </button>
-        )}
-        {isOwnerOrAdmin && (
-          <Link
-            href="/settings/custom-fields"
-            className="px-6 py-2.5 text-sm font-bold font-cursive transition-all -mb-0.5 cursor-pointer border-b-2 border-transparent hover:bg-neutral-bg/50 text-secondary flex items-center gap-2"
-          >
-            <SlidersHorizontal className="h-4 w-4" />
-            Custom Fields
-          </Link>
-        )}
-      </div>
-
-      {/* Members tab */}
-      {activeTab === "members" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* Members List (Left panel) */}
         <div className="lg:col-span-2 flex flex-col gap-8">
           <MemberList
@@ -300,16 +252,6 @@ export function SettingsForm({
             </div>
           )}
         </div>
-      )}
-
-      {/* Workflows tab */}
-      {activeTab === "workflows" && isOwnerOrAdmin && (
-        <WorkflowsTab
-          initialWorkflows={initialWorkflows}
-          orgId={activeOrgId}
-          isAdminOrOwner={isOwnerOrAdmin}
-        />
-      )}
 
       {/* Notification Preferences */}
       <NotificationPreferences />

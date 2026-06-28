@@ -470,3 +470,11 @@ After building any component — update this file with the component name, file 
 - **Main Title Card:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4`
 - **Stats Card:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset flex justify-around items-center divide-x-2 divide-black/10 rotate-[-0.5deg]`
 - **Logs Grid Card:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset flex flex-col gap-4`
+
+### Workflow Automation Settings (Feature 3.1 Refactoring)
+
+#### Workflows Settings Page
+
+- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/settings/workflows/page.tsx)
+- **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
+- **Main Wrapper Card:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col gap-6`
