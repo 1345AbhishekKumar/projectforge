@@ -34,7 +34,8 @@ export function useProjectDetails(projectId: string) {
     openDetails,
     closeDetails,
     openCreateModal,
-    closeCreateModal
+    closeCreateModal,
+    preselectedStatus
   } = useTaskStore();
 
   const { filtersByProject, activeViewByProject, setFilters, setActiveView, clearFilters } = useTaskFilterStore();
@@ -154,7 +155,7 @@ export function useProjectDetails(projectId: string) {
   });
 
   const createTaskMutation = useMutation({
-    mutationFn: async ({ title, description, status, priority, assigneeId, dueDate, labelIds }: {
+    mutationFn: async ({ title, description, status, priority, assigneeId, dueDate, labelIds, stage }: {
       title: string;
       description: string | null;
       status: TaskStatus;
@@ -162,8 +163,9 @@ export function useProjectDetails(projectId: string) {
       assigneeId: string | null;
       dueDate: string | null;
       labelIds: string[];
+      stage?: string | null;
     }) => {
-      const result = await createTask(projectId, activeOrgId!, title, description, status, priority, assigneeId, dueDate, null, labelIds);
+      const result = await createTask(projectId, activeOrgId!, title, description, status, priority, assigneeId, dueDate, null, labelIds, stage);
       if (!result.success) throw new Error(result.error || "Failed to create task");
       return result;
     },
@@ -231,16 +233,16 @@ export function useProjectDetails(projectId: string) {
   const updatingStatus = updateProjectMutation.isPending;
   const archiving = archiveProjectMutation.isPending;
 
-  const [activeTab, setActiveTab] = useState<"backlog" | "members" | "settings">("backlog");
+  const [activeTab, setActiveTab] = useState<"backlog" | "members" | "settings" | "time">("backlog");
 
   // Synchronize tab from URL search parameters on mount
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get("tab");
-      if (tab === "members" || tab === "backlog" || tab === "settings") {
+      if (tab === "members" || tab === "backlog" || tab === "settings" || tab === "time") {
         const timer = setTimeout(() => {
-          setActiveTab(tab as "backlog" | "members" | "settings");
+          setActiveTab(tab as "backlog" | "members" | "settings" | "time");
         }, 0);
         return () => clearTimeout(timer);
       }
@@ -286,7 +288,8 @@ export function useProjectDetails(projectId: string) {
     priority: TaskPriority,
     assigneeId: string | null,
     dueDate: string | null,
-    labelIds: string[] = []
+    labelIds: string[] = [],
+    stage?: string | null
   ) {
     if (!activeOrgId || !projectId) return { success: false, error: "Missing context" };
     try {
@@ -298,6 +301,7 @@ export function useProjectDetails(projectId: string) {
         assigneeId,
         dueDate,
         labelIds,
+        stage,
       });
       return res;
     } catch (e) {
@@ -312,6 +316,7 @@ export function useProjectDetails(projectId: string) {
       title?: string;
       description?: string | null;
       status?: TaskStatus;
+      stage?: string | null;
       priority?: TaskPriority;
       assignee_id?: string | null;
       due_date?: string | null;
@@ -417,6 +422,7 @@ export function useProjectDetails(projectId: string) {
     closeDetails,
     openCreateModal,
     closeCreateModal,
+    preselectedStatus,
     activeFilters,
     activeViewName,
     setFilters,

@@ -18,6 +18,7 @@ import { useOrgStore } from "@/store/orgStore";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { Navbar } from "@/components/layout/Navbar";
+import { SettingsSidebar } from "@/components/layout/SettingsSidebar";
 import { getOrganizationMembers } from "@/actions/membership";
 import { exportDataAction } from "@/actions/export";
 import { useTranslation } from "@/lib/i18n/useTranslation";
@@ -147,17 +148,23 @@ export default function ExportCenterPage() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 max-w-5xl w-full mx-auto p-6 md:p-12 flex flex-col gap-8">
-          <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6">
-            <h1 className="font-cursive text-3xl font-bold tracking-tight mb-2">
-              {t("export.title", "Data Export Center")}
-            </h1>
-            <p className="font-sans text-sm text-secondary">
-              {t("export.description", "Export organizational records, project tasks, and audit logs in multiple secure formats.")}
-            </p>
-          </div>
+        <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+            <div className="lg:col-span-1">
+              <SettingsSidebar />
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="lg:col-span-3 flex flex-col gap-8">
+              <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6">
+                <h1 className="font-cursive text-3xl font-bold tracking-tight mb-2">
+                  {t("export.title", "Data Export Center")}
+                </h1>
+                <p className="font-sans text-sm text-secondary">
+                  {t("export.description", "Export organizational records, project tasks, and audit logs in multiple secure formats.")}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {cards.map((card) => {
               if (!card.allowed) return null;
 
@@ -227,6 +234,8 @@ export default function ExportCenterPage() {
               </div>
             </div>
           )}
+            </div>
+          </div>
         </div>
       </div>
     </div>

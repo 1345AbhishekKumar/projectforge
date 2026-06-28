@@ -40,7 +40,7 @@ export function CreateProjectModal({ isOpen, onClose, onCreate }: Props) {
     queryFn: async () => {
       const result = await getProjectTemplates();
       if (!result.success) throw new Error(result.error || "Failed to load templates");
-      return (result.data || []) as ProjectTemplate[];
+      return (result.data || []) as unknown as ProjectTemplate[];
     },
     enabled: isOpen,
   });

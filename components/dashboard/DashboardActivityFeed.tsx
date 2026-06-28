@@ -57,7 +57,7 @@ export function DashboardActivityFeed({ orgId }: Props) {
 
   const getActivityText = (activity: ActivityWithActor) => {
     const name = activity.actor?.full_name || activity.actor?.email || "Someone";
-    const meta = activity.metadata || {};
+    const meta = (activity.metadata || {}) as { taskTitle?: string; projectName?: string; inviteeEmail?: string };
 
     switch (activity.action_type) {
       case "TASK_CREATED":

@@ -117,7 +117,7 @@ export default function SignUpPage() {
           }
         }
       }
-      await signUp.authenticateWithRedirect({
+      await (signUp as unknown as { authenticateWithRedirect: (params: { strategy: string; redirectUrl: string; redirectUrlComplete: string }) => Promise<unknown> }).authenticateWithRedirect({
         strategy,
         redirectUrl: "/sso-callback",
         redirectUrlComplete: target,

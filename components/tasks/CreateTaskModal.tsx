@@ -26,7 +26,8 @@ type Props = {
     priority: TaskPriority,
     assigneeId: string | null,
     dueDate: string | null,
-    labelIds: string[]
+    labelIds: string[],
+    stage?: string | null
   ) => Promise<{ success: boolean; error?: string }>;
   defaultStatus?: TaskStatus;
   customStatuses?: string[] | null;
@@ -65,7 +66,8 @@ export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, def
       title: "",
       description: "",
       priority: "MEDIUM",
-      status: defaultStatus || (customStatuses && customStatuses.length > 0 ? customStatuses[0] : "TODO"),
+      status: "TODO",
+      stage: "",
       assigneeId: "",
       dueDate: "",
     },
@@ -74,12 +76,26 @@ export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, def
   // Reset form when modal opens with new status context
   useEffect(() => {
     if (isOpen) {
-      const defaultStatusVal = defaultStatus || (customStatuses && customStatuses.length > 0 ? customStatuses[0] : "TODO");
+      let finalStatus: "TODO" | "IN_PROGRESS" | "DONE" = "TODO";
+      let finalStage = "";
+      if (customStatuses && customStatuses.length > 0) {
+        if (defaultStatus && customStatuses.includes(defaultStatus)) {
+          finalStage = defaultStatus;
+        } else {
+          finalStage = customStatuses[0];
+        }
+      } else {
+        if (defaultStatus && (defaultStatus === "TODO" || defaultStatus === "IN_PROGRESS" || defaultStatus === "DONE")) {
+          finalStatus = defaultStatus;
+        }
+      }
+
       reset({
         title: "",
         description: "",
         priority: "MEDIUM",
-        status: defaultStatusVal,
+        status: finalStatus,
+        stage: finalStage,
         assigneeId: "",
         dueDate: "",
       });
@@ -121,7 +137,8 @@ export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, def
         data.priority,
         data.assigneeId || null,
         data.dueDate || null,
-        selectedLabelIds
+        selectedLabelIds,
+        data.stage || null
       );
       if (result.success) {
         reset();
@@ -207,6 +224,20 @@ export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, def
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="font-sans text-xs font-semibold mb-1 block">
+                Status
+              </label>
+              <select
+                {...register("status")}
+                className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer"
+              >
+                <option value="TODO">TODO</option>
+                <option value="IN_PROGRESS">IN PROGRESS</option>
+                <option value="DONE">DONE</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="font-sans text-xs font-semibold mb-1 block">
                 Priority
               </label>
               <select
@@ -219,31 +250,26 @@ export function CreateTaskModal({ isOpen, onClose, members, orgId, onCreate, def
                 <option value="URGENT">URGENT</option>
               </select>
             </div>
+          </div>
 
+          {customStatuses && customStatuses.length > 0 && (
             <div>
               <label className="font-sans text-xs font-semibold mb-1 block">
-                Status
+                Board Stage
               </label>
               <select
-                {...register("status")}
+                {...register("stage")}
                 className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer"
               >
-                {customStatuses && customStatuses.length > 0 ? (
-                  customStatuses.map((s) => (
-                    <option key={s} value={s}>
-                      {s.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
-                    </option>
-                  ))
-                ) : (
-                  <>
-                    <option value="TODO">TODO</option>
-                    <option value="IN_PROGRESS">IN PROGRESS</option>
-                    <option value="DONE">DONE</option>
-                  </>
-                )}
+                <option value="">None (Backlog)</option>
+                {customStatuses.map((s) => (
+                  <option key={s} value={s}>
+                    {s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                  </option>
+                ))}
               </select>
             </div>
-          </div>
+          )}
 
           <div>
             <label className="font-sans text-xs font-semibold mb-1 block">

@@ -21,21 +21,25 @@ After building any component — update this file with the component name, file 
 ### Authentication Screens
 
 #### Login Screen (Sign-In)
-- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/(auth)/sign-in/[[...sign-in]]/page.tsx)
+
+- **File Path:** [page.tsx](<file:///d:/MyProjects/ongoing_Projects/projectforge/app/(auth)/sign-in/[[...sign-in]]/page.tsx>)
 - **Container Classes:** `min-h-screen w-full flex items-center justify-center bg-neutral-bg bg-dot-grid text-primary relative py-12 px-4`
 - **SSO Form Panel Classes:** `flex flex-col gap-4` with input container `relative`, input box `w-full font-sans text-sm pl-10 pr-4 py-3 bg-neutral-bg border-2 border-black rounded-sketchy-sm focus:outline-none focus:ring-2 focus:ring-tertiary focus:bg-white transition-all` and button `w-full bg-tertiary text-white font-sans font-bold text-sm py-3 px-6 rounded-full border-2 border-black shadow-flat-offset-sm hover:bg-tertiary-hover active:translate-y-0.5 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 cursor-pointer mt-2`
 
 #### Signup Screen (Sign-Up)
-- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/(auth)/sign-up/[[...sign-up]]/page.tsx)
+
+- **File Path:** [page.tsx](<file:///d:/MyProjects/ongoing_Projects/projectforge/app/(auth)/sign-up/[[...sign-up]]/page.tsx>)
 - **Container Classes:** `min-h-screen w-full flex items-center justify-center bg-neutral-bg bg-dot-grid text-primary relative py-12 px-4`
 
 #### SSO Callback Screen
-- **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/(auth)/sso-callback/page.tsx)
+
+- **File Path:** [page.tsx](<file:///d:/MyProjects/ongoing_Projects/projectforge/app/(auth)/sso-callback/page.tsx>)
 - **Description:** Renders Clerk's `<AuthenticateWithRedirectCallback />` to handle OAuth logins.
 
 ### Main Dashboard Screen
 
 #### Workspace Dashboard
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/dashboard/page.tsx)
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex flex-col`
 - **Navbar Classes:** `w-full bg-white border-b-2 border-black px-6 py-3 flex items-center justify-between sticky top-0 z-50`
@@ -47,6 +51,7 @@ After building any component — update this file with the component name, file 
 ### Organization Screens
 
 #### Create Organization Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/orgs/create/page.tsx)
 - **Container Classes:** `min-h-screen w-full flex items-center justify-center bg-neutral-bg bg-dot-grid text-primary relative py-12 px-4`
 - **Card Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8`
@@ -54,6 +59,7 @@ After building any component — update this file with the component name, file 
 - **Submit Button Classes:** `w-full py-3 bg-tertiary hover:bg-tertiary-hover text-white font-sans text-sm font-bold border-2 border-black rounded-full shadow-flat-offset-sm`
 
 #### OrgSwitcher Component
+
 - **File Path:** [OrgSwitcher.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/orgs/OrgSwitcher.tsx)
 - **State Consumer:** Consumes `useOrgStore` to set and react to the active organization.
 - **Trigger Classes:** `flex items-center gap-2 bg-white border-2 border-black rounded-full px-3 py-1.5 font-sans text-xs font-bold shadow-flat-offset-sm`
@@ -61,16 +67,19 @@ After building any component — update this file with the component name, file 
 - **Role Badge Colors:** `OWNER: bg-accent-purple text-white`, `ADMIN: bg-accent-blue text-primary`, `MEMBER: bg-accent-green text-primary`
 
 #### Members Settings Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/organizations/settings/page.tsx)
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex flex-col`
 - **Card Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4`
 
 #### MemberList Component
+
 - **File Path:** [MemberList.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/orgs/MemberList.tsx)
 - **Table Row Classes:** `border-b border-black/10 hover:bg-neutral-bg/50`
 - **Dropdown Selector Classes:** `bg-white border-2 border-black rounded-full px-2.5 py-1 font-sans text-xs font-bold shadow-flat-offset-sm focus:outline-none`
 
 #### InviteModal Component (Invite Form Card)
+
 - **File Path:** [InviteModal.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/orgs/InviteModal.tsx)
 - **Card Classes:** `bg-accent-yellow border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 rotate-[0.5deg]`
 - **Input Classes:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary`
@@ -78,26 +87,31 @@ After building any component — update this file with the component name, file 
 ### Project Management Screens
 
 #### Projects Directory Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/projects/page.tsx)
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex flex-col`
 - **Header Card Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col md:flex-row md:items-center justify-between gap-4`
 - **Column Card Classes:** `bg-white border-2 border-black rounded-sketchy p-5 shadow-flat-offset-sm flex flex-col gap-4`
 
 #### Project Details Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/projects/[id]/page.tsx)
 - **Header Card Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col md:flex-row md:items-center justify-between gap-6`
 - **Tab Button (Active):** `bg-accent-yellow border-2 border-black border-b-0 rounded-t-lg shadow-[0_-2px_0_rgba(0,0,0,1)] px-6 py-2.5 text-sm font-bold font-cursive`
 - **Empty State Card:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8 md:p-12 text-center max-w-lg mx-auto`
 
 #### BacklogTab Component
+
 - **File Path:** [BacklogTab.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/projects/BacklogTab.tsx)
 - **Container Classes:** `flex flex-col gap-6`
 
 #### MembersTab Component
+
 - **File Path:** [MembersTab.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/projects/MembersTab.tsx)
 - **Grid Classes:** `grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6`
 
 #### ProjectCard Component
+
 - **File Path:** [ProjectCard.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/projects/ProjectCard.tsx)
 - **Card Link:** `block w-full rounded-sketchy p-5 shadow-flat-offset-sm hover:-translate-y-1 hover:rotate-1 hover:shadow-flat-offset active:translate-y-0.5 active:rotate-0 transition-all duration-200 cursor-pointer`
 - **Badge Colors:** `PLANNING: bg-accent-yellow`, `ACTIVE: bg-accent-blue`, `COMPLETED: bg-accent-green`, `ARCHIVED: bg-neutral-bg`
@@ -105,16 +119,19 @@ After building any component — update this file with the component name, file 
 ### AI Assistant Components
 
 #### AIProjectAssistant Component (Project Summarization & Risks)
+
 - **File Path:** [AIProjectAssistant.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/projects/AIProjectAssistant.tsx)
 - **Container Dialog Classes:** `bg-white border-2 border-black rounded-sketchy w-full max-w-2xl max-h-[85vh] p-6 md:p-8 relative shadow-flat-offset flex flex-col gap-4 overflow-hidden`
 - **Trigger Buttons:** AI Summary (`bg-tertiary hover:bg-tertiary-hover text-white border-2 border-black px-3 py-2 rounded-full shadow-flat-offset-sm`), AI Risks (`bg-[#FFF2B2] hover:bg-[#FFE680] text-primary border-2 border-black px-3 py-2 rounded-full shadow-flat-offset-sm`)
 
 #### AISubtaskSuggester Component (Subtask Breakdowns)
+
 - **File Path:** [AISubtaskSuggester.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/details/AISubtaskSuggester.tsx)
 - **Container Classes:** `border-2 border-black rounded-sketchy p-4 bg-[#FFF2B2]/20 flex flex-col gap-3`
 - **Action Button:** `flex items-center gap-1 bg-white hover:bg-neutral-bg border border-black px-2 py-1 rounded shadow-flat-offset-xs`
 
 #### CreateProjectModal Component
+
 - **File Path:** [CreateProjectModal.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/projects/CreateProjectModal.tsx)
 - **Card Wrapper:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-md w-full relative rotate-[0.5deg]`
 - **Input Classes:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white placeholder:text-secondary/40 focus:outline-none focus:ring-2 focus:ring-tertiary`
@@ -123,22 +140,26 @@ After building any component — update this file with the component name, file 
 ### Task Management Components
 
 #### CreateTaskModal Component
+
 - **File Path:** [CreateTaskModal.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/CreateTaskModal.tsx)
 - **Card Wrapper:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-md w-full relative rotate-[0.5deg] max-h-[90vh]`
 - **Input Classes:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary`
 
 #### TaskDetailsSheet Component
+
 - **File Path:** [TaskDetailsSheet.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/TaskDetailsSheet.tsx)
 - **Container Classes:** `fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex justify-end`
 - **Drawer Classes:** `bg-white border-l-2 border-black w-full max-w-lg h-full p-6 md:p-8 relative shadow-[-4px_0_0_rgba(0,0,0,1)] flex flex-col gap-6 overflow-y-auto`
 
 #### TaskList Component
+
 - **File Path:** [TaskList.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/TaskList.tsx)
 - **Grid Layout Classes:** `grid grid-cols-1 md:grid-cols-3 gap-6`
 - **Column Card Classes:** `bg-white border-2 border-black rounded-sketchy p-5 shadow-flat-offset-sm flex flex-col gap-4 min-h-[300px]`
 - **Column Header Classes:** `flex items-center justify-between border-b-2 border-black pb-2 mb-1`
 
 #### TaskRow Component
+
 - **File Path:** [TaskRow.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/TaskRow.tsx)
 - **Row Container Classes:** `flex items-center justify-between p-4 border-2 border-black rounded-sketchy bg-white hover:bg-neutral-bg/30 transition-all duration-200 shadow-flat-offset-sm hover:-translate-y-0.5 cursor-pointer gap-4`
 - **Checkbox Classes:** `w-5 h-5 border-2 border-black rounded-sm flex items-center justify-center cursor-pointer bg-white`
@@ -146,6 +167,7 @@ After building any component — update this file with the component name, file 
 - **Overdue Date Badge:** `bg-accent-pink text-primary animate-pulse`
 
 #### TaskDetailsSheet Component (Tabs & Uploaders)
+
 - **Tabs Container Classes:** `flex border-b border-black`
 - **Active Tab Button:** `px-4 py-2 font-cursive text-lg font-bold border-t-2 border-x-2 border-black rounded-t-lg -mb-[2px] transition-all bg-accent-yellow shadow-[0_-2px_0_rgba(0,0,0,1)]`
 - **Uploader Dropzone:** `border-2 border-dashed border-black rounded-sketchy p-6 text-center hover:bg-neutral-bg/30 transition-all cursor-pointer block relative`
@@ -153,23 +175,27 @@ After building any component — update this file with the component name, file 
 - **Timeline Comment Card:** `bg-white border-2 border-black rounded-sketchy p-4 shadow-flat-offset-sm relative`
 
 #### TaskComments Component
+
 - **File Path:** [TaskComments.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/details/TaskComments.tsx)
 - **Timeline Comment Card:** `bg-white border-2 border-black rounded-sketchy p-4 shadow-flat-offset-sm relative`
 - **Form Input Classes:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary`
 - **Submit Button Classes:** `p-2 bg-tertiary hover:bg-tertiary-hover text-white rounded-full border-2 border-black shadow-flat-offset-sm transition-all duration-200`
 
 #### TaskAttachments Component
+
 - **File Path:** [TaskAttachments.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/details/TaskAttachments.tsx)
 - **Uploader Dropzone:** `border-2 border-dashed border-black rounded-sketchy p-6 text-center hover:bg-neutral-bg/30 transition-all cursor-pointer block relative`
 - **Upload Progress Bar:** `w-full bg-neutral-dot border-2 border-black rounded-full h-4 overflow-hidden relative`
 - **Attachment Card:** `flex items-center justify-between p-3 border-2 border-black rounded-sketchy bg-white hover:bg-neutral-bg/10 transition-all shadow-flat-offset-sm`
 
 #### TaskLabelSelector Component
+
 - **File Path:** [TaskLabelSelector.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/details/TaskLabelSelector.tsx)
 - **Dropdown List Card:** `border-2 border-black rounded-sketchy-sm p-2 bg-neutral-bg/25 max-h-32 overflow-y-auto flex flex-col gap-1`
 - **Label Creator Box:** `border-2 border-black rounded-sketchy bg-[#FFF2B2]/10 p-3 mt-2 flex flex-col gap-2.5`
 
 #### TaskFilters Component
+
 - **File Path:** [TaskFilters.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/TaskFilters.tsx)
 - **Container Classes:** `flex flex-wrap items-center gap-4 bg-white border-2 border-black rounded-sketchy p-4 shadow-flat-offset-sm`
 - **Filter Trigger Button:** `flex items-center gap-2 px-3 py-1.5 border-2 border-black rounded-full bg-white hover:bg-neutral-bg text-xs font-bold font-sans shadow-flat-offset-xs transition-all`
@@ -181,6 +207,7 @@ After building any component — update this file with the component name, file 
 ### Notification Components
 
 #### NotificationBell Component
+
 - **File Path:** [NotificationBell.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/notifications/NotificationBell.tsx)
 - **State Consumer:** Consumes `useNotificationStore` for dropdown toggle state, and `useQuery` / `useMutation` (TanStack Query) for fetching, optimistic reading, and cache invalidation.
 - **Bell Button Classes:** `relative p-2 rounded-full border-2 border-black bg-white hover:bg-neutral-bg shadow-flat-offset-sm transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0`
@@ -196,6 +223,7 @@ After building any component — update this file with the component name, file 
 ### Search Components
 
 #### GlobalSearchModal Component
+
 - **File Path:** [GlobalSearchModal.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/search/GlobalSearchModal.tsx)
 - **State Consumer:** Consumes `useSearchStore` for modal open/close toggle state.
 - **Description:** Search overlay that debounces input, performs organization-scoped searches for tasks, projects, and members, and provides hotkey accessibility (Cmd/Ctrl + K).
@@ -203,23 +231,28 @@ After building any component — update this file with the component name, file 
 ### Sprint Management Components
 
 #### Sprints Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/sprints/page.tsx)
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
 - **Panel Classes:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset-sm flex flex-col gap-4`
 - **Sprint Card Classes:** `border-2 border-black rounded-sketchy-sm p-4 bg-accent-blue/10 flex flex-col gap-3`
 
 #### SprintColumn Component
+
 - **File Path:** [SprintColumn.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/sprints/SprintColumn.tsx)
 - **Container Classes:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset-sm flex flex-col gap-4`
 - **Completed Sprint Classes:** `bg-white/40 border-dashed`
 - **Sprint Card Classes:** `border-2 border-black rounded-sketchy-sm p-4 bg-accent-blue/10 flex flex-col gap-3`
 
 #### Navbar Component
+
 - **File Path:** [Navbar.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/layout/Navbar.tsx)
 - **Container Classes:** `w-full bg-white border-b-2 border-black px-6 py-3 flex items-center justify-between sticky top-0 z-50`
-- **Sign Out Button Colors:** `bg-accent-pink hover:bg-accent-pink/80 text-primary border-2 border-black`
+- **Settings Toggle Classes:** `relative p-2 rounded-full border-2 border-black bg-white hover:bg-neutral-bg shadow-flat-offset-sm transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0`
+- **Settings Dropdown Classes:** `absolute right-0 top-full mt-2 w-48 bg-white border-2 border-black rounded-sketchy-sm shadow-flat-offset z-50 overflow-hidden`
 
 #### Sidebar Component
+
 - **File Path:** [Sidebar.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/layout/Sidebar.tsx)
 - **Container Classes:** `w-64 bg-white border-r-2 border-black flex flex-col h-screen sticky top-0 z-40 p-6 gap-6`
 - **Link Button Classes:** `w-full text-left flex items-center gap-3 px-4 py-2.5 border-2 border-black font-sans text-sm font-bold shadow-flat-offset-sm transition-all duration-200`
@@ -228,6 +261,7 @@ After building any component — update this file with the component name, file 
 ### Kanban Board Components
 
 #### Kanban Board Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/projects/[id]/board/page.tsx)
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
 - **Columns Grid Classes:** `grid grid-cols-1 lg:grid-cols-3 gap-8 mt-4 items-start min-h-[60vh]`
@@ -237,11 +271,13 @@ After building any component — update this file with the component name, file 
 - **Sticky Note Card Colors:** `LOW (Blue): bg-[#D0E1FD] hover:bg-[#C2D8FC]`, `MEDIUM (Green): bg-[#D4EDDA] hover:bg-[#C6E9CE]`, `HIGH (Yellow): bg-[#FFF2B2] hover:bg-[#FFEAA3]`, `URGENT (Pink): bg-[#FFD2D2] hover:bg-[#FFC4C4]`
 
 #### KanbanColumn Component
+
 - **File Path:** [KanbanColumn.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/board/KanbanColumn.tsx)
 - **Container Classes:** `bg-white border-2 border-black rounded-sketchy p-5 shadow-flat-offset-sm flex flex-col gap-4 min-h-[500px] transition-all duration-150 relative`
 - **Dragover Classes:** `bg-accent-yellow/10 border-dashed border-tertiary translate-y-0.5 shadow-none`
 
 #### KanbanCard Component
+
 - **File Path:** [KanbanCard.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/tasks/board/KanbanCard.tsx)
 - **Sticky Note Classes:** `p-5 border-2 border-black rounded-sketchy-sm cursor-grab active:cursor-grabbing transition-all duration-150 select-none relative shadow-sm`
 - **Sticky Note Colors:** `LOW (Blue): bg-[#D0E1FD] hover:bg-[#C2D8FC]`, `MEDIUM (Green): bg-[#D4EDDA] hover:bg-[#C6E9CE]`, `HIGH (Yellow): bg-[#FFF2B2] hover:bg-[#FFEAA3]`, `URGENT (Pink): bg-[#FFD2D2] hover:bg-[#FFC4C4]`
@@ -249,11 +285,13 @@ After building any component — update this file with the component name, file 
 ### Activity Feed Components
 
 #### Activity Feed Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/projects/[id]/activity/page.tsx)
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
 - **Tab Button (Active):** `bg-accent-yellow border-2 border-black border-b-0 rounded-t-lg shadow-[0_-2px_0_rgba(0,0,0,1)] px-6 py-2.5 text-sm font-bold font-cursive`
 
 #### ActivityFeed Component
+
 - **File Path:** [ActivityFeed.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/activities/ActivityFeed.tsx)
 - **Timeline Line:** `absolute left-8 top-0 bottom-0 w-0.5 border-l-2 border-dashed border-black/20 z-0`
 - **Timeline Icon Badge:** `absolute left-4 top-2.5 w-9 h-9 rounded-full border-2 border-black flex items-center justify-center shadow-flat-offset-sm transition-all hover:scale-105`
@@ -264,19 +302,23 @@ After building any component — update this file with the component name, file 
 ### Analytics Page & Components
 
 #### Analytics Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/analytics/page.tsx)
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
 
 #### StatsGrid & StatsCard Component
+
 - **File Path:** [StatsGrid.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/analytics/StatsGrid.tsx)
 - **Card Wrapper:** `border-2 border-black rounded-sketchy p-6 shadow-flat-offset-sm hover:-translate-y-0.5 hover:shadow-flat-offset transition-all duration-200`
 
 #### WorkloadBreakdown Component
+
 - **File Path:** [WorkloadBreakdown.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/analytics/WorkloadBreakdown.tsx)
 - **Card Wrapper:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset flex flex-col gap-6 rotate-[0.5deg]`
 - **Segmented Bar:** `w-full h-5 border-2 border-black rounded-full overflow-hidden bg-white flex relative shadow-sm`
 
 #### CompletionTrend Component
+
 - **File Path:** [CompletionTrend.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/analytics/CompletionTrend.tsx)
 - **Card Wrapper:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset flex flex-col gap-6 rotate-[-0.5deg]`
 - **SVG Axis Lines:** `stroke="#000000" strokeWidth="3"`
@@ -286,20 +328,24 @@ After building any component — update this file with the component name, file 
 ### User Profile Page & Form
 
 #### Profile Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/profile/page.tsx)
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
 
 #### ProfileForm Component
+
 - **File Path:** [ProfileForm.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/profile/ProfileForm.tsx)
 - **Card Wrapper:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-2xl w-full mx-auto relative rotate-[-0.5deg]`
 
 ### Notifications Manager Page & Components
 
 #### Notifications Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/notifications/page.tsx)
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
 
 #### NotificationManager Component
+
 - **File Path:** [NotificationManager.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/notifications/NotificationManager.tsx)
 - **Filters Box:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-4 flex flex-col gap-2`
 - **Notification Item:** `bg-white border-2 border-black rounded-sketchy-sm p-4 shadow-flat-offset-sm transition-all flex items-start gap-4`
@@ -307,6 +353,7 @@ After building any component — update this file with the component name, file 
 ### Global Organization Activity Page
 
 #### Global Activity Feed Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/activity/page.tsx)
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
 - **Activity Item:** `bg-white border-2 border-black rounded-sketchy-sm p-4 shadow-flat-offset-sm flex items-start gap-4 hover:-translate-y-0.5 transition-transform`
@@ -314,22 +361,26 @@ After building any component — update this file with the component name, file 
 ### Dashboard Invitation Banner Component
 
 #### InvitationBanner Component
+
 - **File Path:** [InvitationBanner.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/invitations/InvitationBanner.tsx)
 - **Banner Wrapper:** `bg-accent-purple border-2 border-black rounded-sketchy p-5 shadow-flat-offset flex flex-col md:flex-row md:items-center justify-between gap-4 rotate-[0.5deg] text-primary`
 
 ### Capacity & Resource Planning
 
 #### Capacity Planner Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/team/capacity/page.tsx)
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
 
 #### EditAllocationModal Component
+
 - **File Path:** [EditAllocationModal.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/team/EditAllocationModal.tsx)
 - **Card Wrapper Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-md w-full relative rotate-[0.5deg] max-h-[90vh]`
 
 ### Error Boundaries & Fallback Pages
 
 #### Root Segment Error Boundary
+
 - **File Path:** [error.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/error.tsx)
 - **Container Classes:** `min-h-[60vh] w-full flex items-center justify-center bg-neutral-bg bg-dot-grid text-primary p-6`
 - **Card Wrapper Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-8 md:p-10 text-center max-w-md w-full rotate-[-0.5deg]`
@@ -339,6 +390,7 @@ After building any component — update this file with the component name, file 
 ### Risk Management (Feature 4.8)
 
 #### Project Risks Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/projects/[id]/risks/page.tsx)
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
 - **Card Wrapper Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6`
@@ -346,6 +398,7 @@ After building any component — update this file with the component name, file 
 - **Matrix Cells Colors:** `Low Risk: bg-accent-green`, `Medium Risk: bg-accent-yellow`, `Critical Risk: bg-accent-pink`
 
 #### RiskFormModal Component
+
 - **File Path:** [RiskFormModal.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/risks/RiskFormModal.tsx)
 - **Card Wrapper Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-md w-full relative rotate-[-0.5deg]`
 - **Input Classes:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-1 focus:ring-black text-primary`
@@ -353,11 +406,13 @@ After building any component — update this file with the component name, file 
 ### Compliance & Governance (Feature 4.9)
 
 #### Compliance Center Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/settings/compliance/page.tsx)
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
 - **Settings Card Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6`
 
 #### AuditLogsViewer Component
+
 - **File Path:** [AuditLogsViewer.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/audit-logs/AuditLogsViewer.tsx)
 - **Container Classes:** `flex flex-col gap-6`
 - **Inner Tables/Filters:** Renders `<AuditLogFilters>` and `<AuditLogsTable>` from `components/audit-logs/`
@@ -365,30 +420,36 @@ After building any component — update this file with the component name, file 
 ### Organization Hierarchies (Feature 4.10)
 
 #### Departments Settings Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/settings/departments/page.tsx)
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
 
 #### DepartmentTree Component
+
 - **File Path:** [DepartmentTree.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/departments/DepartmentTree.tsx)
 - **Container Classes:** `flex flex-col gap-4`
 
 #### DepartmentForm Component
+
 - **File Path:** [DepartmentForm.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/departments/DepartmentForm.tsx)
 - **Container Classes:** `flex flex-col gap-4`
 
 #### MemberAssignment Component
+
 - **File Path:** [MemberAssignment.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/departments/MemberAssignment.tsx)
 - **Container Classes:** `flex flex-col gap-4`
 
 ### Data Export (Feature 4.13)
 
 #### Data Export Center Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/settings/export/page.tsx)
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
 - **Card Wrapper Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col justify-between gap-4`
 - **Integrity Verification Card:** `bg-accent-yellow/10 border-2 border-black rounded-sketchy p-6 shadow-flat-offset flex flex-col gap-3 relative rotate-[0.5deg]`
 
 #### Print View Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/settings/export/print/page.tsx)
 - **Container Classes:** `w-full min-h-screen bg-white text-black p-8 font-sans print:p-0`
 - **Integrity Signature block:** `border-2 border-black p-4 mb-6 bg-accent-yellow rounded-sketchy shadow-flat-offset-sm font-mono text-[10px] break-all leading-normal relative rotate-[0.5deg]`
@@ -396,12 +457,14 @@ After building any component — update this file with the component name, file 
 ### Multi-Language Support (Feature 4.14)
 
 #### ProfileForm Component updates
+
 - **File Path:** [ProfileForm.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/profile/ProfileForm.tsx)
 - **Language Selector Classes:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer`
 
 ### Telemetry & Tracing (Feature 4.16)
 
 #### Telemetry Visualizer Page
+
 - **File Path:** [page.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/app/settings/telemetry/page.tsx)
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
 - **Main Title Card:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4`

@@ -40,7 +40,8 @@ export async function createTask(
   assigneeId: string | null,
   dueDate: string | null,
   sprintId: string | null = null,
-  labelIds: string[] = []
+  labelIds: string[] = [],
+  stage: string | null = null
 ): Promise<{ success: boolean; data?: { taskId: string }; error?: string }> {
   const validated = createTaskInputSchema.safeParse({
     projectId,
@@ -48,6 +49,7 @@ export async function createTask(
     title,
     description,
     status,
+    stage,
     priority,
     assigneeId,
     dueDate,
@@ -69,21 +71,23 @@ export async function createTask(
       return { success: false, error: "You do not have permission to create tasks in this workspace." };
     }
 
-    // Fetch project's custom statuses and validate the status value
-    const { data: targetProject, error: projectFetchError } = await insforge.database
-      .from("projects")
-      .select("custom_statuses")
-      .eq("id", validated.data.projectId)
-      .eq("organization_id", validated.data.orgId)
-      .single();
+    // Validate stage against project's custom_statuses (if stage provided)
+    if (validated.data.stage) {
+      const { data: targetProject, error: projectFetchError } = await insforge.database
+        .from("projects")
+        .select("custom_statuses")
+        .eq("id", validated.data.projectId)
+        .eq("organization_id", validated.data.orgId)
+        .single();
 
-    if (projectFetchError || !targetProject) {
-      return { success: false, error: "Project not found" };
-    }
+      if (projectFetchError || !targetProject) {
+        return { success: false, error: "Project not found" };
+      }
 
-    const allowedStatuses = targetProject.custom_statuses || ["TODO", "IN_PROGRESS", "DONE"];
-    if (!allowedStatuses.includes(validated.data.status)) {
-      return { success: false, error: `Invalid status "${validated.data.status}". Must be one of: ${allowedStatuses.join(", ")}` };
+      const allowedStages = targetProject.custom_statuses;
+      if (allowedStages && !allowedStages.includes(validated.data.stage)) {
+        return { success: false, error: `Invalid board stage "${validated.data.stage}". Must be one of: ${allowedStages.join(", ")}` };
+      }
     }
 
     if (validated.data.assigneeId) {
@@ -106,13 +110,15 @@ export async function createTask(
       }
     }
 
-    // Get the highest board_index in the current status column to append the task at the bottom
+    // Get the highest board_index in the current stage column (or status column for non-staged projects)
+    // to append the task at the bottom
+    const stageOrStatus = validated.data.stage || validated.data.status;
     const { data: siblingTasks } = await insforge.database
       .from("tasks")
       .select("board_index")
       .eq("project_id", validated.data.projectId)
       .eq("organization_id", validated.data.orgId)
-      .eq("status", validated.data.status)
+      .eq(validated.data.stage ? "stage" : "status", stageOrStatus)
       .order("board_index", { ascending: false })
       .limit(1);
 
@@ -127,6 +133,7 @@ export async function createTask(
           title: validated.data.title,
           description: validated.data.description,
           status: validated.data.status,
+          stage: validated.data.stage || null,
           priority: validated.data.priority,
           assignee_id: validated.data.assigneeId,
           due_date: validated.data.dueDate,

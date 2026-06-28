@@ -192,7 +192,7 @@ export async function getEnterpriseReportingData(
     const projectCostMap = new Map<string, number>();
     projects.forEach((p) => {
       const projTasks = tasks.filter((t: Task) => t.project_id === p.id);
-      const cost = projTasks.reduce((acc, t: Task) => {
+      const cost = projTasks.reduce((acc, t: Task & { estimated_hours?: number | null }) => {
         const rate = getHourlyRate(t.assignee_id ? userRoleMap.get(t.assignee_id) || null : null);
         const hours = t.estimated_hours !== null && t.estimated_hours !== undefined ? t.estimated_hours : 8;
         return acc + (hours * rate);

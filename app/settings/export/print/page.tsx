@@ -28,7 +28,7 @@ function PrintViewContent() {
 
     async function loadData() {
       try {
-        const res = await exportDataAction(orgId, type, "pdf");
+        const res = await exportDataAction(orgId!, type!, "pdf");
         if (res.success && res.data && Array.isArray(res.data)) {
           setExportData({ data: res.data, hash: res.hash, filename: res.filename });
           setLoading(false);

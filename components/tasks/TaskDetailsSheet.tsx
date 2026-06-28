@@ -9,6 +9,7 @@ import { getTaskComments } from "@/actions/comment";
 import { getTaskAttachments } from "@/actions/attachment";
 import type { CommentWithUser, AttachmentWithUser, Sprint, Label } from "@/types";
 import { getLabels } from "@/actions/label";
+import { getProjectDetails } from "@/actions/project";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -27,6 +28,7 @@ const taskDetailsSchema = z.object({
     .max(100, "Title must be at most 100 characters"),
   description: z.string().trim().max(500, "Description must be at most 500 characters").optional(),
   status: z.string().min(1, "Status is required"),
+  stage: z.string().optional().nullable(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
   assigneeId: z.string().optional(),
   dueDate: z.string().optional(),
@@ -46,6 +48,7 @@ type Props = {
       title?: string;
       description?: string | null;
       status?: TaskStatus;
+      stage?: string | null;
       priority?: TaskPriority;
       assignee_id?: string | null;
       due_date?: string | null;
@@ -72,6 +75,7 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
       title: "",
       description: "",
       status: "TODO",
+      stage: "",
       priority: "MEDIUM",
       assigneeId: "",
       dueDate: "",
@@ -81,6 +85,7 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
   const [sprintId, setSprintId] = useState("");
   const [labels, setLabels] = useState<Label[]>([]);
   const [selectedLabelIds, setSelectedLabelIds] = useState<string[]>([]);
+  const [projectCustomStatuses, setProjectCustomStatuses] = useState<string[] | null>(null);
   
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -130,6 +135,30 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
     loadLabels();
   }, [isOpen, task]);
 
+  // Fetch project details for custom statuses if not provided via props
+  useEffect(() => {
+    if (!isOpen || !task || customStatuses !== undefined) return;
+
+    const currentTask = task;
+    let active = true;
+
+    async function loadProjectDetails() {
+      try {
+        const res = await getProjectDetails(currentTask.project_id, currentTask.organization_id);
+        if (active && res.success && res.data) {
+          setProjectCustomStatuses(res.data.custom_statuses);
+        }
+      } catch (err) {
+        console.error("Failed to load project details in TaskDetailsSheet", err);
+      }
+    }
+    loadProjectDetails();
+
+    return () => {
+      active = false;
+    };
+  }, [isOpen, task, customStatuses]);
+
   // Helper to format date
   const formatDateForInput = (dateStr: string | null) => {
     if (!dateStr) return "";
@@ -145,17 +174,19 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
   useEffect(() => {
     if (!task) return;
 
+    const currentTask = task;
     const timer = setTimeout(() => {
       resetDetails({
-        title: task.title || "",
-        description: task.description || "",
-        status: task.status || "TODO",
-        priority: task.priority || "MEDIUM",
-        assigneeId: task.assignee_id || "",
-        dueDate: formatDateForInput(task.due_date),
+        title: currentTask.title || "",
+        description: currentTask.description || "",
+        status: currentTask.status || "TODO",
+        stage: currentTask.stage || "",
+        priority: currentTask.priority || "MEDIUM",
+        assigneeId: currentTask.assignee_id || "",
+        dueDate: formatDateForInput(currentTask.due_date),
       });
-      setSprintId(task.sprint_id || "");
-      setSelectedLabelIds(task.labels?.map((l: Label) => l.id) || []);
+      setSprintId(currentTask.sprint_id || "");
+      setSelectedLabelIds(currentTask.labels?.map((l: Label) => l.id) || []);
       setError("");
     }, 0);
 
@@ -176,7 +207,8 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
       const result = await onUpdate(task.id, {
         title: data.title,
         description: data.description || null,
-        status: data.status,
+        status: data.status as TaskStatus,
+        stage: data.stage || null,
         priority: data.priority,
         assignee_id: data.assigneeId || null,
         due_date: data.dueDate || null,
@@ -326,19 +358,9 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
                   {...registerDetails("status")}
                   className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer"
                 >
-                  {customStatuses && customStatuses.length > 0 ? (
-                    customStatuses.map((s) => (
-                      <option key={s} value={s}>
-                        {s.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase())}
-                      </option>
-                    ))
-                  ) : (
-                    <>
-                      <option value="TODO">TODO</option>
-                      <option value="IN_PROGRESS">IN PROGRESS</option>
-                      <option value="DONE">DONE</option>
-                    </>
-                  )}
+                  <option value="TODO">TODO</option>
+                  <option value="IN_PROGRESS">IN PROGRESS</option>
+                  <option value="DONE">DONE</option>
                 </select>
               </div>
 
@@ -355,6 +377,29 @@ export function TaskDetailsSheet({ task: propTask, isOpen, onClose, members, spr
                 </select>
               </div>
             </div>
+
+            {(() => {
+              const resolvedCustomStatuses = customStatuses !== undefined ? customStatuses : projectCustomStatuses;
+              if (resolvedCustomStatuses && resolvedCustomStatuses.length > 0) {
+                return (
+                  <div>
+                    <label className="font-sans text-xs font-semibold mb-1 block">Board Stage</label>
+                    <select
+                      {...registerDetails("stage")}
+                      className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary cursor-pointer"
+                    >
+                      <option value="">None (Backlog)</option>
+                      {resolvedCustomStatuses.map((s) => (
+                        <option key={s} value={s}>
+                          {s.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             <div>
               <label className="font-sans text-xs font-semibold mb-1 block">Assignee (Optional)</label>

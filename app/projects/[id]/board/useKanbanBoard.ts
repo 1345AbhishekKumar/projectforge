@@ -150,7 +150,7 @@ export function useKanbanBoard({ params }: HookParams) {
   });
 
   const createTaskMutation = useMutation({
-    mutationFn: async ({ title, description, status, priority, assigneeId, dueDate, labelIds }: {
+    mutationFn: async ({ title, description, status, priority, assigneeId, dueDate, labelIds, stage }: {
       title: string;
       description: string | null;
       status: TaskStatus;
@@ -158,8 +158,9 @@ export function useKanbanBoard({ params }: HookParams) {
       assigneeId: string | null;
       dueDate: string | null;
       labelIds: string[];
+      stage?: string | null;
     }) => {
-      const result = await createTask(projectId, activeOrgId!, title, description, status, priority, assigneeId, dueDate, null, labelIds);
+      const result = await createTask(projectId, activeOrgId!, title, description, status, priority, assigneeId, dueDate, null, labelIds, stage);
       if (!result.success) throw new Error(result.error || "Failed to create task");
       return result;
     },
@@ -268,7 +269,6 @@ export function useKanbanBoard({ params }: HookParams) {
     }
   }, [archiveProjectMutation]);
 
-  // Task Handlers
   const handleCreateTask = useCallback(async (
     title: string,
     description: string | null,
@@ -276,23 +276,34 @@ export function useKanbanBoard({ params }: HookParams) {
     priority: TaskPriority,
     assigneeId: string | null,
     dueDate: string | null,
-    labelIds: string[] = []
+    labelIds: string[] = [],
+    stage: string | null = null
   ) => {
     try {
+      const isCustom = project?.custom_statuses && project.custom_statuses.length > 0;
+      let finalStatus = status;
+      let finalStage = stage;
+      
+      if (isCustom && project?.custom_statuses?.includes(status)) {
+        finalStatus = "TODO";
+        finalStage = status;
+      }
+
       return await createTaskMutation.mutateAsync({
         title,
         description,
-        status,
+        status: finalStatus,
         priority,
         assigneeId,
         dueDate,
-        labelIds
+        labelIds,
+        stage: finalStage,
       });
     } catch (e) {
       const err = e instanceof Error ? e.message : "An error occurred";
       return { success: false, error: err };
     }
-  }, [createTaskMutation]);
+  }, [createTaskMutation, project]);
 
   const handleUpdateTask = useCallback(async (
     taskId: string,
@@ -398,10 +409,17 @@ export function useKanbanBoard({ params }: HookParams) {
     const draggedTask = tasks.find((t) => t.id === taskId);
     if (!draggedTask) return;
 
+    const isCustom = project?.custom_statuses && project.custom_statuses.length > 0;
+
     let newTasks = [...tasks];
     
     const targetColumnTasks = newTasks
-      .filter((t) => t.status === targetStatus && t.id !== taskId)
+      .filter((t) => {
+        if (isCustom) {
+          return t.stage === targetStatus && t.id !== taskId;
+        }
+        return t.status === targetStatus && t.id !== taskId;
+      })
       .sort((a, b) => (a.board_index ?? 0) - (b.board_index ?? 0));
 
     let targetIndex = targetColumnTasks.length;
@@ -414,7 +432,7 @@ export function useKanbanBoard({ params }: HookParams) {
 
     const updatedDraggedTask = {
       ...draggedTask,
-      status: targetStatus,
+      [isCustom ? "stage" : "status"]: targetStatus,
     };
     targetColumnTasks.splice(targetIndex, 0, updatedDraggedTask);
 
@@ -425,16 +443,27 @@ export function useKanbanBoard({ params }: HookParams) {
 
     newTasks = newTasks.map((t) => {
       if (t.id === taskId) {
-        return { ...t, status: targetStatus, board_index: targetIndex };
+        return {
+          ...t,
+          [isCustom ? "stage" : "status"]: targetStatus,
+          board_index: targetIndex,
+        };
       }
       const reindexed = reindexedTargetColumn.find((rt) => rt.id === t.id);
       if (reindexed) return reindexed;
       return t;
     });
 
-    if (draggedTask.status !== targetStatus) {
+    const draggedTaskVal = isCustom ? draggedTask.stage : draggedTask.status;
+
+    if (draggedTaskVal !== targetStatus) {
       const sourceColumnTasks = newTasks
-        .filter((t) => t.status === draggedTask.status && t.id !== taskId)
+        .filter((t) => {
+          if (isCustom) {
+            return t.stage === draggedTaskVal && t.id !== taskId;
+          }
+          return t.status === draggedTaskVal && t.id !== taskId;
+        })
         .sort((a, b) => (a.board_index ?? 0) - (b.board_index ?? 0))
         .map((t, idx) => ({
           ...t,
@@ -456,11 +485,15 @@ export function useKanbanBoard({ params }: HookParams) {
         .filter((t) => {
           const original = tasks.find((ot) => ot.id === t.id);
           if (!original) return true;
+          if (isCustom) {
+            return original.stage !== t.stage || original.board_index !== t.board_index;
+          }
           return original.status !== t.status || original.board_index !== t.board_index;
         })
         .map((t) => ({
           id: t.id,
-          status: t.status,
+          stage: isCustom ? t.stage : undefined,
+          status: isCustom ? undefined : t.status,
           board_index: t.board_index,
         }));
 
@@ -480,7 +513,8 @@ export function useKanbanBoard({ params }: HookParams) {
         })
         .map((t) => ({
           id: t.id,
-          status: targetStatus,
+          stage: isCustom ? targetStatus : undefined,
+          status: isCustom ? undefined : targetStatus,
           board_index: t.board_index,
         }));
 
@@ -488,7 +522,7 @@ export function useKanbanBoard({ params }: HookParams) {
         reorderTasksMutation.mutate(reorderPayload);
       }
     }
-  }, [tasks, draggedTaskId, reorderTasksMutation]);
+  }, [tasks, draggedTaskId, reorderTasksMutation, project]);
 
   const openCreateTaskAtStatus = useCallback((status: TaskStatus) => {
     openCreateModal(status);

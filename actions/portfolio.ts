@@ -246,8 +246,8 @@ export async function getPortfolios(
       const rollup = await getPortfolioMetrics(insforge, portfolio.id);
       result.push({
         ...(portfolio as Portfolio),
-        status: portfolio.status as PortfolioStatus,
         ...rollup,
+        status: portfolio.status as PortfolioStatus,
       });
     }
 
@@ -298,8 +298,8 @@ export async function getPortfolioDetails(
       success: true,
       data: {
         ...(portfolio as Portfolio),
-        status: portfolio.status as PortfolioStatus,
         ...rollup,
+        status: portfolio.status as PortfolioStatus,
       },
     };
   } catch (err) {

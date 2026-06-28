@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Loader2, User, Image as ImageIcon, Save, XCircle, CheckCircle, Globe } from "lucide-react";
@@ -32,7 +32,7 @@ export function ProfileForm({ initialProfile }: Props) {
     handleSubmit,
     formState: { errors },
   } = useForm<ProfileInput>({
-    resolver: zodResolver(profileSchema),
+    resolver: zodResolver(profileSchema) as unknown as Resolver<ProfileInput>,
     mode: "onBlur",
     defaultValues: {
       fullName: initialProfile.fullName || "",

@@ -152,8 +152,8 @@ describe("SSO JIT Provisioning Logic Tests", () => {
 
   it("should auto-create a workspace and assign user as OWNER if domain doesn't exist", async () => {
     const databaseMock = {
-      organizations: [],
-      memberships: []
+      organizations: [] as OrgMock[],
+      memberships: [] as MembershipMock[]
     };
 
     const res = await mockJITProvision({

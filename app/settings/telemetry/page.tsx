@@ -19,6 +19,7 @@ import { useOrgStore } from "@/store/orgStore";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { Navbar } from "@/components/layout/Navbar";
+import { SettingsSidebar } from "@/components/layout/SettingsSidebar";
 import { 
   publishEvent, 
   processEventQueue, 
@@ -39,6 +40,16 @@ type GatewayRequestLog = {
   success: boolean;
 };
 
+interface EventQueueLog {
+  id: string;
+  event_type: string;
+  status: "PENDING" | "COMPLETED" | "FAILED" | string;
+  payload: Record<string, unknown>;
+  error_log: string | null;
+  attempts: number;
+  created_at: string;
+}
+
 export default function TelemetryPage() {
   const { user, isLoaded } = useUser();
   const { activeOrgId } = useOrgStore();
@@ -58,11 +69,11 @@ export default function TelemetryPage() {
   } | null>(null);
 
   // Fetch Event Queue Logs
-  const { data: eventLogs = [], refetch: refetchEventLogs, isLoading: loadingEvents } = useQuery({
+  const { data: eventLogs = [], refetch: refetchEventLogs, isLoading: loadingEvents } = useQuery<EventQueueLog[]>({
     queryKey: ["eventQueueLogs", activeOrgId],
     queryFn: async () => {
       const res = await getEventQueueLogs();
-      return res.success ? res.data : [];
+      return (res.success ? res.data : []) as EventQueueLog[];
     },
     enabled: !!activeOrgId,
   });
@@ -250,9 +261,14 @@ export default function TelemetryPage() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-10 flex flex-col gap-8">
-          
-          {/* Main Title Banner */}
+        <div className="flex-1 max-w-7xl w-full mx-auto p-6 md:p-10">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+            <div className="lg:col-span-1">
+              <SettingsSidebar />
+            </div>
+
+            <div className="lg:col-span-3 flex flex-col gap-8">
+              {/* Main Title Banner */}
           <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
               <h1 className="font-cursive text-3xl font-bold tracking-tight mb-2 flex items-center gap-2">
@@ -497,6 +513,9 @@ export default function TelemetryPage() {
             </div>
 
           </div>
+
+          </div>
+        </div>
 
         </div>
       </div>

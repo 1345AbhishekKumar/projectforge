@@ -23,7 +23,10 @@ export const projectSchema = z.object({
     })
     .nullable()
     .optional(),
-  templateId: z.string().uuid().nullable().optional(),
+  templateId: z.preprocess(
+    (val) => (val === "" ? null : val),
+    z.string().uuid().nullable().optional()
+  ),
 });
 
 export const taskSchema = z.object({
@@ -38,7 +41,10 @@ export const taskSchema = z.object({
     .max(500, "Description must be at most 500 characters")
     .nullable()
     .optional(),
-  status: z.string().min(1, "Status is required"),
+  // Delivery status — always one of the 3 universal states
+  status: z.enum(["TODO", "IN_PROGRESS", "DONE"]),
+  // Board workflow stage — project-specific (e.g. PLANNING, DEVELOPMENT, REVIEW, LAUNCHED)
+  stage: z.string().trim().min(1).nullable().optional(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]),
   assigneeId: z.string().nullable().optional(),
   dueDate: z.string().nullable().optional(),

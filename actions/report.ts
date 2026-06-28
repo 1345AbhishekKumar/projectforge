@@ -204,7 +204,7 @@ export async function getReportingData(
         return t.status !== "DONE" && t.due_date && new Date(t.due_date) < now;
       }).length;
 
-      const totalEstimatedHours = userTasks.reduce((acc: number, t: Task) => {
+      const totalEstimatedHours = userTasks.reduce((acc: number, t: Task & { estimated_hours?: number | null }) => {
         const est = t.estimated_hours !== null && t.estimated_hours !== undefined ? t.estimated_hours : 8;
         return acc + est;
       }, 0);

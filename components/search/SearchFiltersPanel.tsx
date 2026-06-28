@@ -3,7 +3,8 @@
 import React, { useEffect, useState } from "react";
 import { getUserProjects } from "@/actions/project";
 import { getOrganizationMembers } from "@/actions/membership";
-import type { Project, MemberListItem } from "@/types";
+import type { Project } from "@/types";
+import type { MemberListItem } from "@/actions/membership";
 
 interface SearchFiltersPanelProps {
   orgId: string;

@@ -9,6 +9,7 @@ import { useOrgStore } from "@/store/orgStore";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { Navbar } from "@/components/layout/Navbar";
+import { SettingsSidebar } from "@/components/layout/SettingsSidebar";
 import { DepartmentTree } from "@/components/departments/DepartmentTree";
 import { DepartmentForm } from "@/components/departments/DepartmentForm";
 import { MemberAssignment } from "@/components/departments/MemberAssignment";
@@ -167,58 +168,66 @@ export default function DepartmentsSettingsPage() {
         </div>
 
         {/* Content */}
-        <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-8">
-          <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <Network className="h-8 w-8 text-accent-blue shrink-0" />
-              <h1 className="font-cursive text-3xl font-bold tracking-tight">Organization Hierarchies</h1>
+        <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+            <div className="lg:col-span-1">
+              <SettingsSidebar />
             </div>
-            <p className="font-sans text-sm text-secondary">
-              Define recursive departments, designate department managers, and assign members to establish scoped permission boundaries.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            {/* Tree View (Left/Main Column) */}
-            <div className="lg:col-span-8 flex flex-col gap-6">
+            
+            <div className="lg:col-span-3 flex flex-col gap-8">
               <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6">
-                <h2 className="font-cursive text-2xl font-bold mb-4">Department Structure</h2>
-                <DepartmentTree
-                  departments={departments}
-                  members={members}
-                  onEdit={setEditingDept}
-                  onDelete={handleDelete}
-                />
+                <div className="flex items-center gap-3 mb-2">
+                  <Network className="h-8 w-8 text-accent-blue shrink-0" />
+                  <h1 className="font-cursive text-3xl font-bold tracking-tight">Organization Hierarchies</h1>
+                </div>
+                <p className="font-sans text-sm text-secondary">
+                  Define recursive departments, designate department managers, and assign members to establish scoped permission boundaries.
+                </p>
               </div>
 
-              <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6">
-                <h2 className="font-cursive text-2xl font-bold mb-4">Member Department Assignments</h2>
-                <MemberAssignment
-                  departments={departments}
-                  members={members}
-                  customRoles={customRoles}
-                  onAssign={handleAssign}
-                />
-              </div>
-            </div>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                {/* Tree View (Left/Main Column) */}
+                <div className="lg:col-span-8 flex flex-col gap-6">
+                  <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6">
+                    <h2 className="font-cursive text-2xl font-bold mb-4">Department Structure</h2>
+                    <DepartmentTree
+                      departments={departments}
+                      members={members}
+                      onEdit={setEditingDept}
+                      onDelete={handleDelete}
+                    />
+                  </div>
 
-            {/* Creation/Edit Form (Right Column) */}
-            <div className="lg:col-span-4 bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6">
-              <h2 className="font-cursive text-2xl font-bold mb-4 flex items-center gap-2">
-                <Plus className="h-5 w-5" />
-                {editingDept ? "Edit Department" : "New Department"}
-              </h2>
-              <DepartmentForm
-                key={editingDept ? editingDept.id : "new-department"}
-                orgId={activeOrgId || ""}
-                members={members}
-                departments={departments}
-                editingDept={editingDept}
-                onSuccess={handleSuccess}
-                onCancelEdit={() => setEditingDept(null)}
-                onCreate={handleCreate}
-                onUpdate={handleUpdate}
-              />
+                  <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6">
+                    <h2 className="font-cursive text-2xl font-bold mb-4">Member Department Assignments</h2>
+                    <MemberAssignment
+                      departments={departments}
+                      members={members}
+                      customRoles={customRoles}
+                      onAssign={handleAssign}
+                    />
+                  </div>
+                </div>
+
+                {/* Creation/Edit Form (Right Column) */}
+                <div className="lg:col-span-4 bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6">
+                  <h2 className="font-cursive text-2xl font-bold mb-4 flex items-center gap-2">
+                    <Plus className="h-5 w-5" />
+                    {editingDept ? "Edit Department" : "New Department"}
+                  </h2>
+                  <DepartmentForm
+                    key={editingDept ? editingDept.id : "new-department"}
+                    orgId={activeOrgId || ""}
+                    members={members}
+                    departments={departments}
+                    editingDept={editingDept}
+                    onSuccess={handleSuccess}
+                    onCancelEdit={() => setEditingDept(null)}
+                    onCreate={handleCreate}
+                    onUpdate={handleUpdate}
+                  />
+                </div>
+              </div>
             </div>
           </div>
         </div>

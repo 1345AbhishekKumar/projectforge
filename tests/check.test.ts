@@ -13,7 +13,7 @@ describe("Data Export Integrity & Format Verification", () => {
   it("should generate a consistent and correct SHA-256 HMAC integrity hash", () => {
     const rawData = [
       { id: 1, action: "auth.login", actor: "user1", created_at: "2026-06-21T12:00:00Z" },
-      { id: 2, action: "task.created", actor: "user1", created_at: "2026-06-21T12:05:00Z" },
+      { id: 2, action: "task.created", actor: "user1", created_at: "2026-06-21T12:05:00Z" }
     ];
     const dataString = JSON.stringify(rawData);
 
@@ -25,9 +25,11 @@ describe("Data Export Integrity & Format Verification", () => {
   });
 
   it("should fail validation if the export data is tampered with", () => {
-    const originalData = JSON.stringify([{ action: "task.delete", actor: "admin" }]);
+    const originalData = JSON.stringify([
+      { action: "task.delete", actor: "admin" }
+    ]);
     const tamperedData = JSON.stringify([
-      { action: "task.delete", actor: "user" }, // Changed actor
+      { action: "task.delete", actor: "user" } // Changed actor
     ]);
 
     const hashOriginal = calculateHMAC(originalData, secretKey);
@@ -38,20 +40,8 @@ describe("Data Export Integrity & Format Verification", () => {
 
   it("should output valid CSV formatted text from project list data", () => {
     const mockProjects = [
-      {
-        name: "Web App",
-        description: "First project, details",
-        status: "ACTIVE",
-        created_at: "2026-06-21T12:00:00Z",
-        tasks_count: 5,
-      },
-      {
-        name: "Mobile API",
-        description: "Back-end for mobile",
-        status: "PLANNING",
-        created_at: "2026-06-21T12:30:00Z",
-        tasks_count: 12,
-      },
+      { name: "Web App", description: "First project, details", status: "ACTIVE", created_at: "2026-06-21T12:00:00Z", tasks_count: 5 },
+      { name: "Mobile API", description: "Back-end for mobile", status: "PLANNING", created_at: "2026-06-21T12:30:00Z", tasks_count: 12 }
     ];
 
     let csvContent = "Project Name,Description,Status,Created At,Tasks Count\n";
@@ -67,14 +57,7 @@ describe("Data Export Integrity & Format Verification", () => {
 
   it("should generate a valid HTML spreadsheet markup structure for Excel", () => {
     const mockAuditLog = [
-      {
-        created_at: "2026-06-21T12:00:00Z",
-        actor: "John Doe",
-        action: "sprint.started",
-        entity_type: "sprint",
-        entity_id: "uuid-123",
-        metadata: "{}",
-      },
+      { created_at: "2026-06-21T12:00:00Z", actor: "John Doe", action: "sprint.started", entity_type: "sprint", entity_id: "uuid-123", metadata: "{}" }
     ];
 
     let tableRows = `<tr><th>Time (UTC)</th><th>Actor</th><th>Action</th><th>Entity Type</th><th>Entity ID</th><th>Metadata (JSON)</th></tr>`;
@@ -92,7 +75,7 @@ describe("Data Export Integrity & Format Verification", () => {
       </html>
     `;
 
-    expect(excelMarkup).toContain('xmlns:x="urn:schemas-microsoft-com:office:excel"');
+    expect(excelMarkup).toContain("xmlns:x=\"urn:schemas-microsoft-com:office:excel\"");
     expect(excelMarkup).toContain("sprint.started");
     expect(excelMarkup).toContain("John Doe");
   });

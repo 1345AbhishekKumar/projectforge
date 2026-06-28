@@ -7,6 +7,7 @@ import Link from "next/link";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Navbar } from "@/components/layout/Navbar";
+import { SettingsSidebar } from "@/components/layout/SettingsSidebar";
 import { AuditLogsViewer } from "@/components/audit-logs/AuditLogsViewer";
 import { getOrganizationMembers, type MemberListItem } from "@/actions/membership";
 import { getUserOrganizations } from "@/actions/org";
@@ -108,21 +109,26 @@ export default async function AuditLogsPage() {
               </Link>
             </div>
           ) : (
-            <div className="flex flex-col gap-6">
-              {/* Header Info */}
-              <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div>
-                  <h1 className="font-cursive text-3xl font-bold mb-1">
-                    Security Audit Logs: <span className="underline decoration-tertiary decoration-2">{activeOrgName}</span>
-                  </h1>
-                  <p className="font-sans text-xs text-secondary">
-                    View critical operations, membership changes, and workflow modifications.
-                  </p>
-                </div>
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+              <div className="lg:col-span-1">
+                <SettingsSidebar />
               </div>
+              <div className="lg:col-span-3 flex flex-col gap-6">
+                {/* Header Info */}
+                <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <h1 className="font-cursive text-3xl font-bold mb-1">
+                      Security Audit Logs: <span className="underline decoration-tertiary decoration-2">{activeOrgName}</span>
+                    </h1>
+                    <p className="font-sans text-xs text-secondary">
+                      View critical operations, membership changes, and workflow modifications.
+                    </p>
+                  </div>
+                </div>
 
-              {/* Viewer component */}
-              <AuditLogsViewer orgId={activeOrgId} members={initialMembers} />
+                {/* Viewer component */}
+                <AuditLogsViewer orgId={activeOrgId} members={initialMembers} />
+              </div>
             </div>
           )}
         </div>

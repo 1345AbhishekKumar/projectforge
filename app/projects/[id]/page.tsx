@@ -1,7 +1,7 @@
 "use client";
 
 import React, { use } from "react";
-import { ArrowLeft, Loader2, Calendar, Archive, ClipboardList, FolderKanban, Users, Activity, Settings, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Loader2, Calendar, Archive, ClipboardList, FolderKanban, Users, Activity, Settings, AlertTriangle, Clock } from "lucide-react";
 
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { Navbar } from "@/components/layout/Navbar";
@@ -11,6 +11,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { BacklogTab } from "@/components/projects/BacklogTab";
 import { MembersTab } from "@/components/projects/MembersTab";
 import { SettingsTab } from "@/components/projects/SettingsTab";
+import { TimeDashboard } from "@/components/time/TimeDashboard";
 import { AIProjectAssistant } from "@/components/projects/AIProjectAssistant";
 import { useProjectDetails } from "./useProjectDetails";
 import type { ProjectStatus } from "@/types";
@@ -42,6 +43,7 @@ export default function ProjectDetailsPage({ params }: Props) {
     closeDetails,
     openCreateModal,
     closeCreateModal,
+    preselectedStatus,
     activeFilters,
     activeViewName,
     setFilters,
@@ -239,27 +241,27 @@ export default function ProjectDetailsPage({ params }: Props) {
                         ? [
                             {
                               queryKey: ["project", projectId, activeOrgId],
-                              queryFn: () => getProjectDetails(projectId, activeOrgId),
+                              queryFn: async () => { const r = await getProjectDetails(projectId, activeOrgId); return r.data ?? null; },
                             },
                             {
                               queryKey: ["tasks", projectId, activeOrgId],
-                              queryFn: () => getProjectTasks(projectId, activeOrgId),
+                              queryFn: async () => { const r = await getProjectTasks(projectId, activeOrgId); return r.data ?? []; },
                             },
                             {
                               queryKey: ["sprints", activeOrgId],
-                              queryFn: () => getSprints(activeOrgId),
+                              queryFn: async () => { const r = await getSprints(activeOrgId); return r.data ?? []; },
                             },
                             {
                               queryKey: ["members", activeOrgId],
-                              queryFn: () => getOrganizationMembers(activeOrgId),
+                              queryFn: async () => { const r = await getOrganizationMembers(activeOrgId); return r.data ?? []; },
                             },
                             {
                               queryKey: ["labels", activeOrgId],
-                              queryFn: () => getLabels(activeOrgId),
+                              queryFn: async () => { const r = await getLabels(activeOrgId); return r.data ?? []; },
                             },
                             {
                               queryKey: ["savedViews", activeOrgId],
-                              queryFn: () => getSavedViews(activeOrgId),
+                              queryFn: async () => { const r = await getSavedViews(activeOrgId); return r.data ?? []; },
                             },
                           ]
                         : []
@@ -284,6 +286,19 @@ export default function ProjectDetailsPage({ params }: Props) {
                       Members
                     </span>
                   </button>
+                  <button
+                    onClick={() => setActiveTab("time")}
+                    className={`px-6 py-2.5 text-sm font-bold font-cursive transition-all -mb-0.5 cursor-pointer ${
+                      activeTab === "time"
+                        ? "bg-accent-yellow border-2 border-black border-b-0 rounded-t-lg shadow-[0_-2px_0_rgba(0,0,0,1)]"
+                        : "border-b-2 border-transparent hover:bg-neutral-bg/50 px-6 py-2.5 text-secondary"
+                    }`}
+                  >
+                    <span className="flex items-center gap-2">
+                      <Clock className="h-4 w-4" />
+                      Time
+                    </span>
+                  </button>
                   <PrefetchLink
                     href={`/projects/${projectId}/activity`}
                     prefetchQueries={
@@ -291,7 +306,7 @@ export default function ProjectDetailsPage({ params }: Props) {
                         ? [
                             {
                               queryKey: ["project", projectId, activeOrgId],
-                              queryFn: () => getProjectDetails(projectId, activeOrgId),
+                              queryFn: async () => { const r = await getProjectDetails(projectId, activeOrgId); return r.data ?? null; },
                             },
                           ]
                         : []
@@ -310,15 +325,15 @@ export default function ProjectDetailsPage({ params }: Props) {
                         ? [
                             {
                               queryKey: ["project", projectId, activeOrgId],
-                              queryFn: () => getProjectDetails(projectId, activeOrgId),
+                              queryFn: async () => { const r = await getProjectDetails(projectId, activeOrgId); return r.data ?? null; },
                             },
                             {
                               queryKey: ["risks", projectId, activeOrgId],
-                              queryFn: () => getProjectRisks(activeOrgId, projectId),
+                              queryFn: async () => { const r = await getProjectRisks(activeOrgId, projectId); return r.data ?? []; },
                             },
                             {
                               queryKey: ["members", activeOrgId],
-                              queryFn: () => getOrganizationMembers(activeOrgId),
+                              queryFn: async () => { const r = await getOrganizationMembers(activeOrgId); return r.data ?? []; },
                             },
                           ]
                         : []
@@ -386,19 +401,28 @@ export default function ProjectDetailsPage({ params }: Props) {
                   {activeTab === "settings" && isAdminOrOwner && activeOrgId && (
                     <SettingsTab project={project} orgId={activeOrgId} />
                   )}
+
+                  {/* Time Tab Content */}
+                  {activeTab === "time" && activeOrgId && (
+                    <TimeDashboard
+                      orgId={activeOrgId}
+                      currentUserId={user?.id || ""}
+                      isAdminOrOwner={isAdminOrOwner}
+                    />
+                  )}
                 </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* Create Task Modal */}
         <CreateTaskModal
           isOpen={isCreateTaskModalOpen}
           onClose={closeCreateModal}
           members={members}
           orgId={activeOrgId || ""}
           onCreate={handleCreateTask}
+          defaultStatus={preselectedStatus}
           customStatuses={project?.custom_statuses}
         />
 

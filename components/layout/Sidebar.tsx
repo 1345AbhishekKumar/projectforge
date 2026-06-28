@@ -8,17 +8,9 @@ import {
   FolderKanban,
   Calendar,
   Users,
-  Activity,
-  BarChart2,
-  Clock,
-  History,
   Briefcase,
-  Shield,
-  Download,
-  User,
 } from "lucide-react";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
-import { SearchTrigger } from "@/components/search/SearchTrigger";
 import { GlobalSearchModal } from "@/components/search/GlobalSearchModal";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 import { useOrgStore } from "@/store/orgStore";
@@ -82,40 +74,40 @@ export function Sidebar() {
         return [
           {
             queryKey: ["projects", activeOrgId],
-            queryFn: () => getUserProjects(activeOrgId),
+            queryFn: async () => { const r = await getUserProjects(activeOrgId); return r.data ?? []; },
           },
         ];
       case "/sprints":
         return [
           {
             queryKey: ["sprints", activeOrgId],
-            queryFn: () => getSprints(activeOrgId),
+            queryFn: async () => { const r = await getSprints(activeOrgId); return r.data ?? []; },
           },
           {
             queryKey: ["orgTasks", activeOrgId],
-            queryFn: () => getOrganizationTasks(activeOrgId),
+            queryFn: async () => { const r = await getOrganizationTasks(activeOrgId); return r.data ?? []; },
           },
           {
             queryKey: ["members", activeOrgId],
-            queryFn: () => getOrganizationMembers(activeOrgId),
+            queryFn: async () => { const r = await getOrganizationMembers(activeOrgId); return r.data ?? []; },
           },
         ];
       case "/team":
         return [
           {
             queryKey: ["teamDirectory", activeOrgId],
-            queryFn: () => getTeamDirectory(activeOrgId),
+            queryFn: async () => { const r = await getTeamDirectory(activeOrgId); return r.data ?? []; },
           },
         ];
       case "/time":
         return [
           {
             queryKey: ["activeTimer"],
-            queryFn: () => getActiveTimer(),
+            queryFn: async () => { const r = await getActiveTimer(); return r.data ?? null; },
           },
           {
             queryKey: ["timeEntries", activeOrgId],
-            queryFn: () => getUserTimeEntries(activeOrgId),
+            queryFn: async () => { const r = await getUserTimeEntries(activeOrgId); return r.data ?? []; },
           },
         ];
       default:
@@ -129,17 +121,6 @@ export function Sidebar() {
     { href: "/projects", label: t("sidebar.projects", "Projects Directory"), icon: <FolderKanban className="h-4 w-4" />, accent: "bg-accent-blue" },
     { href: "/sprints", label: t("sidebar.sprints", "Sprints"), icon: <Calendar className="h-4 w-4" />, accent: "bg-accent-pink" },
     { href: "/team", label: t("sidebar.team", "Team Directory"), icon: <Users className="h-4 w-4" />, accent: "bg-accent-green" },
-    { href: "/team/capacity", label: t("sidebar.capacity", "Capacity Planner"), icon: <Users className="h-4 w-4" />, accent: "bg-accent-green" },
-    { href: "/activity", label: t("sidebar.activity", "Activity Feed"), icon: <Activity className="h-4 w-4" />, accent: "bg-accent-yellow" },
-    { href: "/analytics", label: t("sidebar.analytics", "Analytics"), icon: <BarChart2 className="h-4 w-4" />, accent: "bg-accent-blue" },
-    { href: "/time", label: t("sidebar.time", "Time Tracking"), icon: <Clock className="h-4 w-4" />, accent: "bg-accent-pink" },
-    { href: "/settings/audit-logs", label: t("sidebar.auditLogs", "Audit Logs"), icon: <History className="h-4 w-4" />, accent: "bg-accent-green" },
-    { href: "/settings/roles", label: t("sidebar.roles", "Roles & Permissions"), icon: <Shield className="h-4 w-4" />, accent: "bg-accent-yellow" },
-    { href: "/settings/compliance", label: t("sidebar.compliance", "Compliance Center"), icon: <Shield className="h-4 w-4" />, accent: "bg-accent-pink" },
-    { href: "/settings/departments", label: t("sidebar.departments", "Departments"), icon: <Users className="h-4 w-4" />, accent: "bg-accent-blue" },
-    { href: "/settings/export", label: t("export.title", "Data Export Center"), icon: <Download className="h-4 w-4" />, accent: "bg-accent-yellow" },
-    { href: "/settings/telemetry", label: t("sidebar.telemetry", "Telemetry Visualizer"), icon: <Activity className="h-4 w-4" />, accent: "bg-accent-blue" },
-    { href: "/profile", label: t("sidebar.profile", "Profile Settings"), icon: <User className="h-4 w-4" />, accent: "bg-accent-purple" },
   ];
 
   return (
@@ -163,12 +144,6 @@ export function Sidebar() {
         <div className="border-b border-black/10 pb-4">
           <label className="font-sans text-[10px] font-bold text-secondary uppercase mb-2 block">{t("sidebar.workspace", "Workspace")}</label>
           <OrgSwitcher />
-        </div>
-
-        {/* Search Trigger */}
-        <div>
-          <label className="font-sans text-[10px] font-bold text-secondary uppercase mb-2 block">{t("sidebar.search", "Search")}</label>
-          <SearchTrigger />
         </div>
 
         {/* Nav links */}

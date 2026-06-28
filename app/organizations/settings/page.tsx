@@ -7,6 +7,7 @@ import Link from "next/link";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Navbar } from "@/components/layout/Navbar";
+import { SettingsSidebar } from "@/components/layout/SettingsSidebar";
 import { SettingsForm } from "@/components/orgs/SettingsForm";
 import { getOrganizationMembers, type MemberListItem } from "@/actions/membership";
 import { getOrganizationInvitations, type OrgInvitationItem } from "@/actions/invitation";
@@ -109,16 +110,23 @@ export default async function SettingsPage() {
               </Link>
             </div>
           ) : (
-          <SettingsForm
-              initialMembers={initialMembers}
-              initialInvitations={initialInvitations}
-              initialWorkflows={initialWorkflows}
-              initialCustomRoles={initialCustomRoles}
-              activeOrgId={activeOrgId}
-              activeOrgName={activeOrgName}
-              currentUserId={userId}
-              currentUserRole={currentUserRole}
-            />
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+              <div className="lg:col-span-1">
+                <SettingsSidebar />
+              </div>
+              <div className="lg:col-span-3">
+                <SettingsForm
+                  initialMembers={initialMembers}
+                  initialInvitations={initialInvitations}
+                  initialWorkflows={initialWorkflows}
+                  initialCustomRoles={initialCustomRoles}
+                  activeOrgId={activeOrgId}
+                  activeOrgName={activeOrgName}
+                  currentUserId={userId}
+                  currentUserRole={currentUserRole}
+                />
+              </div>
+            </div>
           )}
         </div>
       </div>

@@ -122,10 +122,17 @@ export default function DashboardPage() {
                           <ArrowRight className="h-4 w-4" />
                         </button>
                         <button
-                          onClick={() => router.push("/team/capacity")}
+                          onClick={() => router.push("/team?tab=capacity")}
                           className="w-full text-left font-sans text-xs font-bold p-3 border-2 border-black bg-accent-yellow hover:bg-[#FFEAA3] rounded-sketchy-sm shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all flex items-center justify-between cursor-pointer"
                         >
                           📈 {t("dashboard.quickActions.capacity", "Resource Capacity Planner")}
+                          <ArrowRight className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => router.push("/time")}
+                          className="w-full text-left font-sans text-xs font-bold p-3 border-2 border-black bg-accent-pink hover:bg-[#FFD4D4] rounded-sketchy-sm shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all flex items-center justify-between cursor-pointer"
+                        >
+                          ⏱️ {t("dashboard.quickActions.time", "Time Tracking Hub")}
                           <ArrowRight className="h-4 w-4" />
                         </button>
                       </div>

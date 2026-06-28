@@ -65,6 +65,8 @@ export type Task = {
   title: string;
   description: string | null;
   status: TaskStatus;
+  /** Board workflow stage — project-specific value from custom_statuses (e.g. PLANNING, DEVELOPMENT). */
+  stage: string | null;
   priority: TaskPriority;
   assignee_id: string | null;
   due_date: string | null;

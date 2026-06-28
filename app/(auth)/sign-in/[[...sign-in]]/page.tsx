@@ -120,7 +120,7 @@ export default function SignInPage() {
           }
         }
       }
-      return await signIn!.authenticateWithRedirect({
+      return await (signIn as unknown as { authenticateWithRedirect: (params: { strategy: string; identifier?: string; redirectUrl: string; redirectUrlComplete: string }) => Promise<unknown> }).authenticateWithRedirect({
         strategy: "saml",
         identifier: email,
         redirectUrl: "/sso-callback",
@@ -145,7 +145,7 @@ export default function SignInPage() {
           }
         }
       }
-      await signIn.authenticateWithRedirect({
+      await (signIn as unknown as { authenticateWithRedirect: (params: { strategy: string; identifier?: string; redirectUrl: string; redirectUrlComplete: string }) => Promise<unknown> }).authenticateWithRedirect({
         strategy,
         redirectUrl: "/sso-callback",
         redirectUrlComplete: target,

@@ -7,6 +7,7 @@ import Link from "next/link";
 import { OrgSwitcher } from "@/components/orgs/OrgSwitcher";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Navbar } from "@/components/layout/Navbar";
+import { SettingsSidebar } from "@/components/layout/SettingsSidebar";
 import { RolesSettingsClient } from "@/components/roles/RolesSettingsClient";
 import { getCustomRoles, getPermissions } from "@/actions/role";
 import { getUserOrganizations } from "@/actions/org";
@@ -54,10 +55,10 @@ export default async function RolesPage() {
     ]);
 
     if (rolesRes.success && rolesRes.data) {
-      initialRoles = rolesRes.data;
+      initialRoles = rolesRes.data as unknown as CustomRole[];
     }
     if (permissionsRes.success && permissionsRes.data) {
-      allPermissions = permissionsRes.data;
+      allPermissions = permissionsRes.data as unknown as Permission[];
     }
     if (orgsRes.success && orgsRes.data) {
       const activeOrg = orgsRes.data.find((o) => o.id === activeOrgId);
@@ -113,13 +114,20 @@ export default async function RolesPage() {
               </Link>
             </div>
           ) : (
-            <RolesSettingsClient
-              initialRoles={initialRoles}
-              allPermissions={allPermissions}
-              activeOrgId={activeOrgId}
-              activeOrgName={activeOrgName}
-              currentUserRole={currentUserRole}
-            />
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+              <div className="lg:col-span-1">
+                <SettingsSidebar />
+              </div>
+              <div className="lg:col-span-3">
+                <RolesSettingsClient
+                  initialRoles={initialRoles}
+                  allPermissions={allPermissions}
+                  activeOrgId={activeOrgId}
+                  activeOrgName={activeOrgName}
+                  currentUserRole={currentUserRole}
+                />
+              </div>
+            </div>
           )}
         </div>
       </div>

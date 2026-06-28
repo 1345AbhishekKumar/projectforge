@@ -22,10 +22,10 @@ export default function SprintsPage() {
     );
   }
 
-  const activeSprints = page.sprints.filter((s) => s.status === "ACTIVE");
-  const plannedSprints = page.sprints.filter((s) => s.status === "PLANNED");
-  const completedSprints = page.sprints.filter((s) => s.status === "COMPLETED" || s.status === "CANCELLED");
-  const backlogTasks = page.tasks.filter((t) => !t.sprint_id);
+  const activeSprints = (page.sprints || []).filter((s) => s.status === "ACTIVE");
+  const plannedSprints = (page.sprints || []).filter((s) => s.status === "PLANNED");
+  const completedSprints = (page.sprints || []).filter((s) => s.status === "COMPLETED" || s.status === "CANCELLED");
+  const backlogTasks = (page.tasks || []).filter((t) => !t.sprint_id);
   const isAuthorized = page.userRole === "OWNER" || page.userRole === "ADMIN";
 
   return (

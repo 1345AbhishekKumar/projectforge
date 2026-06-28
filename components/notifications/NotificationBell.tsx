@@ -70,6 +70,7 @@ const TYPE_BADGE: Record<
   SPRINT_ENDED: { label: "Sprint ✓", className: "bg-accent-green border border-black/30 text-primary" },
   MEMBER_INVITED: { label: "Invited", className: "bg-accent-purple text-white border border-black/30" },
   PROJECT_COMPLETED: { label: "Project ✓", className: "bg-accent-yellow border border-black/30 text-primary" },
+  TASK_ESCALATION: { label: "Escalation", className: "bg-accent-pink border border-black/30 text-primary" },
 };
 
 export function NotificationBell() {

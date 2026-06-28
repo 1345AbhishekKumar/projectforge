@@ -111,7 +111,7 @@ export async function createOrganization(
       sameSite: "lax",
     });
 
-    revalidateTag(`user-orgs-${userId}`);
+    revalidateTag(`user-orgs-${userId}`, "hours");
     revalidatePath("/dashboard");
     return { success: true, data: { orgId: org.id } };
   } catch (err) {
@@ -257,7 +257,7 @@ export async function deleteOrganization(
     const cookieStore = await cookies();
     cookieStore.delete("active_org_id");
 
-    revalidateTag(`user-orgs-${userId}`);
+    revalidateTag(`user-orgs-${userId}`, "hours");
     revalidatePath("/dashboard");
     return { success: true };
   } catch (err) {

@@ -20,7 +20,10 @@ const updateTaskInputSchema = z.object({
   updates: z.object({
     title: z.string().min(3, "Title must be at least 3 characters").max(100).optional(),
     description: z.string().max(500).nullable().optional(),
-    status: z.string().min(1).optional(),
+    // Delivery status: always TODO | IN_PROGRESS | DONE
+    status: z.enum(["TODO", "IN_PROGRESS", "DONE"]).optional(),
+    // Board workflow stage: project-specific
+    stage: z.string().min(1).nullable().optional(),
     priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
     assignee_id: z.string().nullable().optional(),
     due_date: z.string().nullable().optional(),
@@ -42,7 +45,9 @@ const reorderTasksInputSchema = z.object({
   taskUpdates: z.array(
     z.object({
       id: taskIdSchema,
-      status: z.string().min(1),
+      // Board stage for drag-drop column changes
+      stage: z.string().min(1).nullable().optional(),
+      status: z.enum(["TODO", "IN_PROGRESS", "DONE"]).optional(),
       board_index: z.number().int().min(0),
     })
   ),
@@ -56,6 +61,8 @@ export async function updateTask(
     title?: string;
     description?: string | null;
     status?: TaskStatus;
+    /** Board workflow stage — project-specific */
+    stage?: string | null;
     priority?: TaskPriority;
     assignee_id?: string | null;
     due_date?: string | null;
@@ -101,8 +108,8 @@ export async function updateTask(
       return { success: false, error: "Task not found" };
     }
 
-    // Validate status transition if status is changing
-    if (validated.data.updates.status !== undefined && validated.data.updates.status !== currentTask.status) {
+    // Validate stage change against project's custom_statuses (if stage is changing)
+    if (validated.data.updates.stage !== undefined) {
       const { data: projectData, error: projectError } = await insforge.database
         .from("projects")
         .select("custom_statuses")
@@ -111,81 +118,62 @@ export async function updateTask(
         .single();
 
       if (projectError || !projectData) {
-        logger.error({ error: projectError, projectId: validated.data.projectId }, "Project not found for status transition validation");
-        return { success: false, error: "Failed to validate status transition" };
+        logger.error({ error: projectError, projectId: validated.data.projectId }, "Project not found for stage validation");
+        return { success: false, error: "Failed to validate board stage" };
       }
 
-      const allowedStatuses = projectData.custom_statuses || ["TODO", "IN_PROGRESS", "DONE"];
-      const newStatus = validated.data.updates.status;
-      const oldStatus = currentTask.status;
-
-      if (!allowedStatuses.includes(newStatus)) {
-        return { success: false, error: `Invalid status "${newStatus}". Must be one of: ${allowedStatuses.join(", ")}` };
-      }
-
-      // Check task approval lock
-      const { data: pendingApprovals } = await insforge.database
-        .from("task_approvals")
-        .select("id")
-        .eq("task_id", validated.data.taskId)
-        .eq("status", "PENDING");
-
-      if (pendingApprovals && pendingApprovals.length > 0) {
-        if (newStatus === allowedStatuses[0]) {
-          // Reverting to backlog cancels/rejects the active approvals
-          await insforge.database
-            .from("task_approvals")
-            .update({ status: "REJECTED", updated_at: new Date().toISOString() })
-            .eq("task_id", validated.data.taskId)
-            .in("status", ["PENDING", "QUEUED"]);
-        } else {
-          return { success: false, error: "Cannot update task status: this task is locked pending approval." };
-        }
-      }
-
-      const oldIdx = allowedStatuses.indexOf(oldStatus);
-      const newIdx = allowedStatuses.indexOf(newStatus);
-
-      if (oldIdx !== -1) {
-        // Enforce linear rule: forward 1 step or back to backlog (index 0)
-        if (!(newIdx === oldIdx + 1 || newIdx === 0)) {
-          return { success: false, error: `Invalid status transition from "${oldStatus}" to "${newStatus}". You can only move a task forward one column or back to the first column.` };
-        }
-      }
-
-      // Check task dependency blocking if moving to completed status
-      const completedStatus = allowedStatuses[allowedStatuses.length - 1];
-      if (newStatus === completedStatus) {
-        const { data: blockers, error: blockersError } = await insforge.database
-          .from("task_dependencies")
-          .select(`
-            source_task:tasks!source_task_id(id, title, status)
-          `)
-          .eq("target_task_id", validated.data.taskId);
-
-        if (blockersError) {
-          logger.error({ blockersError, taskId: validated.data.taskId }, "Failed to fetch task blockers for validation");
-          return { success: false, error: "Failed to validate task dependencies" };
+      if (validated.data.updates.stage !== null && projectData.custom_statuses) {
+        const newStage = validated.data.updates.stage;
+        if (!projectData.custom_statuses.includes(newStage)) {
+          return { success: false, error: `Invalid board stage "${newStage}". Must be one of: ${projectData.custom_statuses.join(", ")}` };
         }
 
-        interface BlockerRow {
-          source_task: {
-            id: string;
-            title: string;
-            status: string;
-          } | null;
+        // Check task approval lock when moving stage
+        const { data: pendingApprovals } = await insforge.database
+          .from("task_approvals")
+          .select("id")
+          .eq("task_id", validated.data.taskId)
+          .eq("status", "PENDING");
+
+        if (pendingApprovals && pendingApprovals.length > 0) {
+          const firstStage = projectData.custom_statuses[0];
+          if (newStage === firstStage) {
+            // Reverting to first stage cancels pending approvals
+            await insforge.database
+              .from("task_approvals")
+              .update({ status: "REJECTED", updated_at: new Date().toISOString() })
+              .eq("task_id", validated.data.taskId)
+              .in("status", ["PENDING", "QUEUED"]);
+          } else {
+            return { success: false, error: "Cannot update board stage: this task is locked pending approval." };
+          }
         }
 
-        const activeBlockers = ((blockers as unknown as BlockerRow[]) || [])
-          .map((b) => b.source_task)
-          .filter((t): t is { id: string; title: string; status: string } => !!t && t.status !== completedStatus);
+        // Check task dependency blocking if moving to the last stage
+        const lastStage = projectData.custom_statuses[projectData.custom_statuses.length - 1];
+        if (newStage === lastStage) {
+          const { data: blockers, error: blockersError } = await insforge.database
+            .from("task_dependencies")
+            .select(`source_task:tasks!source_task_id(id, title, status)`)
+            .eq("target_task_id", validated.data.taskId);
 
-        if (activeBlockers.length > 0) {
-          const blockerNames = activeBlockers.map((b) => `"${b.title}"`).join(", ");
-          return {
-            success: false,
-            error: `Cannot complete task because it is blocked by: ${blockerNames}`,
-          };
+          if (blockersError) {
+            logger.error({ blockersError, taskId: validated.data.taskId }, "Failed to fetch task blockers");
+            return { success: false, error: "Failed to validate task dependencies" };
+          }
+
+          interface BlockerRow {
+            source_task: { id: string; title: string; status: string } | null;
+          }
+
+          const activeBlockers = ((blockers as unknown as BlockerRow[]) || [])
+            .map((b) => b.source_task)
+            .filter((t): t is { id: string; title: string; status: string } => !!t && t.status !== "DONE");
+
+          if (activeBlockers.length > 0) {
+            const blockerNames = activeBlockers.map((b) => `"${b.title}"`).join(", ");
+            return { success: false, error: `Cannot complete task because it is blocked by: ${blockerNames}` };
+          }
         }
       }
     }
@@ -262,6 +250,9 @@ export async function updateTask(
     }
     if (validated.data.updates.status !== undefined) {
       updatePayload.status = validated.data.updates.status;
+    }
+    if (validated.data.updates.stage !== undefined) {
+      updatePayload.stage = validated.data.updates.stage;
     }
     if (validated.data.updates.priority !== undefined) {
       updatePayload.priority = validated.data.updates.priority;
@@ -404,7 +395,7 @@ export async function deleteTask(
 export async function reorderTasks(
   projectId: string,
   orgId: string,
-  taskUpdates: { id: string; status: TaskStatus; board_index: number }[]
+  taskUpdates: { id: string; stage?: string | null; status?: TaskStatus; board_index: number }[]
 ): Promise<{ success: boolean; error?: string }> {
   const validated = reorderTasksInputSchema.safeParse({ projectId, orgId, taskUpdates });
   if (!validated.success) {
@@ -422,118 +413,79 @@ export async function reorderTasks(
       return { success: false, error: "You do not have permission to update tasks in this workspace." };
     }
 
-    // Fetch previous task states to log status transitions
+    // Fetch previous task states to log stage transitions
     const taskIds = validated.data.taskUpdates.map((u) => u.id);
     const { data: prevTasks } = await insforge.database
       .from("tasks")
-      .select("id, title, status")
+      .select("id, title, stage, status")
       .in("id", taskIds);
 
-    // Validate status transitions for taskUpdates
-    const { data: projectData, error: projectError } = await insforge.database
-      .from("projects")
-      .select("custom_statuses")
-      .eq("id", validated.data.projectId)
-      .eq("organization_id", validated.data.orgId)
-      .single();
+    // Validate stages against project's custom_statuses (if any stages are provided)
+    const hasStageUpdates = validated.data.taskUpdates.some((u) => u.stage !== undefined && u.stage !== null);
+    if (hasStageUpdates) {
+      const { data: projectData, error: projectError } = await insforge.database
+        .from("projects")
+        .select("custom_statuses")
+        .eq("id", validated.data.projectId)
+        .eq("organization_id", validated.data.orgId)
+        .single();
 
-    if (projectError || !projectData) {
-      logger.error({ error: projectError, projectId: validated.data.projectId }, "Project not found for reorder status transition validation");
-      return { success: false, error: "Failed to validate status transition" };
-    }
+      if (projectError || !projectData) {
+        logger.error({ error: projectError, projectId: validated.data.projectId }, "Project not found for reorder stage validation");
+        return { success: false, error: "Failed to validate board stage" };
+      }
 
-    const allowedStatuses = projectData.custom_statuses || ["TODO", "IN_PROGRESS", "DONE"];
-    
-    if (prevTasks) {
-      for (const update of validated.data.taskUpdates) {
-        const prev = prevTasks.find((t) => t.id === update.id);
-        if (prev && prev.status !== update.status) {
-          if (!allowedStatuses.includes(update.status)) {
-            return { success: false, error: `Invalid status "${update.status}". Must be one of: ${allowedStatuses.join(", ")}` };
-          }
+      const allowedStages = projectData.custom_statuses;
 
-          // Check task approval lock
-          const { data: pendingApprovals } = await insforge.database
-            .from("task_approvals")
-            .select("id")
-            .eq("task_id", update.id)
-            .eq("status", "PENDING");
-
-          if (pendingApprovals && pendingApprovals.length > 0) {
-            if (update.status === allowedStatuses[0]) {
-              // Reverting to backlog cancels/rejects the active approvals
-              await insforge.database
-                .from("task_approvals")
-                .update({ status: "REJECTED", updated_at: new Date().toISOString() })
-                .eq("task_id", update.id)
-                .in("status", ["PENDING", "QUEUED"]);
-            } else {
-              return { success: false, error: `Cannot update task status for "${prev.title}": this task is locked pending approval.` };
-            }
-          }
-
-          const oldIdx = allowedStatuses.indexOf(prev.status);
-          const newIdx = allowedStatuses.indexOf(update.status);
-          
-          if (oldIdx !== -1) {
-            if (!(newIdx === oldIdx + 1 || newIdx === 0)) {
-              return { success: false, error: `Invalid status transition for task "${prev.title}" from "${prev.status}" to "${update.status}".` };
-            }
-          }
-
-          // Check task dependency blocking if moving to completed status
-          const completedStatus = allowedStatuses[allowedStatuses.length - 1];
-          if (update.status === completedStatus) {
-            const { data: blockers, error: blockersError } = await insforge.database
-               .from("task_dependencies")
-              .select(`
-                source_task:tasks!source_task_id(id, title, status)
-              `)
-              .eq("target_task_id", update.id);
-
-            if (blockersError) {
-              logger.error({ blockersError, taskId: update.id }, "Failed to fetch task blockers for validation in reorder");
-              return { success: false, error: "Failed to validate task dependencies" };
+      if (prevTasks && allowedStages) {
+        for (const update of validated.data.taskUpdates) {
+          if (update.stage === undefined || update.stage === null) continue;
+          const prev = prevTasks.find((t) => t.id === update.id);
+          if (prev && prev.stage !== update.stage) {
+            if (!allowedStages.includes(update.stage)) {
+              return { success: false, error: `Invalid board stage "${update.stage}". Must be one of: ${allowedStages.join(", ")}` };
             }
 
-            interface BlockerRow {
-              source_task: {
-                id: string;
-                title: string;
-                status: string;
-              } | null;
-            }
+            // Check task approval lock
+            const { data: pendingApprovals } = await insforge.database
+              .from("task_approvals")
+              .select("id")
+              .eq("task_id", update.id)
+              .eq("status", "PENDING");
 
-            const activeBlockers = ((blockers as unknown as BlockerRow[]) || [])
-              .map((b) => b.source_task)
-              .filter((t): t is { id: string; title: string; status: string } => !!t && t.status !== completedStatus);
-
-            if (activeBlockers.length > 0) {
-              const blockerNames = activeBlockers.map((b) => `"${b.title}"`).join(", ");
-              return {
-                success: false,
-                error: `Cannot complete task "${prev.title}" because it is blocked by: ${blockerNames}`,
-              };
+            if (pendingApprovals && pendingApprovals.length > 0) {
+              if (update.stage === allowedStages[0]) {
+                await insforge.database
+                  .from("task_approvals")
+                  .update({ status: "REJECTED", updated_at: new Date().toISOString() })
+                  .eq("task_id", update.id)
+                  .in("status", ["PENDING", "QUEUED"]);
+              } else {
+                return { success: false, error: `Cannot update board stage for "${prev.title}": this task is locked pending approval.` };
+              }
             }
           }
         }
       }
     }
 
-    // Run updates in parallel
-    const promises = validated.data.taskUpdates.map((update) =>
-      insforge.database
-         .from("tasks")
-        .update({
-          status: update.status,
-          board_index: update.board_index,
-          updated_at: new Date().toISOString(),
-        })
+    // Run updates in parallel — update stage + board_index
+    const promises = validated.data.taskUpdates.map((update) => {
+      const payload: Record<string, unknown> = {
+        board_index: update.board_index,
+        updated_at: new Date().toISOString(),
+      };
+      if (update.stage !== undefined) {
+        payload.stage = update.stage;
+      }
+      return insforge.database
+        .from("tasks")
+        .update(payload)
         .eq("id", update.id)
         .eq("organization_id", validated.data.orgId)
         .select("*")
-        .single()
-    );
+        .single();
+    });
 
     const results = await Promise.all(promises);
     const hasError = results.some((r) => r.error);
@@ -544,24 +496,17 @@ export async function reorderTasks(
       return { success: false, error: "Failed to update some tasks ordering" };
     }
 
-    // Log status transitions after successful updates
+    // Log stage transitions after successful updates
     if (prevTasks) {
       for (const update of validated.data.taskUpdates) {
         const prev = prevTasks.find((t) => t.id === update.id);
-        if (prev && prev.status !== update.status) {
-          if (update.status === "DONE") {
-            await logActivity(validated.data.orgId, validated.data.projectId, userId, "TASK_COMPLETED", {
-              taskId: update.id,
-              taskTitle: prev.title,
-            });
-          } else {
-            await logActivity(validated.data.orgId, validated.data.projectId, userId, "TASK_STATUS_UPDATED", {
-              taskId: update.id,
-              taskTitle: prev.title,
-              fromStatus: prev.status,
-              toStatus: update.status,
-            });
-          }
+        if (prev && update.stage !== undefined && prev.stage !== update.stage) {
+          await logActivity(validated.data.orgId, validated.data.projectId, userId, "TASK_STATUS_UPDATED", {
+            taskId: update.id,
+            taskTitle: prev.title,
+            fromStatus: prev.stage || "none",
+            toStatus: update.stage || "none",
+          });
         }
       }
     }
@@ -580,7 +525,7 @@ export async function reorderTasks(
           );
 
           const prev = prevTasks?.find((t) => t.id === update.id);
-          if (prev && prev.status !== update.status && update.status === "DONE") {
+          if (prev && prev.status !== updatedTask.status && updatedTask.status === "DONE") {
             await triggerWorkflowEvent(
               "task.completed",
               { task: updatedTask },

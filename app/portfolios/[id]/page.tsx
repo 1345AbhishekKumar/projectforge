@@ -39,7 +39,7 @@ export default function PortfolioDetailsPage({ params }: Props) {
       setLoading(true);
       setError("");
       try {
-        const result = await getPortfolioDetails(activeOrgId, portfolioId);
+        const result = await getPortfolioDetails(activeOrgId!, portfolioId);
         if (isMounted) {
           if (result.success && result.data) {
             setPortfolio(result.data);

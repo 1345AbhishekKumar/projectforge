@@ -120,9 +120,9 @@ export async function seedData(orgId: string): Promise<{ success: boolean; error
 
     const sprintResult = await batchInsert(insforge, "sprints", sprintsToInsert, "id", 100);
     if (!sprintResult.success) {
-      return { success: false, error: "Failed to seed sprints: " + String(sprintResult.error?.message || sprintResult.error) };
+      return { success: false, error: "Failed to seed sprints: " + String((sprintResult.error as { message?: string } | null)?.message || sprintResult.error) };
     }
-    const insertedSprints = sprintResult.data || [];
+    const insertedSprints = (sprintResult.data || []) as { id: string; name: string; status: string; start_date: string; end_date: string }[];
 
     // 3. Insert/fetch task labels
     const labelsToInsert = [
@@ -172,9 +172,9 @@ export async function seedData(orgId: string): Promise<{ success: boolean; error
 
     const projectResult = await batchInsert(insforge, "projects", projectsToInsert, "id, name, status, custom_statuses", 100);
     if (!projectResult.success) {
-      return { success: false, error: "Failed to seed projects: " + String(projectResult.error?.message || projectResult.error) };
+      return { success: false, error: "Failed to seed projects: " + String((projectResult.error as { message?: string } | null)?.message || projectResult.error) };
     }
-    const insertedProjects = projectResult.data || [];
+    const insertedProjects = (projectResult.data || []) as { id: string; name: string; status: string; custom_statuses: string[] | null }[];
 
     // 5. Generate 55 tasks per project (3,025 tasks total)
     const tasksToInsert = [];
@@ -221,9 +221,9 @@ export async function seedData(orgId: string): Promise<{ success: boolean; error
 
     const taskResult = await batchInsert(insforge, "tasks", tasksToInsert, "id, assignee_id", 500);
     if (!taskResult.success) {
-      return { success: false, error: "Failed to seed tasks: " + String(taskResult.error?.message || taskResult.error) };
+      return { success: false, error: "Failed to seed tasks: " + String((taskResult.error as { message?: string } | null)?.message || taskResult.error) };
     }
-    const insertedTasks = taskResult.data || [];
+    const insertedTasks = (taskResult.data || []) as { id: string; assignee_id: string | null }[];
 
     // 6. Insert blocker task dependencies (5 dependencies)
     if (insertedTasks.length >= 10) {

@@ -284,8 +284,8 @@ export async function getProgramDetails(
       success: true,
       data: {
         ...(program as Program),
-        status: program.status as ProgramStatus,
         ...rollup,
+        status: program.status as ProgramStatus,
         manager: managerProfile || null,
       },
     };

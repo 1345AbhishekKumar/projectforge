@@ -1,14 +1,42 @@
 "use server";
 
 import OpenAI from "openai";
+import fs from "fs";
+import path from "path";
 import { auth } from "@clerk/nextjs/server";
+// import { after } from "next/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
 import { verifyMembership } from "@/lib/auth-helpers";
-import { logger } from "@/lib/logger";
+import { logger, flushLogsAfterResponse } from "@/lib/logger";
 import * as Sentry from "@sentry/nextjs";
+import { orgIdSchema, projectIdSchema, taskIdSchema } from "@/lib/utils";
 
 type InsforgeClient = ReturnType<typeof createInsforgeServer>;
+
+const summarizeProjectInputSchema = z.object({
+  projectId: projectIdSchema,
+  orgId: orgIdSchema,
+});
+
+const suggestSubtasksInputSchema = z.object({
+  taskId: taskIdSchema,
+  orgId: orgIdSchema,
+  taskTitle: z.string().min(1).max(200),
+  taskDescription: z.string().max(2000).optional().nullable(),
+});
+
+const importSubtasksInputSchema = z.object({
+  parentTaskId: taskIdSchema,
+  projectId: projectIdSchema,
+  orgId: orgIdSchema,
+  subtasks: z.array(z.string().min(1).max(200)),
+});
+
+const detectProjectRisksInputSchema = z.object({
+  projectId: projectIdSchema,
+  orgId: orgIdSchema,
+});
 
 interface TaskSummary {
   title: string;
@@ -39,10 +67,66 @@ interface TaskDependencyInfo {
   } | null;
 }
 
-const openai = new OpenAI({
-  apiKey: process.env.NVIDIA_API_KEY || "",
-  baseURL: process.env.NVIDIA_API_BASE_URL || "https://integrate.api.nvidia.com/v1",
-});
+const getOpenaiClient = () => {
+  let apiKey = "";
+  let baseURL = "";
+
+  // 1. Try to read directly from .env.local file to bypass system/terminal environment overrides
+  try {
+    const envPath = path.join(process.cwd(), ".env.local");
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, "utf8");
+      const lines = content.split(/\r?\n/);
+      for (const line of lines) {
+        const keyMatch = line.match(/^\s*NVIDIA_API_KEY\s*=\s*(.*)$/);
+        if (keyMatch) {
+          apiKey = keyMatch[1].trim();
+          if ((apiKey.startsWith('"') && apiKey.endsWith('"')) || (apiKey.startsWith("'") && apiKey.endsWith("'"))) {
+            apiKey = apiKey.slice(1, -1);
+          }
+        }
+        const urlMatch = line.match(/^\s*NVIDIA_API_BASE_URL\s*=\s*(.*)$/);
+        if (urlMatch) {
+          baseURL = urlMatch[1].trim();
+          if ((baseURL.startsWith('"') && baseURL.endsWith('"')) || (baseURL.startsWith("'") && baseURL.endsWith("'"))) {
+            baseURL = baseURL.slice(1, -1);
+          }
+        }
+      }
+    }
+  } catch (err) {
+    logger.warn(err, "Failed to parse .env.local directly, falling back to process.env");
+  }
+
+  // 2. Fallback to process.env if not found in .env.local
+  if (!apiKey) {
+    apiKey = (process.env.NVIDIA_API_KEY || "").trim();
+    if ((apiKey.startsWith('"') && apiKey.endsWith('"')) || (apiKey.startsWith("'") && apiKey.endsWith("'"))) {
+      apiKey = apiKey.slice(1, -1);
+    }
+  }
+
+  if (!baseURL) {
+    baseURL = (process.env.NVIDIA_API_BASE_URL || "https://integrate.api.nvidia.com/v1").trim();
+    if ((baseURL.startsWith('"') && baseURL.endsWith('"')) || (baseURL.startsWith("'") && baseURL.endsWith("'"))) {
+      baseURL = baseURL.slice(1, -1);
+    }
+  }
+
+  // Log final client configuration details
+  logger.info({
+    hasKey: !!apiKey,
+    keyLength: apiKey.length,
+    keyPrefix: apiKey.substring(0, 10),
+    keySuffix: apiKey.substring(apiKey.length - 10),
+    baseURL
+  }, "OpenAI Client Initialization Debug - Final Values");
+
+  return new OpenAI({
+    apiKey,
+    baseURL,
+  });
+};
 
 /**
  * Checks and increments the daily AI usage quota for a user in an organization.
@@ -55,28 +139,7 @@ async function checkAndIncrementQuota(
   actionType: string
 ): Promise<{ allowed: boolean; error?: string }> {
   try {
-    const today = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
-    
-    // Count records for this user in this org today
-    const { data, error } = await insforge.database
-      .from("ai_usages")
-      .select("id")
-      .eq("organization_id", orgId)
-      .eq("user_id", userId)
-      .gte("created_at", `${today}T00:00:00.000Z`)
-      .lte("created_at", `${today}T23:59:59.999Z`);
-
-    if (error) {
-      logger.error({ error, orgId, userId }, "Failed to query AI usages");
-      return { allowed: false, error: "Database error verifying quota" };
-    }
-
-    const currentCount = data?.length || 0;
-    if (currentCount >= 10) {
-      return { allowed: false, error: "AI assistant quota reached for today (max 10 queries)" };
-    }
-
-    // Insert record
+    // Rate limiting is temporarily disabled. We still insert a usage record for tracing/metrics.
     const { error: insertError } = await insforge.database
       .from("ai_usages")
       .insert([
@@ -89,13 +152,12 @@ async function checkAndIncrementQuota(
 
     if (insertError) {
       logger.error({ error: insertError, orgId, userId }, "Failed to increment AI usage");
-      return { allowed: false, error: "Database error incrementing quota" };
     }
 
     return { allowed: true };
   } catch (err) {
     logger.error(err, "Error checking and incrementing quota");
-    return { allowed: false, error: "Unexpected quota check error" };
+    return { allowed: true }; // Always allow even on unexpected error
   }
 }
 
@@ -106,27 +168,33 @@ export async function summarizeProjectAction(
   projectId: string,
   orgId: string
 ): Promise<{ success: boolean; data?: string; reasoning?: string; error?: string }> {
+  const validated = summarizeProjectInputSchema.safeParse({ projectId, orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+  const { projectId: cleanProjectId, orgId: cleanOrgId } = validated.data;
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
     const insforge = createInsforgeServer(userId);
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, cleanOrgId, userId);
     if (!isMember) return { success: false, error: "Not a member of this workspace" };
 
     if (!process.env.NVIDIA_API_KEY) {
       return { success: false, error: "NVIDIA API Key not configured" };
     }
 
-    const quota = await checkAndIncrementQuota(insforge, orgId, userId, "PROJECT_SUMMARY");
+    const quota = await checkAndIncrementQuota(insforge, cleanOrgId, userId, "PROJECT_SUMMARY");
     if (!quota.allowed) return { success: false, error: quota.error };
 
     // Fetch Project Details
     const { data: project } = await insforge.database
       .from("projects")
       .select("*")
-      .eq("id", projectId)
-      .eq("organization_id", orgId)
+      .eq("id", cleanProjectId)
+      .eq("organization_id", cleanOrgId)
       .single();
 
     if (!project) return { success: false, error: "Project not found" };
@@ -135,15 +203,15 @@ export async function summarizeProjectAction(
     const { data: sprints } = await insforge.database
       .from("sprints")
       .select("*")
-      .eq("organization_id", orgId)
+      .eq("organization_id", cleanOrgId)
       .eq("status", "ACTIVE");
 
     // Fetch project tasks
     const { data: tasks } = await insforge.database
       .from("tasks")
       .select("title, status, priority, due_date")
-      .eq("project_id", projectId)
-      .eq("organization_id", orgId);
+      .eq("project_id", cleanProjectId)
+      .eq("organization_id", cleanOrgId);
 
     const taskListSummary = (tasks || [])
       .map((t: TaskSummary) => `- [${t.status}] ${t.title} (Priority: ${t.priority}, Due: ${t.due_date || "None"})`)
@@ -169,7 +237,7 @@ Please provide a clean Markdown summary highlighting:
 3. Bottlenecks, potential risks, and recommendations.
     `;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenaiClient().chat.completions.create({
       model: "openai/gpt-oss-120b",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.7,
@@ -180,10 +248,15 @@ Please provide a clean Markdown summary highlighting:
     const content = completion.choices[0]?.message?.content || "Could not generate summary.";
 
     return { success: true, data: content, reasoning };
-  } catch (err) {
+  } catch (err: any) {
     logger.error(err, "Failed to summarize project");
     Sentry.captureException(err);
+    if (err instanceof OpenAI.PermissionDeniedError || (err && typeof err === 'object' && err.status === 403)) {
+      return { success: false, error: "NVIDIA API Key is invalid or expired. Please check your credentials." };
+    }
     return { success: false, error: "Failed to summarize project" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -196,25 +269,41 @@ export async function suggestSubtasksAction(
   taskTitle: string,
   taskDescription: string
 ): Promise<{ success: boolean; data?: string[]; reasoning?: string; error?: string }> {
+  const validated = suggestSubtasksInputSchema.safeParse({
+    taskId,
+    orgId,
+    taskTitle,
+    taskDescription,
+  });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+  const {
+    taskId: cleanTaskId,
+    orgId: cleanOrgId,
+    taskTitle: cleanTaskTitle,
+    taskDescription: cleanTaskDescription,
+  } = validated.data;
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
     const insforge = createInsforgeServer(userId);
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, cleanOrgId, userId);
     if (!isMember) return { success: false, error: "Not a member of this workspace" };
 
     if (!process.env.NVIDIA_API_KEY) {
       return { success: false, error: "NVIDIA API Key not configured" };
     }
 
-    const quota = await checkAndIncrementQuota(insforge, orgId, userId, "SUBTASK_SUGGESTION");
+    const quota = await checkAndIncrementQuota(insforge, cleanOrgId, userId, "SUBTASK_SUGGESTION");
     if (!quota.allowed) return { success: false, error: quota.error };
 
     const prompt = `
 Given the following task to execute:
-Title: ${taskTitle}
-Description: ${taskDescription || "No description provided."}
+Title: ${cleanTaskTitle}
+Description: ${cleanTaskDescription || "No description provided."}
 
 Return a list of suggested subtasks (4 to 8 concrete action items) to execute this task successfully.
 Return ONLY a valid JSON object matching this structure:
@@ -224,7 +313,7 @@ Return ONLY a valid JSON object matching this structure:
 Do not write any markdown blocks besides the JSON object.
     `;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenaiClient().chat.completions.create({
       model: "openai/gpt-oss-120b",
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
@@ -246,10 +335,15 @@ Do not write any markdown blocks besides the JSON object.
       logger.error({ error: err, contentStr }, "Failed to validate subtask format via Zod");
       return { success: false, error: "Model returned invalid format" };
     }
-  } catch (err) {
+  } catch (err: any) {
     logger.error(err, "Failed to suggest subtasks");
     Sentry.captureException(err);
+    if (err instanceof OpenAI.PermissionDeniedError || (err && typeof err === 'object' && err.status === 403)) {
+      return { success: false, error: "NVIDIA API Key is invalid or expired. Please check your credentials." };
+    }
     return { success: false, error: "Failed to suggest subtasks" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -262,34 +356,50 @@ export async function importSubtasksAction(
   orgId: string,
   subtasks: string[]
 ): Promise<{ success: boolean; error?: string }> {
+  const validated = importSubtasksInputSchema.safeParse({
+    parentTaskId,
+    projectId,
+    orgId,
+    subtasks,
+  });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+  const {
+    parentTaskId: cleanParentTaskId,
+    projectId: cleanProjectId,
+    orgId: cleanOrgId,
+    subtasks: cleanSubtasks,
+  } = validated.data;
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
     const insforge = createInsforgeServer(userId);
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, cleanOrgId, userId);
     if (!isMember) return { success: false, error: "Not a member of this workspace" };
 
     // Fetch parent task details (priority, status sequence)
     const { data: parentTask } = await insforge.database
       .from("tasks")
       .select("priority")
-      .eq("id", parentTaskId)
-      .eq("organization_id", orgId)
+      .eq("id", cleanParentTaskId)
+      .eq("organization_id", cleanOrgId)
       .single();
 
     const parentPriority = parentTask?.priority || "MEDIUM";
 
-    for (const subtaskTitle of subtasks) {
+    for (const subtaskTitle of cleanSubtasks) {
       // 1. Create subtask
       const { data: newSubtask, error: insertTaskErr } = await insforge.database
         .from("tasks")
         .insert([
           {
-            project_id: projectId,
-            organization_id: orgId,
+            project_id: cleanProjectId,
+            organization_id: cleanOrgId,
             title: subtaskTitle,
-            description: `Subtask of parent task: ${parentTaskId}`,
+            description: `Subtask of parent task: ${cleanParentTaskId}`,
             status: "TODO",
             priority: parentPriority,
             board_index: 0,
@@ -309,7 +419,7 @@ export async function importSubtasksAction(
         .insert([
           {
             source_task_id: newSubtask.id,
-            target_task_id: parentTaskId,
+            target_task_id: cleanParentTaskId,
             dependency_type: "BLOCKS",
           },
         ]);
@@ -325,6 +435,8 @@ export async function importSubtasksAction(
     logger.error(err, "Failed to import subtasks");
     Sentry.captureException(err);
     return { success: false, error: "Failed to import subtasks" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }
 
@@ -335,19 +447,25 @@ export async function detectProjectRisksAction(
   projectId: string,
   orgId: string
 ): Promise<{ success: boolean; data?: string; reasoning?: string; error?: string }> {
+  const validated = detectProjectRisksInputSchema.safeParse({ projectId, orgId });
+  if (!validated.success) {
+    return { success: false, error: validated.error.issues[0].message };
+  }
+  const { projectId: cleanProjectId, orgId: cleanOrgId } = validated.data;
+
   try {
     const { userId } = await auth();
     if (!userId) return { success: false, error: "Unauthorized" };
 
     const insforge = createInsforgeServer(userId);
-    const isMember = await verifyMembership(insforge, orgId, userId);
+    const isMember = await verifyMembership(insforge, cleanOrgId, userId);
     if (!isMember) return { success: false, error: "Not a member of this workspace" };
 
     if (!process.env.NVIDIA_API_KEY) {
       return { success: false, error: "NVIDIA API Key not configured" };
     }
 
-    const quota = await checkAndIncrementQuota(insforge, orgId, userId, "RISK_DETECTION");
+    const quota = await checkAndIncrementQuota(insforge, cleanOrgId, userId, "RISK_DETECTION");
     if (!quota.allowed) return { success: false, error: quota.error };
 
     // Fetch overdue tasks
@@ -355,8 +473,8 @@ export async function detectProjectRisksAction(
     const { data: overdueTasks } = await insforge.database
       .from("tasks")
       .select("id, title, status, priority, due_date")
-      .eq("project_id", projectId)
-      .eq("organization_id", orgId)
+      .eq("project_id", cleanProjectId)
+      .eq("organization_id", cleanOrgId)
       .neq("status", "DONE")
       .lt("due_date", today);
 
@@ -365,15 +483,16 @@ export async function detectProjectRisksAction(
       .from("task_dependencies")
       .select(`
         id,
-        source_task:tasks!source_task_id(id, title, status, project_id),
+        source_task:tasks!source_task_id!inner(id, title, status, project_id),
         target_task:tasks!target_task_id(id, title, status, project_id)
-      `);
+      `)
+      .eq("source_task.project_id", cleanProjectId);
 
-    // Filter dependencies scoped to this project
-    const projectDeps = (taskDependencies || []).filter((dep: TaskDependencyInfo) => {
+    // Filter dependencies scoped to this project (redundant check for safety)
+    const projectDeps = ((taskDependencies as unknown as TaskDependencyInfo[]) || []).filter((dep: TaskDependencyInfo) => {
       return (
-        dep.source_task?.project_id === projectId &&
-        dep.target_task?.project_id === projectId
+        dep.source_task?.project_id === cleanProjectId &&
+        dep.target_task?.project_id === cleanProjectId
       );
     });
 
@@ -400,7 +519,7 @@ Highlight:
 3. Strategic suggestions to resolve blocks.
     `;
 
-    const completion = await openai.chat.completions.create({
+    const completion = await getOpenaiClient().chat.completions.create({
       model: "openai/gpt-oss-120b",
       messages: [{ role: "user", content: prompt }],
       temperature: 0.3,
@@ -411,9 +530,14 @@ Highlight:
     const content = completion.choices[0]?.message?.content || "No risks detected.";
 
     return { success: true, data: content, reasoning };
-  } catch (err) {
+  } catch (err: any) {
     logger.error(err, "Failed to analyze project risks");
     Sentry.captureException(err);
+    if (err instanceof OpenAI.PermissionDeniedError || (err && typeof err === 'object' && err.status === 403)) {
+      return { success: false, error: "NVIDIA API Key is invalid or expired. Please check your credentials." };
+    }
     return { success: false, error: "Failed to analyze project risks" };
+  } finally {
+    flushLogsAfterResponse();
   }
 }

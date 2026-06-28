@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { z } from "zod";
-import type { SearchResult, SavedSearch } from "@/types";
+import type { SearchResult, SavedSearch, SearchResultProject, SearchResultTask } from "@/types";
 import { verifyMembership, getOrganizationMemberships } from "@/lib/auth-helpers";
 import { logger, flushLogsAfterResponse } from "@/lib/logger";
 import * as Sentry from "@sentry/nextjs";
@@ -394,8 +394,8 @@ export async function advancedSearch(
     return {
       success: true,
       data: {
-        projects: projectsRes.data || [],
-        tasks: tasksRes.data || [],
+        projects: (projectsRes.data as unknown as SearchResultProject[]) || [],
+        tasks: (tasksRes.data as unknown as SearchResultTask[]) || [],
         members: filteredMembers,
         comments: formattedComments,
         attachments: formattedAttachments,

@@ -294,8 +294,8 @@ export async function acceptInvitation(
       joinedUserEmail: profile.email,
     });
 
-    revalidateTag(`user-orgs-${userId}`);
-    revalidateTag(`org-members-${invitation.organization_id}`);
+    revalidateTag(`user-orgs-${userId}`, "hours");
+    revalidateTag(`org-members-${invitation.organization_id}`, "minutes");
     revalidatePath("/dashboard");
     revalidatePath("/organizations/settings");
     return { success: true };

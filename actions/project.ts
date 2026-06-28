@@ -17,7 +17,10 @@ import { projectSchema } from "@/lib/schemas/validation";
 
 const createProjectInputSchema = projectSchema.extend({
   orgId: orgIdSchema,
-  templateId: z.string().uuid().nullable().optional(),
+  templateId: z.preprocess(
+    (val) => (val === "" ? null : val),
+    z.string().uuid().nullable().optional()
+  ),
 });
 
 const getUserProjectsInputSchema = z.object({
@@ -186,7 +189,10 @@ export async function createProject(
               organization_id: validated.data.orgId,
               title: t.title,
               description: t.description || null,
-              status: t.status,
+              // Template task values belong in `stage` (board workflow position)
+              // Delivery status always starts as TODO
+              status: "TODO",
+              stage: t.status || null,
               priority: t.priority || "MEDIUM",
               assignee_id: assigneeId,
               board_index: 0,
@@ -245,7 +251,7 @@ export async function createProject(
       )
     );
 
-    revalidateTag(`org-projects-${validated.data.orgId}`);
+    revalidateTag(`org-projects-${validated.data.orgId}`, "minutes");
     revalidatePath("/projects");
     return { success: true, data: { projectId: project.id } };
   } catch (err) {
@@ -513,8 +519,8 @@ export async function updateProject(
       )
     );
 
-    revalidateTag(`project-${validated.data.projectId}`);
-    revalidateTag(`org-projects-${validated.data.orgId}`);
+    revalidateTag(`project-${validated.data.projectId}`, "hours");
+    revalidateTag(`org-projects-${validated.data.orgId}`, "minutes");
     revalidatePath("/projects");
     revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };
@@ -588,8 +594,8 @@ export async function archiveProject(
       )
     );
 
-    revalidateTag(`project-${validated.data.projectId}`);
-    revalidateTag(`org-projects-${validated.data.orgId}`);
+    revalidateTag(`project-${validated.data.projectId}`, "hours");
+    revalidateTag(`org-projects-${validated.data.orgId}`, "minutes");
     revalidatePath("/projects");
     revalidatePath(`/projects/${validated.data.projectId}`);
     return { success: true };

@@ -42,7 +42,7 @@ export default function ProgramDetailsPage({ params }: Props) {
       setLoading(true);
       setError("");
       try {
-        const result = await getProgramDetails(activeOrgId, programId);
+        const result = await getProgramDetails(activeOrgId!, programId);
         if (isMounted) {
           if (result.success && result.data) {
             setProgram(result.data);

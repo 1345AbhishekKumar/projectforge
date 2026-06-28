@@ -8,7 +8,7 @@ import { z } from "zod";
 
 const publishEventSchema = z.object({
   eventType: z.string().min(2).max(50),
-  payload: z.record(z.unknown()),
+  payload: z.record(z.string(), z.unknown()),
 });
 
 export async function publishEvent(

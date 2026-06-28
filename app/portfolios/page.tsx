@@ -43,7 +43,7 @@ export default function PortfoliosDirectoryPage() {
       setLoading(true);
       setError("");
       try {
-        const result = await getPortfolios(activeOrgId);
+        const result = await getPortfolios(activeOrgId!);
         if (isMounted) {
           if (result.success && result.data) {
             setPortfolios(result.data);

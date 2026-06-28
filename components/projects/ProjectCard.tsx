@@ -41,11 +41,17 @@ export function ProjectCard({ project }: Props) {
     ? [
         {
           queryKey: ["project", project.id, activeOrgId],
-          queryFn: () => getProjectDetails(project.id, activeOrgId),
+          queryFn: async () => {
+            const r = await getProjectDetails(project.id, activeOrgId);
+            return r.data ?? null;
+          },
         },
         {
           queryKey: ["tasks", project.id, activeOrgId],
-          queryFn: () => getProjectTasks(project.id, activeOrgId),
+          queryFn: async () => {
+            const r = await getProjectTasks(project.id, activeOrgId);
+            return r.data ?? [];
+          },
         },
       ]
     : [];

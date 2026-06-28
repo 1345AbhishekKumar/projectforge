@@ -3,7 +3,7 @@
 import * as Sentry from "@sentry/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { after } from "next/server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, cacheLife, cacheTag, revalidateTag } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { writeAuditLog } from "@/lib/audit";
 import { z } from "zod";
@@ -242,7 +242,7 @@ export async function updateMemberRole(
       )
     );
 
-    revalidateTag(`org-members-${validated.data.orgId}`);
+    revalidateTag(`org-members-${validated.data.orgId}`, "minutes");
     revalidatePath("/organizations/settings");
     revalidatePath("/dashboard");
     return { success: true };
@@ -326,7 +326,7 @@ export async function removeMember(
       )
     );
 
-    revalidateTag(`org-members-${validated.data.orgId}`);
+    revalidateTag(`org-members-${validated.data.orgId}`, "minutes");
     revalidatePath("/organizations/settings");
     revalidatePath("/dashboard");
     return { success: true };

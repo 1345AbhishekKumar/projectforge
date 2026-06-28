@@ -180,7 +180,12 @@ export default function KanbanBoardPage({ params }: Props) {
                   style={{ "--cols": columns.length } as React.CSSProperties}
                 >
                   {columns.map((col) => {
-                    const colTasks = board.filteredTasks.filter((t) => t.status === col.status);
+                    const colTasks = board.filteredTasks.filter((t) => {
+                      if (customStatuses && customStatuses.length > 0) {
+                        return t.stage === col.status;
+                      }
+                      return t.status === col.status;
+                    });
                     return (
                       <KanbanColumn
                         key={col.status}

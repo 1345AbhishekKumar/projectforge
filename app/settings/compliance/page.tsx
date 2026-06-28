@@ -9,6 +9,7 @@ import { getComplianceSettings, updateComplianceSettings, runDataRetentionCleanu
 import { getOrganizationMembers } from "@/actions/membership";
 import { useOrgStore } from "@/store/orgStore";
 import { WorkspacePageLayout } from "@/components/layout/WorkspacePageLayout";
+import { SettingsSidebar } from "@/components/layout/SettingsSidebar";
 import { AuditLogsViewer } from "@/components/audit-logs/AuditLogsViewer";
 import { useToastStore } from "@/store/toastStore";
 
@@ -171,70 +172,72 @@ export default function ComplianceCenterPage() {
 
   return (
     <WorkspacePageLayout>
-      <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12 flex flex-col gap-8">
-          <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <Shield className="h-8 w-8 text-accent-pink shrink-0" />
-              <h1 className="font-cursive text-3xl font-bold tracking-tight">Compliance & Governance Center</h1>
-            </div>
-            <p className="font-sans text-sm text-secondary">
-              Configure data retention policies, audit ledger trails, and compliance exports under immutable security constraints.
-            </p>
+      <div className="flex-1 max-w-6xl w-full mx-auto p-6 md:p-12">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
+          <div className="lg:col-span-1">
+            <SettingsSidebar />
           </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
-            {/* Retention Settings form */}
-            <div className="md:col-span-6 bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6">
-              <h2 className="font-cursive text-xl font-bold mb-4 flex items-center gap-2 text-primary">
-                <Calendar className="h-5 w-5 text-accent-pink" />
-                Data Retention Policy
-              </h2>
-              
-              <form onSubmit={handleUpdateSettings} className="flex flex-col gap-4">
-                <div>
-                  <label className="font-sans text-xs font-semibold mb-1 block text-primary">
-                    Retention Period (Days)
-                  </label>
-                  <input
-                    type="number"
-                    value={retentionDaysInput}
-                    onChange={(e) => setRetentionDaysInput(e.target.value)}
-                    placeholder="Unlimited (keep all records)"
-                    className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-1 focus:ring-black text-primary"
-                  />
-                  <p className="font-sans text-[10px] text-secondary mt-1 leading-relaxed">
-                    Set a policy period in days to age-out tasks and activity logs. Leave blank to retain data indefinitely.
-                  </p>
-                </div>
-
-                <div className="bg-accent-yellow/20 border border-black p-3 rounded-sketchy-sm flex gap-2">
-                  <AlertTriangle className="h-5 w-5 text-accent-yellow shrink-0" />
-                  <p className="font-sans text-[10px] text-secondary leading-relaxed">
-                    <strong>Warning:</strong> Updating retention settings does not automatically delete records immediately, but running cleanups will permanently delete old data.
-                  </p>
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={isUpdatingSettings}
-                  className="w-full py-2 bg-accent-pink hover:bg-[#FFB2B2] text-primary border-2 border-black rounded-full font-sans text-xs font-bold shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-50"
-                >
-                  {isUpdatingSettings ? "Updating Policy..." : "Save Policy Settings"}
-                </button>
-              </form>
+          
+          <div className="lg:col-span-3 flex flex-col gap-8">
+            <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6">
+              <div className="flex items-center gap-3 mb-2">
+                <Shield className="h-8 w-8 text-accent-pink shrink-0" />
+                <h1 className="font-cursive text-3xl font-bold tracking-tight">Compliance & Governance Center</h1>
+              </div>
+              <p className="font-sans text-sm text-secondary">
+                Configure data retention policies, audit ledger trails, and compliance exports under immutable security constraints.
+              </p>
             </div>
 
-            {/* Cleanup & Export actions */}
-            <div className="md:col-span-6 bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col gap-6">
-              <div>
-                <h2 className="font-cursive text-xl font-bold mb-2 flex items-center gap-2 text-primary">
-                  <Trash2 className="h-5 w-5 text-accent-pink" />
-                  Policy Cleanup Job
+            <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+              {/* Retention Settings form */}
+              <div className="md:col-span-6 bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6">
+                <h2 className="font-cursive text-xl font-bold mb-4 flex items-center gap-2 text-primary">
+                  <Calendar className="h-5 w-5 text-accent-pink" />
+                  Data Retention Policy
                 </h2>
-                <p className="font-sans text-xs text-secondary mb-4">
-                  Manually trigger the workspace retention cleanup process based on the configured policy duration.
-                </p>
+                
+                <form onSubmit={handleUpdateSettings} className="flex flex-col gap-4">
+                  <div>
+                    <label className="font-sans text-xs font-semibold mb-1 block text-primary">
+                      Retention Period (Days)
+                    </label>
+                    <input
+                      type="number"
+                      value={retentionDaysInput}
+                      onChange={(e) => setRetentionDaysInput(e.target.value)}
+                      placeholder="Unlimited (keep all records)"
+                      className="w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-1 focus:ring-black text-primary"
+                    />
+                    <p className="font-sans text-[10px] text-secondary mt-1 leading-relaxed">
+                      Set a policy period in days to age-out tasks and activity logs. Leave blank to retain data indefinitely.
+                    </p>
+                  </div>
 
+                  <div className="bg-accent-yellow/20 border border-black p-3 rounded-sketchy-sm flex gap-2">
+                    <AlertTriangle className="h-5 w-5 text-accent-yellow shrink-0" />
+                    <p className="font-sans text-[10px] text-secondary leading-relaxed">
+                      <strong>Warning:</strong> Updating retention settings does not automatically delete records immediately, but running cleanups will permanently delete old data.
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isUpdatingSettings}
+                    className="w-full py-2 bg-accent-pink hover:bg-[#FFB2B2] text-primary border-2 border-black rounded-full font-sans text-xs font-bold shadow-flat-offset-sm active:translate-y-0.5 hover:-translate-y-0.5 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    {isUpdatingSettings ? "Updating..." : "Save Policy"}
+                  </button>
+                </form>
+              </div>
+
+              {/* Data Retention Cleanup Panel */}
+              <div className="md:col-span-6 bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col gap-6">
+                <div>
+                  <h2 className="font-cursive text-xl font-bold mb-4 flex items-center gap-2 text-primary">
+                    <Trash2 className="h-5 w-5 text-accent-pink" />
+                    Manual Retention Cleanup
+                  </h2>
                 {showCleanupConfirm ? (
                   <div className="flex flex-col gap-3 p-4 border-2 border-black rounded-sketchy bg-accent-pink/15">
                     <p className="font-mono text-[10px] font-bold text-center text-accent-orange leading-snug">
@@ -305,6 +308,8 @@ export default function ComplianceCenterPage() {
           </div>
 
           {activeOrgId && <AuditLogsViewer orgId={activeOrgId} members={members} />}
+            </div>
+          </div>
         </div>
       </WorkspacePageLayout>
   );
