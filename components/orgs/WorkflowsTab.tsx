@@ -47,58 +47,72 @@ export type WorkflowRow = {
 };
 
 /* ─── Form schema ────────────────────────────────────────────────────────── */
-const workflowFormSchema = z.object({
-  name: z.string().trim().min(3, "Name must be ≥ 3 characters").max(100, "Name too long"),
-  trigger: z.string().min(1, "Select a trigger"),
-  actionType: z.string().min(1, "Select an action"),
-  projectScope: z.string().optional(),
-  assigneeId: z.string().optional(),
-  targetStatus: z.string().optional(),
-  taskTitle: z.string().optional(),
-  notificationContent: z.string().optional(),
-}).superRefine((val, ctx) => {
-  if (val.actionType === "assign_to_user" && !val.assigneeId) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Please select an assignee",
-      path: ["assigneeId"],
-    });
-  }
-  if (val.actionType === "set_status" && !val.targetStatus) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Please select a target status",
-      path: ["targetStatus"],
-    });
-  }
-  if (val.actionType === "create_task" && (!val.taskTitle || val.taskTitle.trim().length < 3)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Task title must be ≥ 3 characters",
-      path: ["taskTitle"],
-    });
-  }
-  if (val.actionType === "notify_assignee" && (!val.notificationContent || val.notificationContent.trim().length < 3)) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Notification message must be ≥ 3 characters",
-      path: ["notificationContent"],
-    });
-  }
-});
+const workflowFormSchema = z
+  .object({
+    name: z.string().trim().min(3, "Name must be ≥ 3 characters").max(100, "Name too long"),
+    trigger: z.string().min(1, "Select a trigger"),
+    actionType: z.string().min(1, "Select an action"),
+    projectScope: z.string().optional(),
+    assigneeId: z.string().optional(),
+    targetStatus: z.string().optional(),
+    taskTitle: z.string().optional(),
+    notificationContent: z.string().optional(),
+  })
+  .superRefine((val, ctx) => {
+    if (val.actionType === "assign_to_user" && !val.assigneeId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please select an assignee",
+        path: ["assigneeId"],
+      });
+    }
+    if (val.actionType === "set_status" && !val.targetStatus) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please select a target status",
+        path: ["targetStatus"],
+      });
+    }
+    if (val.actionType === "create_task" && (!val.taskTitle || val.taskTitle.trim().length < 3)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Task title must be ≥ 3 characters",
+        path: ["taskTitle"],
+      });
+    }
+    if (
+      val.actionType === "notify_assignee" &&
+      (!val.notificationContent || val.notificationContent.trim().length < 3)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Notification message must be ≥ 3 characters",
+        path: ["notificationContent"],
+      });
+    }
+  });
 
 type WorkflowFormInput = z.infer<typeof workflowFormSchema>;
 
 /* ─── Props ──────────────────────────────────────────────────────────────── */
+type ProjectSummary = { id: string; name: string };
+type MemberSummary = { user_id: string; full_name: string | null; email: string };
+
 type Props = {
   initialWorkflows: WorkflowRow[];
   orgId: string;
   isAdminOrOwner: boolean;
-  projects: any[];
-  members: any[];
+  projects: ProjectSummary[];
+  members: MemberSummary[];
 };
 
-export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner, projects, members }: Props) {
+export function WorkflowsTab({
+  initialWorkflows,
+  orgId,
+  isAdminOrOwner,
+  projects,
+  members,
+}: Props) {
   const [workflows, setWorkflows] = useState<WorkflowRow[]>(initialWorkflows);
   const [showForm, setShowForm] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -132,6 +146,7 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner, projects
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const watchedActionType = watch("actionType");
   const watchedProjectScope = watch("projectScope");
 
@@ -154,13 +169,9 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner, projects
     }
 
     startTransition(async () => {
-      const res = await createWorkflow(
-        orgId,
-        data.name,
-        data.trigger,
-        conditions,
-        [{ type: data.actionType, data: { label: actionLabel } }]
-      );
+      const res = await createWorkflow(orgId, data.name, data.trigger, conditions, [
+        { type: data.actionType, data: { label: actionLabel } },
+      ]);
 
       if (res.success) {
         showBanner("success", "Workflow created successfully!");
@@ -191,7 +202,7 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner, projects
       const res = await updateWorkflow(wf.id, orgId, { enabled: !wf.enabled });
       if (res.success) {
         setWorkflows((prev) =>
-          prev.map((w) => (w.id === wf.id ? { ...w, enabled: !wf.enabled } : w))
+          prev.map((w) => (w.id === wf.id ? { ...w, enabled: !wf.enabled } : w)),
         );
       } else {
         showBanner("error", res.error || "Failed to toggle workflow");
@@ -231,9 +242,7 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner, projects
         <div
           role="alert"
           className={`flex items-center gap-2 border-2 border-black rounded-sketchy p-4 text-sm font-bold animate-in fade-in slide-in-from-top-2 duration-200 ${
-            banner.type === "success"
-              ? "bg-[#D4EDDA] text-[#155724]"
-              : "bg-[#FFD2D2] text-rose-800"
+            banner.type === "success" ? "bg-[#D4EDDA] text-[#155724]" : "bg-[#FFD2D2] text-rose-800"
           }`}
         >
           {banner.type === "success" ? (
@@ -272,9 +281,7 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner, projects
           <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
             {/* Name */}
             <div>
-              <label className="font-sans text-xs font-semibold mb-1 block">
-                Workflow Name
-              </label>
+              <label className="font-sans text-xs font-semibold mb-1 block">Workflow Name</label>
               <input
                 {...register("name")}
                 placeholder="e.g. Auto-assign to lead on creation"
@@ -306,16 +313,15 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner, projects
                 ))}
               </select>
               <p className="font-sans text-[10px] text-secondary/60 mt-1">
-                Restrict this automation to a specific project, or apply it to all projects in the workspace.
+                Restrict this automation to a specific project, or apply it to all projects in the
+                workspace.
               </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Trigger */}
               <div>
-                <label className="font-sans text-xs font-semibold mb-1 block">
-                  Trigger Event
-                </label>
+                <label className="font-sans text-xs font-semibold mb-1 block">Trigger Event</label>
                 <select
                   {...register("trigger")}
                   className={`w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer ${
@@ -338,9 +344,7 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner, projects
 
               {/* Action type */}
               <div>
-                <label className="font-sans text-xs font-semibold mb-1 block">
-                  Then Do…
-                </label>
+                <label className="font-sans text-xs font-semibold mb-1 block">Then Do…</label>
                 <select
                   {...register("actionType")}
                   className={`w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer ${
@@ -365,9 +369,7 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner, projects
             {/* Dynamic Action Fields */}
             {watchedActionType === "assign_to_user" && (
               <div>
-                <label className="font-sans text-xs font-semibold mb-1 block">
-                  Assign To
-                </label>
+                <label className="font-sans text-xs font-semibold mb-1 block">Assign To</label>
                 <select
                   {...register("assigneeId")}
                   className={`w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer ${
@@ -392,9 +394,7 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner, projects
 
             {watchedActionType === "set_status" && (
               <div>
-                <label className="font-sans text-xs font-semibold mb-1 block">
-                  Target Status
-                </label>
+                <label className="font-sans text-xs font-semibold mb-1 block">Target Status</label>
                 <select
                   {...register("targetStatus")}
                   className={`w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer ${
@@ -404,7 +404,11 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner, projects
                   <option value="">— Select status —</option>
                   {(() => {
                     const selectedProj = projects.find((p) => p.id === watchedProjectScope);
-                    const statuses = selectedProj?.custom_statuses || ["TODO", "IN_PROGRESS", "DONE"];
+                    const statuses = selectedProj?.custom_statuses || [
+                      "TODO",
+                      "IN_PROGRESS",
+                      "DONE",
+                    ];
                     return statuses.map((s: string) => (
                       <option key={s} value={s}>
                         {s}
@@ -422,9 +426,7 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner, projects
 
             {watchedActionType === "create_task" && (
               <div>
-                <label className="font-sans text-xs font-semibold mb-1 block">
-                  New Task Title
-                </label>
+                <label className="font-sans text-xs font-semibold mb-1 block">New Task Title</label>
                 <input
                   {...register("taskTitle")}
                   placeholder="e.g. Review codebase and design draft"
@@ -464,7 +466,8 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner, projects
             {watchedActionType === "archive_task" && (
               <div className="bg-neutral-bg border border-black/10 p-3 rounded-sketchy-sm">
                 <p className="font-sans text-xs text-secondary/80">
-                  💡 <strong>Note</strong>: This will automatically archive the specific task that triggered the event. No additional settings are needed.
+                  💡 <strong>Note</strong>: This will automatically archive the specific task that
+                  triggered the event. No additional settings are needed.
                 </p>
               </div>
             )}
@@ -475,12 +478,19 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner, projects
                 disabled={isPending}
                 className="flex items-center gap-2 px-6 py-2 bg-tertiary hover:bg-tertiary-hover text-white border-2 border-black rounded-full font-sans text-xs font-bold shadow-flat-offset-sm hover:-translate-y-0.5 active:translate-y-0.5 transition-all disabled:opacity-40 disabled:pointer-events-none cursor-pointer"
               >
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Zap className="h-4 w-4" />}
+                {isPending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Zap className="h-4 w-4" />
+                )}
                 Create Workflow
               </button>
               <button
                 type="button"
-                onClick={() => { setShowForm(false); reset(); }}
+                onClick={() => {
+                  setShowForm(false);
+                  reset();
+                }}
                 className="px-5 py-2 bg-white border-2 border-black rounded-full font-sans text-xs font-bold shadow-flat-offset-xs hover:-translate-y-0.5 active:translate-y-0.5 transition-all cursor-pointer"
               >
                 Cancel
@@ -503,7 +513,9 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner, projects
         <div className="flex flex-col gap-3">
           {workflows.map((wf) => {
             const projectId = wf.conditions?.project_id as string | undefined;
-            const projName = projectId ? (projects.find((p) => p.id === projectId)?.name || "Unknown Project") : "All Projects";
+            const projName = projectId
+              ? projects.find((p) => p.id === projectId)?.name || "Unknown Project"
+              : "All Projects";
 
             return (
               <div
@@ -533,16 +545,24 @@ export function WorkflowsTab({ initialWorkflows, orgId, isAdminOrOwner, projects
                       {triggerLabel(wf.trigger)}
                       {wf.actions.length > 0 && (
                         <>
-                          {" "}→{" "}
-                          {wf.actions.map((a) => {
-                            const actTypeLabel = actionLabel(a.type);
-                            const actDetail = a.data?.label as string | undefined;
-                            if (actTypeLabel === "Assign to Lead/Member" && actDetail && actDetail !== "org_owner") {
-                              const memberName = members.find((m) => m.userId === actDetail)?.name || actDetail;
-                              return `Assign to ${memberName}`;
-                            }
-                            return actDetail ? `${actTypeLabel} (${actDetail})` : actTypeLabel;
-                          }).join(", ")}
+                          {" "}
+                          →{" "}
+                          {wf.actions
+                            .map((a) => {
+                              const actTypeLabel = actionLabel(a.type);
+                              const actDetail = a.data?.label as string | undefined;
+                              if (
+                                actTypeLabel === "Assign to Lead/Member" &&
+                                actDetail &&
+                                actDetail !== "org_owner"
+                              ) {
+                                const memberName =
+                                  members.find((m) => m.userId === actDetail)?.name || actDetail;
+                                return `Assign to ${memberName}`;
+                              }
+                              return actDetail ? `${actTypeLabel} (${actDetail})` : actTypeLabel;
+                            })
+                            .join(", ")}
                         </>
                       )}
                     </p>

@@ -77,7 +77,7 @@ export function ProfileForm({ initialProfile }: Props) {
 
       // Upload directly to Clerk using the client SDK
       await user.setProfileImage({ file });
-      
+
       // Reload Clerk user state to get the new imageUrl
       await user.reload();
       const newImageUrl = user.imageUrl;
@@ -85,17 +85,19 @@ export function ProfileForm({ initialProfile }: Props) {
       setValue("avatarUrl", newImageUrl, { shouldValidate: true, shouldDirty: true });
 
       // Automatically sync the new avatar URL to the database immediately
+      // eslint-disable-next-line react-hooks/incompatible-library
       const currentFullName = watch("fullName") || initialProfile.fullName || "";
       const currentLocale = watch("locale") || initialProfile.locale || "en";
-      
+
       const dbRes = await updateProfile(currentFullName, newImageUrl, currentLocale);
       if (dbRes.success) {
         showToast("success", "Avatar image uploaded and profile updated successfully!");
       } else {
         showToast("error", "Avatar uploaded to Clerk, but failed to update local database.");
       }
-    } catch (err: any) {
-      setAvatarError(err?.message || "Failed to upload image to Clerk");
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "Failed to upload image to Clerk";
+      setAvatarError(errMsg);
     } finally {
       setUploadingAvatar(false);
     }
@@ -121,8 +123,12 @@ export function ProfileForm({ initialProfile }: Props) {
       } else {
         showToast("error", res.error || t("profile.updateError", "Failed to update profile"));
       }
-    } catch (err: any) {
-      showToast("error", err?.message || t("profile.unexpectedError", "An unexpected error occurred"));
+    } catch (err: unknown) {
+      const errMsg =
+        err instanceof Error
+          ? err.message
+          : t("profile.unexpectedError", "An unexpected error occurred");
+      showToast("error", errMsg);
     } finally {
       setLoading(false);
     }
@@ -130,7 +136,6 @@ export function ProfileForm({ initialProfile }: Props) {
 
   return (
     <div className="bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 md:p-8 max-w-2xl w-full mx-auto relative rotate-[-0.5deg]">
-
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-full bg-accent-yellow border-2 border-black flex items-center justify-center shadow-flat-offset-sm">
           <User className="h-5 w-5" />
@@ -278,4 +283,3 @@ export function ProfileForm({ initialProfile }: Props) {
     </div>
   );
 }
-

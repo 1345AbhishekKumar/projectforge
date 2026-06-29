@@ -9,6 +9,7 @@ import { PostHogProvider } from "@/components/providers/PostHogProvider";
 import { WorkspaceGate } from "@/components/layout/WorkspaceGate";
 import { InsforgeAuthProvider } from "@/components/providers/InsforgeAuthProvider";
 import { ToastBanner } from "@/components/ui/ToastBanner";
+import { DynamicLocaleProvider } from "@/components/providers/DynamicLocaleProvider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,11 +37,9 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const locale = "en";
-
   return (
     <html
-      lang={locale}
+      lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${caveat.variable} h-full antialiased`}
       suppressHydrationWarning
     >
@@ -49,12 +48,14 @@ export default function RootLayout({
           <PostHogProvider>
             <QueryProvider>
               <Suspense fallback={null}>
-                <InsforgeAuthProvider>
-                  <WorkspaceGate>
-                    {children}
-                    <ToastBanner />
-                  </WorkspaceGate>
-                </InsforgeAuthProvider>
+                <DynamicLocaleProvider>
+                  <InsforgeAuthProvider>
+                    <WorkspaceGate>
+                      {children}
+                      <ToastBanner />
+                    </WorkspaceGate>
+                  </InsforgeAuthProvider>
+                </DynamicLocaleProvider>
               </Suspense>
             </QueryProvider>
           </PostHogProvider>
@@ -63,5 +64,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-

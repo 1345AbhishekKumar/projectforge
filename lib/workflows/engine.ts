@@ -4,6 +4,7 @@ import { createInsforgeServer } from "../insforge-server";
 import { logger } from "../logger";
 import { isTriggerActive } from "./cache";
 import { createNotification } from "@/actions/notification";
+import { executeWorkflowAIAction } from "./ai";
 
 // Simple validation schemas for workflow actions
 const taskUpdateSchema = z.object({
@@ -23,9 +24,13 @@ const taskCreateSchema = z.object({
 });
 
 const approvalActionSchema = z.object({
-  steps: z.array(z.object({
-    role: z.string().min(1),
-  })).min(1),
+  steps: z
+    .array(
+      z.object({
+        role: z.string().min(1),
+      }),
+    )
+    .min(1),
   target_status: z.string().min(1),
 });
 
@@ -71,7 +76,7 @@ async function executeAction(
   payload: unknown,
   session: SessionContext,
   insforge: ReturnType<typeof createInsforgeServer>,
-  nextLoopContext: WorkflowContext
+  nextLoopContext: WorkflowContext,
 ): Promise<void> {
   const { orgId } = session;
   const payloadObj = payload as Record<string, unknown> | null | undefined;
@@ -85,28 +90,28 @@ async function executeAction(
   if (action.type === "assign_to_user") {
     normalizedAction = {
       type: "update_task",
-      data: { assignee_id: label || "org_owner" }
+      data: { assignee_id: label || "org_owner" },
     };
   } else if (action.type === "notify_assignee") {
     normalizedAction = {
       type: "create_notification",
-      data: { user_id: "assignee", content: label || "Workflow notification triggered." }
+      data: { user_id: "assignee", content: label || "Workflow notification triggered." },
     };
   } else if (action.type === "set_status") {
     normalizedAction = {
       type: "update_task",
-      data: { status: label || "DONE" }
+      data: { status: label || "DONE" },
     };
   } else if (action.type === "archive_task") {
     normalizedAction = {
       type: "update_task",
-      data: { status: "ARCHIVED" }
+      data: { status: "ARCHIVED" },
     };
   } else if (action.type === "create_task") {
     if (label && !rawActionData?.title) {
       normalizedAction = {
         type: "create_task",
-        data: { title: label }
+        data: { title: label },
       };
     }
   }
@@ -114,13 +119,19 @@ async function executeAction(
   if (normalizedAction.type === "update_task") {
     const taskId = (taskObj?.id || payloadObj?.id) as string | undefined;
     if (!taskId) {
-      logger.warn({ action: normalizedAction, payload }, "update_task action skipped: taskId not found in payload");
+      logger.warn(
+        { action: normalizedAction, payload },
+        "update_task action skipped: taskId not found in payload",
+      );
       return;
     }
 
     const validated = taskUpdateSchema.safeParse(normalizedAction.data);
     if (!validated.success) {
-      logger.error({ errors: validated.error.issues, data: normalizedAction.data }, "Invalid update_task action data");
+      logger.error(
+        { errors: validated.error.issues, data: normalizedAction.data },
+        "Invalid update_task action data",
+      );
       return;
     }
 
@@ -155,17 +166,22 @@ async function executeAction(
 
     // Trigger task.updated event in the background recursively
     await triggerWorkflowEvent("task.updated", { task: updatedTask }, session, nextLoopContext);
-
   } else if (normalizedAction.type === "create_task") {
     const projectId = (taskObj?.project_id || payloadObj?.project_id) as string | undefined;
     if (!projectId) {
-      logger.warn({ action: normalizedAction, payload }, "create_task action skipped: projectId not found in payload");
+      logger.warn(
+        { action: normalizedAction, payload },
+        "create_task action skipped: projectId not found in payload",
+      );
       return;
     }
 
     const validated = taskCreateSchema.safeParse(normalizedAction.data);
     if (!validated.success) {
-      logger.error({ errors: validated.error.issues, data: normalizedAction.data }, "Invalid create_task action data");
+      logger.error(
+        { errors: validated.error.issues, data: normalizedAction.data },
+        "Invalid create_task action data",
+      );
       return;
     }
 
@@ -178,7 +194,10 @@ async function executeAction(
       .single();
 
     if (projectError || !project) {
-      logger.warn({ action: normalizedAction, projectId, projectError }, "create_task action skipped: project not found");
+      logger.warn(
+        { action: normalizedAction, projectId, projectError },
+        "create_task action skipped: project not found",
+      );
       return;
     }
 
@@ -186,7 +205,10 @@ async function executeAction(
     const targetStatus = validated.data.status || allowedStatuses[0] || "TODO";
 
     if (!allowedStatuses.includes(targetStatus)) {
-      logger.error({ status: targetStatus, allowedStatuses }, "create_task action skipped: target status not allowed for project");
+      logger.error(
+        { status: targetStatus, allowedStatuses },
+        "create_task action skipped: target status not allowed for project",
+      );
       return;
     }
 
@@ -222,7 +244,8 @@ async function executeAction(
       .order("board_index", { ascending: false })
       .limit(1);
 
-    const nextIndex = siblingTasks && siblingTasks.length > 0 ? (siblingTasks[0].board_index ?? 0) + 1 : 0;
+    const nextIndex =
+      siblingTasks && siblingTasks.length > 0 ? (siblingTasks[0].board_index ?? 0) + 1 : 0;
     taskData.board_index = nextIndex;
 
     const { data: createdTask, error } = await insforge.database
@@ -238,7 +261,6 @@ async function executeAction(
 
     // Trigger task.created event in the background recursively
     await triggerWorkflowEvent("task.created", { task: createdTask }, session, nextLoopContext);
-
   } else if (normalizedAction.type === "create_notification") {
     const actionData = normalizedAction.data as Record<string, unknown> | null | undefined;
     let targetUserId = actionData?.user_id as string | undefined;
@@ -247,7 +269,10 @@ async function executeAction(
     }
 
     if (!targetUserId) {
-      logger.warn({ action: normalizedAction, payload }, "create_notification skipped: target user_id not resolved");
+      logger.warn(
+        { action: normalizedAction, payload },
+        "create_notification skipped: target user_id not resolved",
+      );
       return;
     }
 
@@ -256,13 +281,19 @@ async function executeAction(
   } else if (normalizedAction.type === "require_approval") {
     const taskId = (taskObj?.id || payloadObj?.id) as string | undefined;
     if (!taskId) {
-      logger.warn({ action: normalizedAction, payload }, "require_approval action skipped: taskId not found in payload");
+      logger.warn(
+        { action: normalizedAction, payload },
+        "require_approval action skipped: taskId not found in payload",
+      );
       return;
     }
 
     const validated = approvalActionSchema.safeParse(normalizedAction.data);
     if (!validated.success) {
-      logger.error({ errors: validated.error.issues, data: normalizedAction.data }, "Invalid require_approval action data");
+      logger.error(
+        { errors: validated.error.issues, data: normalizedAction.data },
+        "Invalid require_approval action data",
+      );
       return;
     }
 
@@ -291,7 +322,10 @@ async function executeAction(
       .insert(approvalRows);
 
     if (insertError) {
-      logger.error({ error: insertError, taskId }, "Failed to create task approvals in require_approval action");
+      logger.error(
+        { error: insertError, taskId },
+        "Failed to create task approvals in require_approval action",
+      );
       return;
     }
 
@@ -302,8 +336,18 @@ async function executeAction(
       orgId,
       firstRole,
       `Task "${taskTitle}" requires your approval.`,
-      insforge
+      insforge,
     );
+  } else if (normalizedAction.type === "ai_action") {
+    const actionData = normalizedAction.data as
+      | { prompt: string; output_type: "comment" | "subtasks" | "description" }
+      | null
+      | undefined;
+    if (!actionData?.prompt || !actionData?.output_type) {
+      logger.warn({ action: normalizedAction }, "ai_action skipped: prompt or output_type missing");
+      return;
+    }
+    await executeWorkflowAIAction(actionData, payload, session, insforge);
   } else {
     logger.warn({ actionType: normalizedAction.type }, "Unsupported workflow action type");
   }
@@ -316,7 +360,7 @@ export async function triggerWorkflowEvent(
   triggerName: string,
   payload: unknown,
   session: SessionContext,
-  loopContext: WorkflowContext = { depth: 0, executedIds: [] }
+  loopContext: WorkflowContext = { depth: 0, executedIds: [] },
 ): Promise<void> {
   const { orgId, userId } = session;
   const payloadObj = payload as Record<string, unknown> | null | undefined;
@@ -343,10 +387,54 @@ export async function triggerWorkflowEvent(
     }
 
     for (const workflow of workflows) {
+      // Resolve trigger, conditions, and actions from active version if set
+      let activeConditions = workflow.conditions;
+      let activeActions = workflow.actions;
+      let versionId = workflow.active_version_id;
+
+      if (versionId) {
+        const { data: versionData, error: versionError } = await insforge.database
+          .from("workflow_versions")
+          .select("*")
+          .eq("id", versionId)
+          .single();
+        if (!versionError && versionData) {
+          activeConditions = versionData.conditions;
+          activeActions = versionData.actions;
+        }
+      } else {
+        // Fallback: If no active version is set (e.g. legacy workflow), auto-create version 1
+        const { data: newVersion, error: newVerError } = await insforge.database
+          .from("workflow_versions")
+          .insert([
+            {
+              organization_id: orgId,
+              workflow_id: workflow.id,
+              version_number: 1,
+              trigger: workflow.trigger,
+              conditions: workflow.conditions,
+              actions: workflow.actions,
+              created_by: userId,
+            },
+          ])
+          .select("id")
+          .single();
+        if (!newVerError && newVersion) {
+          versionId = newVersion.id;
+          await insforge.database
+            .from("workflows")
+            .update({ active_version_id: versionId })
+            .eq("id", workflow.id);
+        }
+      }
+
       // 3. Loop prevention checks
       if (loopContext.depth >= 5) {
-        logger.warn({ workflowId: workflow.id, triggerName, depth: loopContext.depth }, "Workflow loop aborted: depth limit exceeded");
-        
+        logger.warn(
+          { workflowId: workflow.id, triggerName, depth: loopContext.depth },
+          "Workflow loop aborted: depth limit exceeded",
+        );
+
         // Log loop warning to activities table
         const projectId = (taskObj?.project_id || payloadObj?.project_id || null) as string | null;
         await insforge.database.from("activities").insert([
@@ -367,7 +455,10 @@ export async function triggerWorkflowEvent(
       }
 
       if (loopContext.executedIds.includes(workflow.id)) {
-        logger.warn({ workflowId: workflow.id, triggerName, executedIds: loopContext.executedIds }, "Workflow loop aborted: cycle detected");
+        logger.warn(
+          { workflowId: workflow.id, triggerName, executedIds: loopContext.executedIds },
+          "Workflow loop aborted: cycle detected",
+        );
 
         // Log cycle warning to activities table
         const projectId = (taskObj?.project_id || payloadObj?.project_id || null) as string | null;
@@ -389,10 +480,37 @@ export async function triggerWorkflowEvent(
       }
 
       // 4. Condition Evaluation
-      const isMatched = matchConditions(payload, workflow.conditions);
+      const isMatched = matchConditions(payload, activeConditions);
       if (!isMatched) {
         continue;
       }
+
+      // Create workflow execution record
+      const { data: execution, error: execInsertError } = await insforge.database
+        .from("workflow_executions")
+        .insert([
+          {
+            organization_id: orgId,
+            workflow_id: workflow.id,
+            version_id: versionId,
+            status: "RUNNING",
+            trigger_event: triggerName,
+            triggered_by: userId,
+            payload_snapshot: payload,
+          },
+        ])
+        .select("id")
+        .single();
+
+      if (execInsertError || !execution) {
+        logger.error({ execInsertError }, "Failed to create workflow execution run");
+        continue;
+      }
+
+      const executionId = execution.id;
+      const executionStartTime = Date.now();
+      let executionStatus = "COMPLETED";
+      let executionErrorMessage = null;
 
       // 5. Build next loop context
       const nextLoopContext: WorkflowContext = {
@@ -401,16 +519,111 @@ export async function triggerWorkflowEvent(
       };
 
       // 6. Execute actions in sequence
-      const actions = Array.isArray(workflow.actions) ? workflow.actions : [];
+      const actions = Array.isArray(activeActions) ? activeActions : [];
+      let stepNumber = 1;
+
       for (const action of actions) {
-        await executeAction(
-          action as { type: string; data: unknown },
-          payload,
-          session,
-          insforge,
-          nextLoopContext
-        );
+        const stepStartTime = Date.now();
+
+        // Insert step in PENDING state
+        const { data: step, error: stepInsertError } = await insforge.database
+          .from("workflow_execution_steps")
+          .insert([
+            {
+              execution_id: executionId,
+              step_number: stepNumber,
+              action_type: action.type,
+              action_data: action.data,
+              status: "PENDING",
+            },
+          ])
+          .select("id")
+          .single();
+
+        if (stepInsertError || !step) {
+          logger.error({ stepInsertError }, "Failed to insert step log");
+          executionStatus = "FAILED";
+          executionErrorMessage = "Failed to log execution steps";
+          break;
+        }
+
+        const stepId = step.id;
+        let stepStatus = "COMPLETED";
+        let stepErrorMsg = null;
+        let retryCount = 0;
+        const maxRetries = 3;
+
+        // Try-retry loop with backoff
+        while (retryCount <= maxRetries) {
+          try {
+            // Update step status to RUNNING or RETRYING
+            await insforge.database
+              .from("workflow_execution_steps")
+              .update({
+                status: retryCount > 0 ? "RETRYING" : "RUNNING",
+                retry_count: retryCount,
+              })
+              .eq("id", stepId);
+
+            await executeAction(
+              action as { type: string; data: unknown },
+              payload,
+              session,
+              insforge,
+              nextLoopContext,
+            );
+
+            // Action completed successfully
+            stepStatus = "COMPLETED";
+            break;
+          } catch (err: unknown) {
+            retryCount++;
+            stepErrorMsg = err instanceof Error ? err.message : "Unknown action error";
+            stepStatus = "FAILED";
+
+            if (retryCount <= maxRetries) {
+              const backoffDelay = Math.pow(2, retryCount) * 1000;
+              logger.warn(
+                { stepId, retryCount, backoffDelay, error: stepErrorMsg },
+                "Action failed, retrying...",
+              );
+              await new Promise((resolve) => setTimeout(resolve, backoffDelay));
+            }
+          }
+        }
+
+        // Update step status to final outcome
+        const stepDuration = Date.now() - stepStartTime;
+        await insforge.database
+          .from("workflow_execution_steps")
+          .update({
+            status: stepStatus,
+            duration: stepDuration,
+            error: stepErrorMsg,
+            finished_at: new Date().toISOString(),
+          })
+          .eq("id", stepId);
+
+        if (stepStatus === "FAILED") {
+          executionStatus = "FAILED";
+          executionErrorMessage = `Step ${stepNumber} (${action.type}) failed: ${stepErrorMsg}`;
+          break; // Stop execution of subsequent actions on step failure
+        }
+
+        stepNumber++;
       }
+
+      // Finalize workflow execution run status and duration
+      const totalDuration = Date.now() - executionStartTime;
+      await insforge.database
+        .from("workflow_executions")
+        .update({
+          status: executionStatus,
+          duration: totalDuration,
+          finished_at: new Date().toISOString(),
+          error_message: executionErrorMessage,
+        })
+        .eq("id", executionId);
     }
   } catch (err) {
     logger.error({ error: err, triggerName, orgId }, "Error executing workflow triggers");
@@ -422,15 +635,17 @@ async function notifyRoleMembers(
   orgId: string,
   roleName: string,
   content: string,
-  insforge: ReturnType<typeof createInsforgeServer>
+  insforge: ReturnType<typeof createInsforgeServer>,
 ): Promise<void> {
   const { data: memberships, error } = await insforge.database
     .from("memberships")
-    .select(`
+    .select(
+      `
       user_id,
       role,
       custom_role_id
-    `)
+    `,
+    )
     .eq("organization_id", orgId);
 
   if (error || !memberships) {
@@ -461,9 +676,47 @@ async function notifyRoleMembers(
     }
   }
 
-  const promises = targetUserIds.map((uid) =>
-    createNotification(uid, content, "GENERAL")
-  );
+  const promises = targetUserIds.map((uid) => createNotification(uid, content, "GENERAL"));
   await Promise.all(promises);
 }
 
+/**
+ * Clean up execution payload snapshots older than the specified retention days.
+ */
+export async function runPayloadRetentionCleanup(
+  userId: string,
+  retentionDays: number = 30,
+): Promise<{ deletedCount: number }> {
+  try {
+    const insforge = createInsforgeServer(userId);
+
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
+
+    const { data, error } = await insforge.database
+      .from("workflow_executions")
+      .update({
+        payload_snapshot: null,
+        has_payload_deleted: true,
+      })
+      .eq("status", "COMPLETED")
+      .lt("started_at", cutoffDate.toISOString())
+      .select("id");
+
+    if (error) {
+      logger.error({ error }, "Failed to clean workflow execution payload snapshots");
+      throw error;
+    }
+
+    const count = data?.length || 0;
+    logger.info(
+      { deletedCount: count, retentionDays },
+      "Payload retention cleanup completed successfully",
+    );
+    return { deletedCount: count };
+  } catch (err) {
+    logger.error({ error: err }, "Error running payload retention cleanup");
+    Sentry.captureException(err);
+    return { deletedCount: 0 };
+  }
+}

@@ -16,12 +16,13 @@ const workflowInputSchema = z.object({
   orgId: orgIdSchema,
   name: z.string().min(3).max(100),
   trigger: z.string().min(1),
+  category: z.string().optional().default("General"),
   conditions: z.record(z.string(), z.unknown()),
   actions: z.array(
     z.object({
       type: z.string().min(1),
       data: z.record(z.string(), z.unknown()),
-    })
+    }),
   ),
 });
 
@@ -30,13 +31,17 @@ const updateWorkflowInputSchema = z.object({
   orgId: orgIdSchema,
   name: z.string().min(3).max(100).optional(),
   trigger: z.string().min(1).optional(),
+  category: z.string().optional(),
+  status: z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]).optional(),
   conditions: z.record(z.string(), z.unknown()).optional(),
-  actions: z.array(
-    z.object({
-      type: z.string().min(1),
-      data: z.record(z.string(), z.unknown()),
-    })
-  ).optional(),
+  actions: z
+    .array(
+      z.object({
+        type: z.string().min(1),
+        data: z.record(z.string(), z.unknown()),
+      }),
+    )
+    .optional(),
   enabled: z.boolean().optional(),
 });
 
@@ -45,9 +50,17 @@ export async function createWorkflow(
   name: string,
   trigger: string,
   conditions: Record<string, unknown> = {},
-  actions: { type: string; data: Record<string, unknown> }[] = []
+  actions: { type: string; data: Record<string, unknown> }[] = [],
+  category: string = "General",
 ): Promise<{ success: boolean; data?: { workflowId: string }; error?: string }> {
-  const validated = workflowInputSchema.safeParse({ orgId, name, trigger, conditions, actions });
+  const validated = workflowInputSchema.safeParse({
+    orgId,
+    name,
+    trigger,
+    conditions,
+    actions,
+    category,
+  });
   if (!validated.success) {
     return { success: false, error: validated.error.issues[0].message };
   }
@@ -59,9 +72,18 @@ export async function createWorkflow(
     const insforge = createInsforgeServer(userId);
 
     // Only OWNER or ADMIN can create workflows
-    const isAuthorized = await verifyPermission(insforge, validated.data.orgId, userId, "workflows", "create");
+    const isAuthorized = await verifyPermission(
+      insforge,
+      validated.data.orgId,
+      userId,
+      "workflows",
+      "create",
+    );
     if (!isAuthorized) {
-      return { success: false, error: "Only users with workflow creation permissions can create workflows" };
+      return {
+        success: false,
+        error: "Only users with workflow creation permissions can create workflows",
+      };
     }
 
     const { data: workflow, error } = await insforge.database
@@ -73,7 +95,9 @@ export async function createWorkflow(
           trigger: validated.data.trigger,
           conditions: validated.data.conditions,
           actions: validated.data.actions,
+          category: validated.data.category,
           enabled: true,
+          status: "ACTIVE",
         },
       ])
       .select("id")
@@ -84,18 +108,38 @@ export async function createWorkflow(
       return { success: false, error: "Failed to create workflow" };
     }
 
+    // Auto-create Version 1
+    const { data: version, error: verError } = await insforge.database
+      .from("workflow_versions")
+      .insert([
+        {
+          organization_id: validated.data.orgId,
+          workflow_id: workflow.id,
+          version_number: 1,
+          trigger: validated.data.trigger,
+          conditions: validated.data.conditions,
+          actions: validated.data.actions,
+          created_by: userId,
+        },
+      ])
+      .select("id")
+      .single();
+
+    if (!verError && version) {
+      await insforge.database
+        .from("workflows")
+        .update({ active_version_id: version.id })
+        .eq("id", workflow.id);
+    }
+
     // Invalidate the cache to ensure trigger is re-read on the next trigger event
     invalidateTriggerCache(validated.data.orgId);
 
     after(() =>
-      writeAuditLog(
-        validated.data.orgId,
-        userId,
-        "workflow.created",
-        "workflow",
-        workflow.id,
-        { name: validated.data.name, trigger: validated.data.trigger }
-      )
+      writeAuditLog(validated.data.orgId, userId, "workflow.created", "workflow", workflow.id, {
+        name: validated.data.name,
+        trigger: validated.data.trigger,
+      }),
     );
 
     revalidatePath("/workflows");
@@ -117,8 +161,10 @@ export async function updateWorkflow(
     trigger?: string;
     conditions?: Record<string, unknown>;
     actions?: { type: string; data: Record<string, unknown> }[];
+    category?: string;
+    status?: "DRAFT" | "ACTIVE" | "ARCHIVED";
     enabled?: boolean;
-  }
+  },
 ): Promise<{ success: boolean; error?: string }> {
   const validated = updateWorkflowInputSchema.safeParse({ id, orgId, ...updates });
   if (!validated.success) {
@@ -132,17 +178,81 @@ export async function updateWorkflow(
     const insforge = createInsforgeServer(userId);
 
     // Only OWNER or ADMIN can update workflows
-    const isAuthorized = await verifyPermission(insforge, validated.data.orgId, userId, "workflows", "update");
+    const isAuthorized = await verifyPermission(
+      insforge,
+      validated.data.orgId,
+      userId,
+      "workflows",
+      "update",
+    );
     if (!isAuthorized) {
-      return { success: false, error: "Only users with workflow update permissions can update workflows" };
+      return {
+        success: false,
+        error: "Only users with workflow update permissions can update workflows",
+      };
+    }
+
+    // Fetch existing workflow to verify if triggers/actions are changed
+    const { data: existingWf, error: fetchError } = await insforge.database
+      .from("workflows")
+      .select("*")
+      .eq("id", validated.data.id)
+      .single();
+
+    if (fetchError || !existingWf) {
+      return { success: false, error: "Workflow not found" };
     }
 
     const updatePayload: Record<string, unknown> = {};
     if (validated.data.name !== undefined) updatePayload.name = validated.data.name;
     if (validated.data.trigger !== undefined) updatePayload.trigger = validated.data.trigger;
-    if (validated.data.conditions !== undefined) updatePayload.conditions = validated.data.conditions;
+    if (validated.data.conditions !== undefined)
+      updatePayload.conditions = validated.data.conditions;
     if (validated.data.actions !== undefined) updatePayload.actions = validated.data.actions;
+    if (validated.data.category !== undefined) updatePayload.category = validated.data.category;
+    if (validated.data.status !== undefined) updatePayload.status = validated.data.status;
     if (validated.data.enabled !== undefined) updatePayload.enabled = validated.data.enabled;
+
+    // Check if configuration parameters have changed
+    const configChanged =
+      (validated.data.trigger !== undefined && validated.data.trigger !== existingWf.trigger) ||
+      (validated.data.conditions !== undefined &&
+        JSON.stringify(validated.data.conditions) !== JSON.stringify(existingWf.conditions)) ||
+      (validated.data.actions !== undefined &&
+        JSON.stringify(validated.data.actions) !== JSON.stringify(existingWf.actions));
+
+    if (configChanged) {
+      // Find current max version number
+      const { data: versions } = await insforge.database
+        .from("workflow_versions")
+        .select("version_number")
+        .eq("workflow_id", validated.data.id)
+        .order("version_number", { ascending: false })
+        .limit(1);
+
+      const nextVersionNum = versions && versions.length > 0 ? versions[0].version_number + 1 : 1;
+
+      // Insert new version
+      const { data: newVersion, error: verError } = await insforge.database
+        .from("workflow_versions")
+        .insert([
+          {
+            organization_id: validated.data.orgId,
+            workflow_id: validated.data.id,
+            version_number: nextVersionNum,
+            trigger: validated.data.trigger || existingWf.trigger,
+            conditions: validated.data.conditions || existingWf.conditions,
+            actions: validated.data.actions || existingWf.actions,
+            created_by: userId,
+          },
+        ])
+        .select("id")
+        .single();
+
+      if (!verError && newVersion) {
+        updatePayload.active_version_id = newVersion.id;
+      }
+    }
 
     const { error } = await insforge.database
       .from("workflows")
@@ -164,14 +274,14 @@ export async function updateWorkflow(
         "workflow.updated",
         "workflow",
         validated.data.id,
-        { changes: updates }
-      )
+        { changes: updates },
+      ),
     );
 
     revalidatePath("/workflows");
     return { success: true };
   } catch (error) {
-    logger.error({ error, id }, "updateWorkflow unexpected error");
+    logger.error({ error, id: validated.data.id }, "updateWorkflow unexpected error");
     Sentry.captureException(error);
     return { success: false, error: "An unexpected error occurred" };
   } finally {
@@ -181,7 +291,7 @@ export async function updateWorkflow(
 
 export async function deleteWorkflow(
   id: string,
-  orgId: string
+  orgId: string,
 ): Promise<{ success: boolean; error?: string }> {
   try {
     const { userId } = await auth();
@@ -191,7 +301,10 @@ export async function deleteWorkflow(
 
     const isAuthorized = await verifyPermission(insforge, orgId, userId, "workflows", "delete");
     if (!isAuthorized) {
-      return { success: false, error: "Only users with workflow deletion permissions can delete workflows" };
+      return {
+        success: false,
+        error: "Only users with workflow deletion permissions can delete workflows",
+      };
     }
 
     const { error } = await insforge.database
@@ -207,9 +320,7 @@ export async function deleteWorkflow(
 
     invalidateTriggerCache(orgId);
 
-    after(() =>
-      writeAuditLog(orgId, userId, "workflow.deleted", "workflow", id, {})
-    );
+    after(() => writeAuditLog(orgId, userId, "workflow.deleted", "workflow", id, {}));
 
     revalidatePath("/workflows");
     return { success: true };
@@ -234,7 +345,7 @@ export type Workflow = {
 };
 
 export async function getWorkflows(
-  orgId: string
+  orgId: string,
 ): Promise<{ success: boolean; data: Workflow[]; error?: string }> {
   const validated = orgIdSchema.safeParse(orgId);
   if (!validated.success) {

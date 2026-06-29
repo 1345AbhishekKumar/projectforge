@@ -30,7 +30,10 @@ export default function TeamPage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    const timer = setTimeout(() => {
+      setMounted(true);
+    }, 0);
+    return () => clearTimeout(timer);
   }, []);
 
   // Modal State for Capacity edit
@@ -54,7 +57,11 @@ export default function TeamPage() {
   }, []);
 
   // Query: Team Directory members list
-  const { data: members = [], isLoading: loading, error: queryError } = useQuery<TeamMember[]>({
+  const {
+    data: members = [],
+    isLoading: loading,
+    error: queryError,
+  } = useQuery<TeamMember[]>({
     queryKey: ["teamDirectory", activeOrgId],
     queryFn: async () => {
       if (!activeOrgId) return [];
@@ -68,7 +75,11 @@ export default function TeamPage() {
   });
 
   // Query: Capacity Planner allocations
-  const { data: capacityData, isLoading: loadingCapacity, refetch: refetchCapacity } = useQuery({
+  const {
+    data: capacityData,
+    isLoading: loadingCapacity,
+    refetch: refetchCapacity,
+  } = useQuery({
     queryKey: ["capacityPlanner", activeOrgId],
     queryFn: async () => {
       if (!activeOrgId) return null;
@@ -174,20 +185,25 @@ export default function TeamPage() {
             ) : !capacityData ? (
               <div className="bg-accent-pink border-2 border-black rounded-sketchy shadow-flat-offset p-8 text-center max-w-lg mx-auto">
                 <h2 className="font-cursive text-2xl font-bold mb-2">Something went wrong</h2>
-                <p className="font-sans text-sm text-secondary">Failed to load capacity planner data.</p>
+                <p className="font-sans text-sm text-secondary">
+                  Failed to load capacity planner data.
+                </p>
               </div>
             ) : (
               <div className="flex flex-col gap-8">
                 {/* Capacity Overview Visuals */}
-                <CapacityAllocationChart 
-                  capacityData={capacityData.capacity} 
-                  showCost={capacityData.capacity.find((c) => c.userId === user?.id)?.role === "OWNER" || capacityData.capacity.find((c) => c.userId === user?.id)?.role === "ADMIN"} 
+                <CapacityAllocationChart
+                  capacityData={capacityData.capacity}
+                  showCost={
+                    capacityData.capacity.find((c) => c.userId === user?.id)?.role === "OWNER" ||
+                    capacityData.capacity.find((c) => c.userId === user?.id)?.role === "ADMIN"
+                  }
                 />
 
                 {/* Members Allocations Detail Grid */}
                 <div className="bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset rotate-[0.5deg]">
                   <h3 className="font-cursive text-2xl font-bold mb-4">Member Allocations</h3>
-                  
+
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                       <thead>
@@ -196,7 +212,10 @@ export default function TeamPage() {
                           <th className="pb-3 px-4">Role</th>
                           <th className="pb-3 px-4">Allocated Projects</th>
                           <th className="pb-3 px-4">Total Allocation</th>
-                          {(capacityData.capacity.find((c) => c.userId === user?.id)?.role === "OWNER" || capacityData.capacity.find((c) => c.userId === user?.id)?.role === "ADMIN") && <th className="pb-3 pl-4 text-right">Actions</th>}
+                          {(capacityData.capacity.find((c) => c.userId === user?.id)?.role ===
+                            "OWNER" ||
+                            capacityData.capacity.find((c) => c.userId === user?.id)?.role ===
+                              "ADMIN") && <th className="pb-3 pl-4 text-right">Actions</th>}
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-black/10 font-sans text-xs">
@@ -230,7 +249,7 @@ export default function TeamPage() {
                                   </div>
                                 </div>
                               </td>
-                              
+
                               {/* Role */}
                               <td className="py-4 px-4 font-semibold text-secondary capitalize">
                                 {member.role.toLowerCase()}
@@ -239,7 +258,9 @@ export default function TeamPage() {
                               {/* Allocated Projects */}
                               <td className="py-4 px-4">
                                 {member.allocations.length === 0 ? (
-                                  <span className="text-secondary/40 italic">No project allocations</span>
+                                  <span className="text-secondary/40 italic">
+                                    No project allocations
+                                  </span>
                                 ) : (
                                   <div className="flex flex-wrap gap-1.5 max-w-md">
                                     {member.allocations.map((alloc) => (
@@ -247,7 +268,8 @@ export default function TeamPage() {
                                         key={alloc.projectId}
                                         className="bg-neutral-bg border border-black rounded px-1.5 py-0.5 text-[10px] font-medium text-primary"
                                       >
-                                        {alloc.projectName}: <strong className="font-bold">{alloc.percentage}%</strong>
+                                        {alloc.projectName}:{" "}
+                                        <strong className="font-bold">{alloc.percentage}%</strong>
                                       </span>
                                     ))}
                                   </div>
@@ -261,8 +283,8 @@ export default function TeamPage() {
                                     isOver
                                       ? "bg-accent-pink/30 border-accent-pink text-primary"
                                       : member.totalAllocatedPercentage === 100
-                                      ? "bg-accent-green/30 border-accent-green text-primary"
-                                      : "bg-accent-blue/30 border-accent-blue text-primary"
+                                        ? "bg-accent-green/30 border-accent-green text-primary"
+                                        : "bg-accent-blue/30 border-accent-blue text-primary"
                                   }`}
                                 >
                                   {member.totalAllocatedPercentage}%
@@ -270,7 +292,10 @@ export default function TeamPage() {
                               </td>
 
                               {/* Actions */}
-                              {(capacityData.capacity.find((c) => c.userId === user?.id)?.role === "OWNER" || capacityData.capacity.find((c) => c.userId === user?.id)?.role === "ADMIN") && (
+                              {(capacityData.capacity.find((c) => c.userId === user?.id)?.role ===
+                                "OWNER" ||
+                                capacityData.capacity.find((c) => c.userId === user?.id)?.role ===
+                                  "ADMIN") && (
                                 <td className="py-4 pl-4 text-right">
                                   <button
                                     onClick={() =>
@@ -296,7 +321,7 @@ export default function TeamPage() {
                 </div>
               </div>
             )}
-            
+
             {editingMember && (
               <EditAllocationModal
                 isOpen={!!editingMember}

@@ -473,7 +473,7 @@ After building any component — update this file with the component name, file 
 - **Stats Card:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset flex justify-around items-center divide-x-2 divide-black/10 rotate-[-0.5deg]`
 - **Logs Grid Card:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset flex flex-col gap-4`
 
-### Workflow Automation Page (Feature 3.1 Refactoring)
+### Workflow Automation Page (Feature 3.1 & 4.17 centralisation)
 
 #### Workflows Page
 
@@ -481,9 +481,31 @@ After building any component — update this file with the component name, file 
 - **Container Classes:** `min-h-screen w-full bg-neutral-bg bg-dot-grid text-primary flex`
 - **Main Wrapper Card:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col gap-6`
 
-#### WorkflowsTab Component
+#### WorkflowsDashboard Component
 
-- **File Path:** [WorkflowsTab.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/orgs/WorkflowsTab.tsx)
-- **Container Classes:** `bg-white border-2 border-black rounded-sketchy shadow-flat-offset p-6 flex flex-col gap-4 animate-in fade-in`
-- **Dynamic Field Selectors:** `w-full px-3 py-2 border-2 border-black rounded-sketchy-sm font-sans text-sm bg-white focus:outline-none focus:ring-2 focus:ring-tertiary transition-shadow cursor-pointer`
-- **Project Filter Scope Badge:** `font-bold text-primary mr-1 bg-neutral-bg border border-black/10 px-1.5 py-0.5 rounded text-[10px]`
+- **File Path:** [WorkflowsDashboard.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/workflows/WorkflowsDashboard.tsx)
+- **Card Wrapper:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset-sm relative hover:-translate-y-0.5 transition-transform`
+- **SVG timeline container:** `flex-1 min-h-[220px] flex items-end justify-between gap-2 pt-6 pb-2 px-4 border-b-2 border-black relative`
+
+#### WorkflowsList Component
+
+- **File Path:** [WorkflowsList.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/workflows/WorkflowsList.tsx)
+- **Tabs controls:** `flex flex-wrap border-b-2 border-black gap-2`
+- **Card list:** `bg-white border-2 border-black rounded-sketchy p-5 shadow-flat-offset-xs flex flex-col justify-between gap-4 transition-all relative`
+
+#### WorkflowBuilder Component
+
+- **File Path:** [WorkflowBuilder.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/workflows/WorkflowBuilder.tsx)
+- **Visual Canvas:** `bg-neutral-bg bg-dot-grid border-2 border-black rounded-sketchy p-6 flex flex-col items-center justify-center relative lg:col-span-2 shadow-inner overflow-hidden min-h-[450px]`
+- **Properties Form:** `bg-white border-2 border-black rounded-sketchy p-6 shadow-flat-offset flex flex-col gap-6 rotate-[0.5deg]`
+
+#### WorkflowDependencyGraph Component
+
+- **File Path:** [WorkflowDependencyGraph.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/workflows/WorkflowDependencyGraph.tsx)
+- **Node flows container:** `flex flex-col sm:flex-row sm:items-center justify-between border-2 border-black rounded-sketchy-sm p-4 bg-white shadow-sm hover:translate-x-0.5 transition-transform`
+
+#### ExecutionTracer Component
+
+- **File Path:** [ExecutionTracer.tsx](file:///d:/MyProjects/ongoing_Projects/projectforge/components/workflows/executions/[runId]/ExecutionTracer.tsx)
+- **Visual timeline container:** `relative pl-8 border-l-2 border-dashed border-black/20 flex flex-col gap-6 pt-2`
+- **Step item card:** `relative cursor-pointer p-4 border-2 border-black rounded-sketchy shadow-flat-offset-xs hover:-translate-y-0.5 transition-transform`

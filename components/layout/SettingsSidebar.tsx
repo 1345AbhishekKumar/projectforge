@@ -2,7 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Users, Shield, History, Network, Download, Activity, SlidersHorizontal, Zap } from "lucide-react";
+import {
+  Users,
+  Shield,
+  History,
+  Network,
+  Download,
+  Activity,
+  SlidersHorizontal,
+} from "lucide-react";
 import { useTranslation } from "@/lib/i18n/useTranslation";
 
 export function SettingsSidebar() {

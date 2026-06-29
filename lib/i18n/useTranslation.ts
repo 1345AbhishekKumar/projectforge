@@ -1,11 +1,10 @@
 "use client";
 
-import { useLocaleStore } from "@/store/localeStore";
+import { useLocaleContext } from "@/components/providers/LocaleProvider";
 import { translations } from "./translations";
 
 export function useTranslation() {
-  const locale = useLocaleStore((state) => state.locale);
-  const setLocale = useLocaleStore((state) => state.setLocale);
+  const { locale, setLocale } = useLocaleContext();
 
   const t = (path: string, defaultValue?: string) => {
     const keys = path.split(".");
@@ -17,7 +16,7 @@ export function useTranslation() {
         return defaultValue || path;
       }
     }
-    return typeof current === "string" ? current : (defaultValue || path);
+    return typeof current === "string" ? current : defaultValue || path;
   };
 
   return { t, locale, setLocale };
